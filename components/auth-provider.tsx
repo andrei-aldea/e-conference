@@ -12,6 +12,7 @@ import { toast } from 'sonner'
 
 type AuthContextType = {
 	user: UserWithId | null
+	updateUser: (data: Partial<User>) => void
 	login: (data: LoginInput) => Promise<void>
 	signup: (data: SignupInput) => Promise<void>
 	logout: () => void
@@ -108,12 +109,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		}
 	}
 
+	const updateUser = (data: Partial<User>) => {
+		if (user) {
+			setUser({ ...user, ...data })
+		}
+	}
+
 	// While loading, we can render a spinner or null to prevent content flashing.
 	if (isLoading) {
 		return null // Or a loading spinner component
 	}
 
-	return <AuthContext.Provider value={{ user, login, signup, logout, isLoading }}>{children}</AuthContext.Provider>
+	return (
+		<AuthContext.Provider value={{ user, login, signup, logout, isLoading, updateUser }}>
+			{children}
+		</AuthContext.Provider>
+	)
 }
 
 export function useAuth() {

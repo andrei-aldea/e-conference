@@ -1,7 +1,7 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useState } from 'react'
+import { useState, type ComponentProps } from 'react'
 import { useForm } from 'react-hook-form'
 
 import { useAuth } from '@/components/auth-provider'
@@ -10,12 +10,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { type LoginInput, loginSchema } from '@/lib/schemas'
+import { loginSchema, type LoginInput } from '@/lib/schemas'
 import { cn } from '@/lib/utils'
-import { Loader } from 'lucide-react'
+import { Eye, EyeOff, Loader } from 'lucide-react'
 import Link from 'next/link'
 
-export function LoginForm({ className, ...props }: React.ComponentProps<'div'>) {
+export function LoginForm({ className, ...props }: ComponentProps<'div'>) {
 	const form = useForm<LoginInput>({
 		resolver: zodResolver(loginSchema),
 		defaultValues: {
@@ -25,6 +25,7 @@ export function LoginForm({ className, ...props }: React.ComponentProps<'div'>) 
 	})
 
 	const [isSubmitting, setIsSubmitting] = useState(false)
+	const [showPassword, setShowPassword] = useState(false)
 	const { login } = useAuth()
 
 	async function onSubmit(data: LoginInput) {
@@ -81,12 +82,23 @@ export function LoginForm({ className, ...props }: React.ComponentProps<'div'>) 
 										<FormItem>
 											<Field>
 												<FieldLabel>Password</FieldLabel>
-												<FormControl>
-													<Input
-														type='password'
-														{...field}
-													/>
-												</FormControl>
+												<div className='relative'>
+													<FormControl>
+														<Input
+															type={showPassword ? 'text' : 'password'}
+															{...field}
+														/>
+													</FormControl>
+													<Button
+														type='button'
+														variant='ghost'
+														size='icon-sm'
+														className='absolute right-1 top-1/2 -translate-y-1/2'
+														onClick={() => setShowPassword(!showPassword)}
+													>
+														{showPassword ? <EyeOff /> : <Eye />}
+													</Button>
+												</div>
 												<FormMessage />
 											</Field>
 										</FormItem>

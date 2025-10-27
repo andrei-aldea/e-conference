@@ -8,6 +8,7 @@ import { CalendarIcon } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
@@ -25,7 +26,8 @@ export default function CreateConferencePage() {
 		resolver: zodResolver(conferenceSchema),
 		defaultValues: {
 			name: '',
-			description: ''
+			description: '',
+			location: ''
 		}
 	})
 
@@ -35,7 +37,7 @@ export default function CreateConferencePage() {
 
 	async function onSubmit(data: ConferenceInput) {
 		if (!user || user.role !== 'organizer') {
-			alert('You must be an organizer to create a conference.')
+			toast.error('You must be an organizer to create a conference.')
 			return
 		}
 
@@ -43,17 +45,17 @@ export default function CreateConferencePage() {
 		try {
 			const conferenceData = {
 				...data,
-				organizerId: user.uid, // Link the conference to the organizer
+				organizerId: user.uid,
 				startDate: Timestamp.fromDate(data.startDate),
 				endDate: Timestamp.fromDate(data.endDate)
 			}
 			const docRef = await addDoc(collection(db, 'conferences'), conferenceData)
 			console.log('Document written with ID: ', docRef.id)
-			alert('Conference created successfully!')
+			toast.success('Conference created successfully!')
 			router.push('/dashboard/conferences') // Redirect to the conference list
 		} catch (e) {
 			console.error('Error adding document: ', e)
-			alert('There was an error creating the conference. Please try again.')
+			toast.error('There was an error creating the conference. Please try again.')
 		} finally {
 			setIsSubmitting(false)
 		}
@@ -91,6 +93,22 @@ export default function CreateConferencePage() {
 							/>
 							<FormField
 								control={form.control}
+								name='location'
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Location</FormLabel>
+										<FormControl>
+											<Input
+												placeholder='e.g., "Online" or "New York, NY"'
+												{...field}
+											/>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+							<FormField
+								control={form.control}
 								name='description'
 								render={({ field }) => (
 									<FormItem>
@@ -106,6 +124,7 @@ export default function CreateConferencePage() {
 									</FormItem>
 								)}
 							/>
+
 							<FormField
 								control={form.control}
 								name='startDate'

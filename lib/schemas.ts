@@ -20,6 +20,7 @@ export const loginSchema = z.object({
 
 export const conferenceSchema = z.object({
 	name: z.string().min(3, { message: 'Conference name must be at least 3 characters long' }),
+	location: z.string().min(1, 'Location is required.'),
 	description: z.string().min(10, { message: 'Description must be at least 10 characters long' }),
 	startDate: z.date({ message: 'A start date is required.' }),
 	endDate: z.date({ message: 'An end date is required.' })
