@@ -1,11 +1,32 @@
+'use client'
+
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useForm } from 'react-hook-form'
+
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
+import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { type SignupInput, signupSchema } from '@/lib/schemas'
 import { cn } from '@/lib/utils'
 
 export function SignupForm({ className, ...props }: React.ComponentProps<'div'>) {
+	const form = useForm<SignupInput>({
+		resolver: zodResolver(signupSchema),
+		defaultValues: {
+			name: '',
+			email: '',
+			password: '',
+			confirmPassword: ''
+		}
+	})
+
+	function onSubmit(data: SignupInput) {
+		console.log(data)
+	}
+
 	return (
 		<div
 			className={cn('flex flex-col gap-6', className)}
@@ -17,68 +38,128 @@ export function SignupForm({ className, ...props }: React.ComponentProps<'div'>)
 					<CardDescription>Enter your email below to create your account</CardDescription>
 				</CardHeader>
 				<CardContent>
-					<form>
-						<FieldGroup>
-							<Field>
-								<FieldLabel htmlFor='name'>Full Name</FieldLabel>
-								<Input
-									id='name'
-									type='text'
-									placeholder='John Doe'
-									required
+					<Form {...form}>
+						<form
+							onSubmit={form.handleSubmit(onSubmit)}
+							className='space-y-4'
+						>
+							<FieldGroup>
+								<FormField
+									control={form.control}
+									name='name'
+									render={({ field }) => (
+										<FormItem>
+											<Field>
+												<FieldLabel>Full Name</FieldLabel>
+												<FormControl>
+													<Input
+														type='text'
+														placeholder='John Doe'
+														{...field}
+													/>
+												</FormControl>
+												<FormMessage />
+											</Field>
+										</FormItem>
+									)}
 								/>
-							</Field>
-							<Field>
-								<FieldLabel htmlFor='role'>Role</FieldLabel>
-								<Select name='role'>
-									<SelectTrigger id='role'>
-										<SelectValue placeholder='Select a role' />
-									</SelectTrigger>
-									<SelectContent>
-										<SelectItem value='organizer'>Organizer</SelectItem>
-										<SelectItem value='author'>Author</SelectItem>
-										<SelectItem value='reviewer'>Reviewer</SelectItem>
-									</SelectContent>
-								</Select>
-							</Field>
-							<Field>
-								<FieldLabel htmlFor='email'>Email</FieldLabel>
-								<Input
-									id='email'
-									type='email'
-									placeholder='m@example.com'
-									required
+								<FormField
+									control={form.control}
+									name='role'
+									render={({ field }) => (
+										<FormItem>
+											<Field>
+												<FieldLabel>Role</FieldLabel>
+												<Select
+													onValueChange={field.onChange}
+													defaultValue={field.value}
+												>
+													<FormControl>
+														<SelectTrigger>
+															<SelectValue placeholder='Select a role' />
+														</SelectTrigger>
+													</FormControl>
+													<SelectContent>
+														<SelectItem value='organizer'>Organizer</SelectItem>
+														<SelectItem value='author'>Author</SelectItem>
+														<SelectItem value='reviewer'>Reviewer</SelectItem>
+													</SelectContent>
+												</Select>
+												<FormMessage />
+											</Field>
+										</FormItem>
+									)}
 								/>
-							</Field>
-							<Field>
-								<Field className='grid grid-cols-2 gap-4'>
-									<Field>
-										<FieldLabel htmlFor='password'>Password</FieldLabel>
-										<Input
-											id='password'
-											type='password'
-											required
-										/>
-									</Field>
-									<Field>
-										<FieldLabel htmlFor='confirm-password'>Confirm Password</FieldLabel>
-										<Input
-											id='confirm-password'
-											type='password'
-											required
-										/>
-									</Field>
-								</Field>
+								<FormField
+									control={form.control}
+									name='email'
+									render={({ field }) => (
+										<FormItem>
+											<Field>
+												<FieldLabel>Email</FieldLabel>
+												<FormControl>
+													<Input
+														type='email'
+														placeholder='m@example.com'
+														{...field}
+													/>
+												</FormControl>
+												<FormMessage />
+											</Field>
+										</FormItem>
+									)}
+								/>
+								<div className='grid grid-cols-2 gap-4'>
+									<FormField
+										control={form.control}
+										name='password'
+										render={({ field }) => (
+											<FormItem>
+												<Field>
+													<FieldLabel>Password</FieldLabel>
+													<FormControl>
+														<Input
+															type='password'
+															{...field}
+														/>
+													</FormControl>
+													<FormMessage />
+												</Field>
+											</FormItem>
+										)}
+									/>
+									<FormField
+										control={form.control}
+										name='confirmPassword'
+										render={({ field }) => (
+											<FormItem>
+												<Field>
+													<FieldLabel>Confirm Password</FieldLabel>
+													<FormControl>
+														<Input
+															type='password'
+															{...field}
+														/>
+													</FormControl>
+													<FormMessage />
+												</Field>
+											</FormItem>
+										)}
+									/>
+								</div>
 								<FieldDescription>Must be at least 8 characters long.</FieldDescription>
-							</Field>
-							<Field>
-								<Button type='submit'>Create Account</Button>
+								<Button
+									type='submit'
+									className='w-full'
+								>
+									Create Account
+								</Button>
 								<FieldDescription className='text-center'>
 									Already have an account? <a href='login'>Sign in</a>
 								</FieldDescription>
-							</Field>
-						</FieldGroup>
-					</form>
+							</FieldGroup>
+						</form>
+					</Form>
 				</CardContent>
 			</Card>
 		</div>
