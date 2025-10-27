@@ -2,12 +2,13 @@
 
 import { collection, deleteDoc, doc, orderBy, query } from 'firebase/firestore'
 import { Trash2 } from 'lucide-react'
+import Link from 'next/link'
 import { useCollection } from 'react-firebase-hooks/firestore'
 import { toast } from 'sonner'
 
 import { useAuth } from '@/components/auth-provider'
 import { Button } from '@/components/ui/button'
-import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { db } from '@/lib/firebase'
 import { type Conference } from '@/lib/schemas'
 
@@ -80,6 +81,14 @@ export default function ConferencesPage() {
 							)}
 						</CardHeader>
 						<CardContent>{conf.description}</CardContent>
+						<CardFooter className='justify-end pt-0'>
+							<Button
+								variant='outline'
+								asChild
+							>
+								<Link href={`/dashboard/conferences/${conf.id}`}>View details</Link>
+							</Button>
+						</CardFooter>
 					</Card>
 				))
 			) : (

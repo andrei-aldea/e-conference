@@ -9,7 +9,7 @@ import { toast } from 'sonner'
 
 import { useAuth } from '@/components/auth-provider'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -66,10 +66,6 @@ export default function AccountPage() {
 		<>
 			<h1>My Account</h1>
 			<Card>
-				<CardHeader>
-					<CardTitle>Profile Information</CardTitle>
-					<CardDescription>View and manage your account details.</CardDescription>
-				</CardHeader>
 				<CardContent>
 					<Form {...form}>
 						<form
