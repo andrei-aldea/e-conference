@@ -1,7 +1,7 @@
 import { getAuth } from 'firebase-admin/auth'
 import { type NextRequest, NextResponse } from 'next/server'
 
-import { getFirebaseAdminApp } from '@/lib/firebase-admin'
+import { getFirebaseAdminApp } from '@/lib/firebase/firebase-admin'
 
 export async function POST(request: NextRequest) {
 	try {

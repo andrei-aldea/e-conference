@@ -1,7 +1,6 @@
 import { getApp, getApps, initializeApp } from 'firebase/app'
 import { getAuth } from 'firebase/auth'
 import { getFirestore } from 'firebase/firestore'
-
 import { getStorage } from 'firebase/storage'
 
 const firebaseConfig = {
@@ -13,15 +12,15 @@ const firebaseConfig = {
 	appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
 }
 
-// This function ensures that we only initialize Firebase once.
+// Ensures Firebase only initializes once on the client.
 function getFirebaseApp() {
 	return getApps().length > 0 ? getApp() : initializeApp(firebaseConfig)
 }
 
 const app = getFirebaseApp()
 
-const auth = getAuth(app)
-const db = getFirestore(app)
-const storage = getStorage(app)
+export const auth = getAuth(app)
+export const db = getFirestore(app)
+export const storage = getStorage(app)
 
-export { app, auth, db, storage }
+export { app }

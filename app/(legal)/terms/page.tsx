@@ -1,7 +1,9 @@
+import { PageTitle } from '@/components/layout/page-header'
+
 export default function TermsPage() {
 	return (
 		<main className='container mx-auto p-8'>
-			<h1 className='mb-4 text-3xl font-bold'>Terms of Service</h1>
+			<PageTitle className='mb-4 text-3xl font-bold'>Terms of Service</PageTitle>
 			<div className='space-y-4'>
 				<p>Welcome to eConference!</p>
 				<p>

@@ -1,119 +1,26 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
-
+import { DashboardCommunitySnapshotCard } from '@/components/dashboard/dashboard-community-snapshot-card'
+import { DashboardLoadingPlaceholder } from '@/components/dashboard/dashboard-loading-placeholder'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Skeleton } from '@/components/ui/skeleton'
-
-interface OrganizerStatsPayload {
-	role: 'organizer'
-	conferenceCount: number
-	paperCount: number
-	totalReviewAssignments: number
-	pendingDecisions: number
-	acceptedDecisions: number
-	declinedDecisions: number
-	uniqueReviewerCount: number
-	uniqueAuthorCount: number
-	latestConferenceName: string | null
-	latestConferenceStart: string | null
-	latestPaperTitle: string | null
-	latestPaperCreatedAt: string | null
-}
-
-interface DashboardSummaryResponse {
-	general: {
-		totalConferences: number
-		totalPapers: number
-		totalReviewers: number
-		totalAuthors: number
-		totalOrganizers: number
-		totalUsers: number
-	}
-	role: OrganizerStatsPayload | null
-}
+import { useDashboardSummary } from '@/hooks/use-dashboard-summary'
 
 export function OrganizerDashboard() {
-	const [data, setData] = useState<DashboardSummaryResponse | null>(null)
-	const [isLoading, setIsLoading] = useState(true)
-	const [error, setError] = useState<string | null>(null)
-
-	useEffect(() => {
-		let isMounted = true
-
-		async function load() {
-			try {
-				const response = await fetch('/api/dashboard')
-				if (!response.ok) {
-					throw new Error('Failed to load dashboard summary')
-				}
-				const payload = (await response.json()) as DashboardSummaryResponse
-				if (isMounted) {
-					setData(payload)
-				}
-			} catch (loadError) {
-				console.error('Failed to load organizer dashboard summary:', loadError)
-				if (isMounted) {
-					setError('Unable to load organizer dashboard. Please try again later.')
-				}
-			} finally {
-				if (isMounted) {
-					setIsLoading(false)
-				}
-			}
-		}
-
-		void load()
-
-		return () => {
-			isMounted = false
-		}
-	}, [])
-
-	const organizer = useMemo(() => {
-		if (!data || !data.role || data.role.role !== 'organizer') {
-			return null
-		}
-		return data.role
-	}, [data])
+	const { general, roleStats, isLoading, error } = useDashboardSummary('organizer', {
+		fallbackErrorMessage: 'Unable to load organizer dashboard. Please try again later.'
+	})
 
 	if (isLoading) {
-		return (
-			<div className='space-y-4'>
-				<Card>
-					<CardHeader>
-						<CardTitle>
-							<Skeleton className='h-5 w-40' />
-						</CardTitle>
-						<CardDescription>
-							<Skeleton className='h-4 w-64' />
-						</CardDescription>
-					</CardHeader>
-					<CardContent className='space-y-2'>
-						{Array.from({ length: 4 }).map((_, index) => (
-							<div
-								key={index}
-								className='flex items-center justify-between'
-							>
-								<Skeleton className='h-4 w-48' />
-								<Skeleton className='h-4 w-24' />
-							</div>
-						))}
-					</CardContent>
-				</Card>
-			</div>
-		)
+		return <DashboardLoadingPlaceholder />
 	}
 
 	if (error) {
 		return <p className='text-sm text-destructive'>{error}</p>
 	}
 
-	if (!data || !organizer) {
+	if (!general || !roleStats || roleStats.role !== 'organizer') {
 		return null
 	}
-
-	const { totalConferences, totalPapers, totalReviewers, totalAuthors, totalOrganizers, totalUsers } = data.general
 
 	return (
 		<div className='space-y-6'>
@@ -133,19 +40,19 @@ export function OrganizerDashboard() {
 					</CardHeader>
 					<CardContent className='space-y-3 text-sm text-muted-foreground'>
 						<p>
-							You are managing <strong className='text-foreground'>{organizer.conferenceCount}</strong> conference
-							{organizer.conferenceCount === 1 ? '' : 's'} with{' '}
-							<strong className='text-foreground'>{organizer.paperCount}</strong> paper submission
-							{organizer.paperCount === 1 ? '' : 's'}.
+							You are managing <strong className='text-foreground'>{roleStats.conferenceCount}</strong> conference
+							{roleStats.conferenceCount === 1 ? '' : 's'} with{' '}
+							<strong className='text-foreground'>{roleStats.paperCount}</strong> paper submission
+							{roleStats.paperCount === 1 ? '' : 's'}.
 						</p>
 						<p>
 							<span className='text-foreground'>Latest conference:</span>{' '}
-							{organizer.latestConferenceName ? (
+							{roleStats.latestConferenceName ? (
 								<>
-									{organizer.latestConferenceName} starting{' '}
+									{roleStats.latestConferenceName} starting{' '}
 									<span className='text-foreground'>
-										{organizer.latestConferenceStart
-											? new Date(organizer.latestConferenceStart).toLocaleDateString()
+										{roleStats.latestConferenceStart
+											? new Date(roleStats.latestConferenceStart).toLocaleDateString()
 											: 'soon'}
 									</span>
 								</>
@@ -155,12 +62,12 @@ export function OrganizerDashboard() {
 						</p>
 						<p>
 							<span className='text-foreground'>Latest paper:</span>{' '}
-							{organizer.latestPaperTitle ? (
+							{roleStats.latestPaperTitle ? (
 								<>
-									{organizer.latestPaperTitle} submitted on{' '}
+									{roleStats.latestPaperTitle} submitted on{' '}
 									<span className='text-foreground'>
-										{organizer.latestPaperCreatedAt
-											? new Date(organizer.latestPaperCreatedAt).toLocaleDateString()
+										{roleStats.latestPaperCreatedAt
+											? new Date(roleStats.latestPaperCreatedAt).toLocaleDateString()
 											: 'unknown'}
 									</span>
 								</>
@@ -178,73 +85,34 @@ export function OrganizerDashboard() {
 					</CardHeader>
 					<CardContent className='space-y-3 text-sm text-muted-foreground'>
 						<p>
-							You have coordinated <strong className='text-foreground'>{organizer.totalReviewAssignments}</strong>{' '}
-							reviewer assignment{organizer.totalReviewAssignments === 1 ? '' : 's'} involving{' '}
-							<strong className='text-foreground'>{organizer.uniqueReviewerCount}</strong> unique reviewer
-							{organizer.uniqueReviewerCount === 1 ? '' : 's'}.
+							You have coordinated <strong className='text-foreground'>{roleStats.totalReviewAssignments}</strong>{' '}
+							reviewer assignment{roleStats.totalReviewAssignments === 1 ? '' : 's'} involving{' '}
+							<strong className='text-foreground'>{roleStats.uniqueReviewerCount}</strong> unique reviewer
+							{roleStats.uniqueReviewerCount === 1 ? '' : 's'}.
 						</p>
 						<ul className='space-y-1'>
 							<li>
-								<span className='text-foreground'>Pending reviews:</span> {organizer.pendingDecisions}
+								<span className='text-foreground'>Pending reviews:</span> {roleStats.pendingDecisions}
 							</li>
 							<li>
-								<span className='text-foreground'>Accepted reviews:</span> {organizer.acceptedDecisions}
+								<span className='text-foreground'>Accepted reviews:</span> {roleStats.acceptedDecisions}
 							</li>
 							<li>
-								<span className='text-foreground'>Declined reviews:</span> {organizer.declinedDecisions}
+								<span className='text-foreground'>Declined reviews:</span> {roleStats.declinedDecisions}
 							</li>
 						</ul>
 						<p>
-							<strong className='text-foreground'>{organizer.uniqueAuthorCount}</strong> different author
-							{organizer.uniqueAuthorCount === 1 ? '' : 's'} have contributed papers to your conferences.
+							<strong className='text-foreground'>{roleStats.uniqueAuthorCount}</strong> different author
+							{roleStats.uniqueAuthorCount === 1 ? '' : 's'} have contributed papers to your conferences.
 						</p>
 					</CardContent>
 				</Card>
 			</div>
 
-			<Card>
-				<CardHeader>
-					<CardTitle>Community snapshot</CardTitle>
-					<CardDescription>The bigger picture inside E-Conference.</CardDescription>
-				</CardHeader>
-				<CardContent>
-					<div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-3'>
-						<StatBlock
-							label='Conferences in the platform'
-							value={totalConferences}
-						/>
-						<StatBlock
-							label='Total submitted papers'
-							value={totalPapers}
-						/>
-						<StatBlock
-							label='Registered reviewers'
-							value={totalReviewers}
-						/>
-						<StatBlock
-							label='Registered authors'
-							value={totalAuthors}
-						/>
-						<StatBlock
-							label='Registered organizers'
-							value={totalOrganizers}
-						/>
-						<StatBlock
-							label='Community members overall'
-							value={totalUsers}
-						/>
-					</div>
-				</CardContent>
-			</Card>
-		</div>
-	)
-}
-
-function StatBlock({ label, value }: { label: string; value: number }) {
-	return (
-		<div className='rounded-lg border p-3 text-sm'>
-			<p className='text-muted-foreground'>{label}</p>
-			<p className='mt-2 text-2xl font-semibold'>{value}</p>
+			<DashboardCommunitySnapshotCard
+				description='The bigger picture inside E-Conference.'
+				stats={general}
+			/>
 		</div>
 	)
 }

@@ -6,14 +6,15 @@ import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 
-import { useAuth } from '@/components/auth-provider'
+import { useAuth } from '@/components/auth/auth-provider'
+import { PageDescription, PageTitle } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { db } from '@/lib/firebase'
-import { paperFormSchema, type PaperFormInput } from '@/lib/schemas'
+import { db } from '@/lib/firebase/client'
+import { paperFormSchema, type PaperFormInput } from '@/lib/validation/schemas'
 
 interface ConferenceOption {
 	id: string
@@ -111,7 +112,8 @@ export default function SubmitPaperPage() {
 
 	return (
 		<>
-			<h1>Submit Paper</h1>
+			<PageTitle>Submit Paper</PageTitle>
+			<PageDescription>Provide your manuscript title. Two reviewers will be assigned automatically.</PageDescription>
 			<Card>
 				<CardHeader>
 					<CardTitle>Paper submission</CardTitle>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useAuth } from '@/components/auth-provider'
+import { useAuth } from '@/components/auth/auth-provider'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { format } from 'date-fns'
 import { addDoc, collection, Timestamp } from 'firebase/firestore'
@@ -10,6 +10,7 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 
+import { PageDescription, PageTitle } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Card, CardContent } from '@/components/ui/card'
@@ -17,9 +18,9 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Textarea } from '@/components/ui/textarea'
-import { db } from '@/lib/firebase'
-import { type ConferenceInput, conferenceSchema } from '@/lib/schemas'
+import { db } from '@/lib/firebase/client'
 import { cn } from '@/lib/utils'
+import { type ConferenceInput, conferenceSchema } from '@/lib/validation/schemas'
 
 export default function CreateConferencePage() {
 	const form = useForm<ConferenceInput>({
@@ -65,8 +66,8 @@ export default function CreateConferencePage() {
 	return (
 		<>
 			<header className='space-y-1 mb-6'>
-				<h1 className='text-2xl font-semibold tracking-tight'>Create New Conference</h1>
-				<p className='text-sm text-muted-foreground'>Fill out the form below to create a new conference.</p>
+				<PageTitle>Create New Conference</PageTitle>
+				<PageDescription>Fill out the form below to create a new conference.</PageDescription>
 			</header>
 			<Card>
 				<CardContent>

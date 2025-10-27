@@ -2,11 +2,12 @@
 
 import { useEffect, useMemo, useState } from 'react'
 
-import { useAuth } from '@/components/auth-provider'
+import { useAuth } from '@/components/auth/auth-provider'
+import { PageDescription, PageTitle } from '@/components/layout/page-header'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { getReviewerStatusLabel, getReviewerStatusToneClass } from '@/lib/reviewer-status'
-import type { ReviewerDecision } from '@/lib/schemas'
+import { getReviewerStatusLabel, getReviewerStatusToneClass } from '@/lib/reviewer/status'
+import type { ReviewerDecision } from '@/lib/validation/schemas'
 
 interface PaperItem {
 	id: string
@@ -132,8 +133,8 @@ export default function MyPapersPage() {
 	return (
 		<div className='space-y-6'>
 			<header className='space-y-1'>
-				<h1 className='text-2xl font-semibold tracking-tight'>My Papers</h1>
-				<p className='text-sm text-muted-foreground'>Review your submissions and see who is assigned to review them.</p>
+				<PageTitle>My Papers</PageTitle>
+				<PageDescription>Review your submissions and see who is assigned to review them.</PageDescription>
 			</header>
 			{content}
 		</div>

@@ -1,85 +1,27 @@
-import { getAuth } from 'firebase-admin/auth'
-import { getFirestore, type DocumentData, type Firestore, type Query as FirestoreQuery } from 'firebase-admin/firestore'
-import { cookies } from 'next/headers'
+import { type DocumentData, type Firestore, type Query as FirestoreQuery } from 'firebase-admin/firestore'
 import { NextResponse } from 'next/server'
 
-import { getFirebaseAdminApp } from '@/lib/firebase-admin'
-import { DEFAULT_REVIEWER_DECISION, extractReviewerStatuses } from '@/lib/reviewer-status'
-import type { ReviewerDecision, User } from '@/lib/schemas'
+import type {
+	AuthorDashboardStats,
+	DashboardGeneralStats,
+	DashboardRole,
+	DashboardRoleStats,
+	DashboardSummaryResponse,
+	OrganizerDashboardStats,
+	ReviewerDashboardStats,
+	ReviewerStatusTally
+} from '@/lib/dashboard/summary'
+import { DEFAULT_REVIEWER_DECISION, extractReviewerStatuses } from '@/lib/reviewer/status'
+import { ApiError } from '@/lib/server/api-error'
+import { authenticateRequest } from '@/lib/server/auth'
+import { handleApiRouteError } from '@/lib/server/error-response'
+import { chunkArray, toIsoString } from '@/lib/server/utils'
 
 const COLLECTIONS = {
 	USERS: 'users',
 	CONFERENCES: 'conferences',
 	PAPERS: 'papers'
 } as const
-
-class ApiError extends Error {
-	constructor(public readonly status: number, message: string) {
-		super(message)
-	}
-}
-
-type UserRole = User['role']
-
-type StatusTally = Record<ReviewerDecision, number>
-
-interface GeneralStatsPayload {
-	totalConferences: number
-	totalPapers: number
-	totalReviewers: number
-	totalAuthors: number
-	totalOrganizers: number
-	totalUsers: number
-}
-
-interface OrganizerStatsPayload {
-	role: 'organizer'
-	conferenceCount: number
-	paperCount: number
-	totalReviewAssignments: number
-	pendingDecisions: number
-	acceptedDecisions: number
-	declinedDecisions: number
-	uniqueReviewerCount: number
-	uniqueAuthorCount: number
-	latestConferenceName: string | null
-	latestConferenceStart: string | null
-	latestPaperTitle: string | null
-	latestPaperCreatedAt: string | null
-}
-
-interface AuthorStatsPayload {
-	role: 'author'
-	paperCount: number
-	conferenceParticipationCount: number
-	uniqueReviewerCount: number
-	totalReviewerAssignments: number
-	pendingReviews: number
-	acceptedReviews: number
-	declinedReviews: number
-	latestPaperTitle: string | null
-	latestPaperCreatedAt: string | null
-}
-
-interface ReviewerStatsPayload {
-	role: 'reviewer'
-	assignedPaperCount: number
-	pendingReviews: number
-	acceptedDecisions: number
-	declinedDecisions: number
-	completedReviews: number
-	conferencesCovered: number
-	distinctAuthors: number
-	latestAssignedPaperTitle: string | null
-	latestAssignedPaperAt: string | null
-}
-
-type RoleStatsPayload = OrganizerStatsPayload | AuthorStatsPayload | ReviewerStatsPayload
-
-interface DashboardSummaryPayload {
-	general: GeneralStatsPayload
-	role: RoleStatsPayload
-}
 
 interface PaperRecord {
 	id: string
@@ -92,55 +34,18 @@ export async function GET() {
 
 		const [general, roleStats] = await Promise.all([getGeneralStats(firestore), getRoleStats(firestore, uid, role)])
 
-		const payload: DashboardSummaryPayload = {
+		const payload: DashboardSummaryResponse = {
 			general,
 			role: roleStats
 		}
 
 		return NextResponse.json(payload)
 	} catch (error) {
-		if (error instanceof ApiError) {
-			return NextResponse.json({ error: error.message }, { status: error.status })
-		}
-
-		console.error('Failed to load dashboard summary:', error)
-		return NextResponse.json({ error: 'Internal server error. Please try again.' }, { status: 500 })
+		return handleApiRouteError(error, 'Failed to load dashboard summary:')
 	}
 }
 
-async function authenticateRequest(): Promise<{ firestore: Firestore; uid: string; role: UserRole }> {
-	const cookieStore = await cookies()
-	const sessionCookie = cookieStore.get('session')?.value
-
-	if (!sessionCookie) {
-		throw new ApiError(401, 'Authentication required.')
-	}
-
-	const auth = getAuth(getFirebaseAdminApp())
-	const decoded = await auth.verifySessionCookie(sessionCookie, true)
-
-	const firestore = getFirestore(getFirebaseAdminApp())
-	const userSnapshot = await firestore.collection(COLLECTIONS.USERS).doc(decoded.uid).get()
-
-	if (!userSnapshot.exists) {
-		throw new ApiError(404, 'User profile not found.')
-	}
-
-	const userData = userSnapshot.data() as DocumentData
-	const role = userData?.role
-
-	if (role !== 'organizer' && role !== 'author' && role !== 'reviewer') {
-		throw new ApiError(403, 'Unsupported role for dashboard summary.')
-	}
-
-	return {
-		firestore,
-		uid: decoded.uid,
-		role
-	}
-}
-
-async function getGeneralStats(firestore: Firestore): Promise<GeneralStatsPayload> {
+async function getGeneralStats(firestore: Firestore): Promise<DashboardGeneralStats> {
 	const [totalConferences, totalPapers, totalReviewers, totalAuthors, totalOrganizers] = await Promise.all([
 		countQuery(firestore.collection(COLLECTIONS.CONFERENCES)),
 		countQuery(firestore.collection(COLLECTIONS.PAPERS)),
@@ -159,7 +64,7 @@ async function getGeneralStats(firestore: Firestore): Promise<GeneralStatsPayloa
 	}
 }
 
-async function getRoleStats(firestore: Firestore, uid: string, role: UserRole): Promise<RoleStatsPayload> {
+async function getRoleStats(firestore: Firestore, uid: string, role: DashboardRole): Promise<DashboardRoleStats> {
 	switch (role) {
 		case 'organizer':
 			return getOrganizerStats(firestore, uid)
@@ -172,7 +77,7 @@ async function getRoleStats(firestore: Firestore, uid: string, role: UserRole): 
 	}
 }
 
-async function getOrganizerStats(firestore: Firestore, uid: string): Promise<OrganizerStatsPayload> {
+async function getOrganizerStats(firestore: Firestore, uid: string): Promise<OrganizerDashboardStats> {
 	const conferencesSnapshot = await firestore.collection(COLLECTIONS.CONFERENCES).where('organizerId', '==', uid).get()
 
 	const conferenceIds = conferencesSnapshot.docs.map((doc) => doc.id)
@@ -244,7 +149,7 @@ async function getOrganizerStats(firestore: Firestore, uid: string): Promise<Org
 	}
 }
 
-async function getAuthorStats(firestore: Firestore, uid: string): Promise<AuthorStatsPayload> {
+async function getAuthorStats(firestore: Firestore, uid: string): Promise<AuthorDashboardStats> {
 	const papersSnapshot = await firestore.collection(COLLECTIONS.PAPERS).where('authorId', '==', uid).get()
 
 	const conferenceIds = new Set<string>()
@@ -293,7 +198,7 @@ async function getAuthorStats(firestore: Firestore, uid: string): Promise<Author
 	}
 }
 
-async function getReviewerStats(firestore: Firestore, uid: string): Promise<ReviewerStatsPayload> {
+async function getReviewerStats(firestore: Firestore, uid: string): Promise<ReviewerDashboardStats> {
 	const papersSnapshot = await firestore.collection(COLLECTIONS.PAPERS).where('reviewers', 'array-contains', uid).get()
 
 	const statusTally = createStatusTally()
@@ -365,43 +270,10 @@ async function fetchPapersByConferenceIds(firestore: Firestore, conferenceIds: s
 	return results
 }
 
-function chunkArray<T>(items: T[], size: number): T[][] {
-	const chunks: T[][] = []
-	for (let index = 0; index < items.length; index += size) {
-		chunks.push(items.slice(index, index + size))
-	}
-	return chunks
-}
-
-function createStatusTally(): StatusTally {
+function createStatusTally(): ReviewerStatusTally {
 	return {
 		pending: 0,
 		accepted: 0,
 		declined: 0
 	}
-}
-
-function toIsoString(value: unknown): string | null {
-	if (!value) {
-		return null
-	}
-
-	if (typeof value === 'string') {
-		return value
-	}
-
-	if (value instanceof Date) {
-		return value.toISOString()
-	}
-
-	if (typeof value === 'object' && 'toDate' in value && typeof value.toDate === 'function') {
-		try {
-			return value.toDate().toISOString()
-		} catch (error) {
-			console.warn('Failed to convert Firestore timestamp to ISO string:', error)
-			return null
-		}
-	}
-
-	return null
 }

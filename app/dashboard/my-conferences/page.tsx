@@ -5,14 +5,15 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { deleteDoc, doc } from 'firebase/firestore'
 import { toast } from 'sonner'
 
-import { useAuth } from '@/components/auth-provider'
+import { useAuth } from '@/components/auth/auth-provider'
+import { PageDescription, PageTitle } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Skeleton } from '@/components/ui/skeleton'
-import { db } from '@/lib/firebase'
-import { DEFAULT_REVIEWER_DECISION, getReviewerStatusLabel, getReviewerStatusToneClass } from '@/lib/reviewer-status'
-import { type ReviewerDecision } from '@/lib/schemas'
+import { db } from '@/lib/firebase/client'
+import { DEFAULT_REVIEWER_DECISION, getReviewerStatusLabel, getReviewerStatusToneClass } from '@/lib/reviewer/status'
+import type { ReviewerDecision } from '@/lib/validation/schemas'
 
 interface ReviewerSummary {
 	id: string
@@ -449,8 +450,8 @@ export default function MyConferencesPage() {
 	return (
 		<div className='space-y-6'>
 			<header className='space-y-1'>
-				<h1 className='text-2xl font-semibold tracking-tight'>My Conferences</h1>
-				<p className='text-sm text-muted-foreground'>Track papers and reviewer assignments across your conferences.</p>
+				<PageTitle>My Conferences</PageTitle>
+				<PageDescription>Track papers and reviewer assignments across your conferences.</PageDescription>
 			</header>
 			{content}
 		</div>

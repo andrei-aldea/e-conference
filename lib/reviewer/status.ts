@@ -1,4 +1,4 @@
-import { type ReviewerDecision } from './schemas'
+import type { ReviewerDecision } from '@/lib/validation/schemas'
 
 export const REVIEWER_DECISIONS = ['pending', 'accepted', 'declined'] as const
 

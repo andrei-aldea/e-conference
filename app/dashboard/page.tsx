@@ -1,11 +1,12 @@
 'use client'
 
-import { useAuth } from '@/components/auth-provider'
+import { useAuth } from '@/components/auth/auth-provider'
 import { AuthorDashboard } from '@/components/dashboard/author-dashboard'
 import { OrganizerDashboard } from '@/components/dashboard/organizer-dashboard'
 import { ReviewerDashboard } from '@/components/dashboard/reviewer-dashboard'
+import { PageDescription, PageTitle } from '@/components/layout/page-header'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { type User } from '@/lib/schemas'
+import type { User } from '@/lib/validation/schemas'
 
 const roleDisplayNames: Record<User['role'], string> = {
 	organizer: 'Organizer',
@@ -32,8 +33,8 @@ export default function DashboardPage() {
 
 	return (
 		<div>
-			<h1 className='text-2xl font-semibold tracking-tight'>Dashboard</h1>
-			<p className='text-sm text-muted-foreground'>Here you can see detailed analytics about your role!</p>
+			<PageTitle>Dashboard</PageTitle>
+			<PageDescription>Here you can see detailed analytics about your role!</PageDescription>
 			<br />
 			<Card>
 				<CardHeader>

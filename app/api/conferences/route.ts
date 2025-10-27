@@ -1,27 +1,10 @@
-import { getAuth } from 'firebase-admin/auth'
-import { getFirestore } from 'firebase-admin/firestore'
-import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
 
-import { getFirebaseAdminApp } from '@/lib/firebase-admin'
-import { DEFAULT_REVIEWER_DECISION, extractReviewerStatuses } from '@/lib/reviewer-status'
-import type { ReviewerDecision } from '@/lib/schemas'
-
-function getAuthInstance() {
-	return getAuth(getFirebaseAdminApp())
-}
-
-function getFirestoreInstance() {
-	return getFirestore(getFirebaseAdminApp())
-}
-
-function chunkArray<T>(items: T[], size: number): T[][] {
-	const chunks: T[][] = []
-	for (let i = 0; i < items.length; i += size) {
-		chunks.push(items.slice(i, i + size))
-	}
-	return chunks
-}
+import { DEFAULT_REVIEWER_DECISION, extractReviewerStatuses } from '@/lib/reviewer/status'
+import { authenticateRequest } from '@/lib/server/auth'
+import { handleApiRouteError } from '@/lib/server/error-response'
+import { chunkArray, toIsoString } from '@/lib/server/utils'
+import type { ReviewerDecision } from '@/lib/validation/schemas'
 
 export async function GET(request: NextRequest) {
 	const scope = request.nextUrl.searchParams.get('scope')
@@ -31,26 +14,7 @@ export async function GET(request: NextRequest) {
 	}
 
 	try {
-		const cookieStore = await cookies()
-		const sessionCookie = cookieStore.get('session')?.value
-		if (!sessionCookie) {
-			return NextResponse.json({ error: 'Authentication required.' }, { status: 401 })
-		}
-
-		const auth = getAuthInstance()
-		const decoded = await auth.verifySessionCookie(sessionCookie, true)
-		const uid = decoded.uid
-
-		const firestore = getFirestoreInstance()
-		const userDoc = await firestore.collection('users').doc(uid).get()
-		if (!userDoc.exists) {
-			return NextResponse.json({ error: 'User profile not found.' }, { status: 404 })
-		}
-
-		const userData = userDoc.data()
-		if (userData?.role !== 'organizer') {
-			return NextResponse.json({ error: 'Only organizers can view their conferences.' }, { status: 403 })
-		}
+		const { firestore, uid } = await authenticateRequest({ allowedRoles: ['organizer'] })
 
 		const reviewersSnapshot = await firestore.collection('users').where('role', '==', 'reviewer').get()
 
@@ -77,15 +41,15 @@ export async function GET(request: NextRequest) {
 
 		const conferences = conferencesSnapshot.docs.map((doc) => {
 			const data = doc.data()
-			const startDate = data.startDate?.toDate?.() ?? null
-			const endDate = data.endDate?.toDate?.() ?? null
+			const startDate = toIsoString(data.startDate)
+			const endDate = toIsoString(data.endDate)
 			return {
 				id: doc.id,
 				name: data.name as string,
 				description: typeof data.description === 'string' ? data.description : '',
 				location: typeof data.location === 'string' ? data.location : '',
-				startDate,
-				endDate
+				startDate: startDate ? new Date(startDate) : null,
+				endDate: endDate ? new Date(endDate) : null
 			}
 		})
 
@@ -170,7 +134,6 @@ export async function GET(request: NextRequest) {
 
 		return NextResponse.json({ conferences: conferencesWithDetails, reviewers: reviewerDirectory })
 	} catch (error) {
-		console.error('Failed to list organizer conferences:', error)
-		return NextResponse.json({ error: 'Internal server error. Please try again.' }, { status: 500 })
+		return handleApiRouteError(error, 'Failed to list organizer conferences:')
 	}
 }

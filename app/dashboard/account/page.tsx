@@ -7,14 +7,15 @@ import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 
-import { useAuth } from '@/components/auth-provider'
+import { useAuth } from '@/components/auth/auth-provider'
+import { PageDescription, PageTitle } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { db } from '@/lib/firebase'
-import { type User, userSchema } from '@/lib/schemas'
+import { db } from '@/lib/firebase/client'
+import { type User, userSchema } from '@/lib/validation/schemas'
 
 export default function AccountPage() {
 	const { user, updateUser } = useAuth()
@@ -64,7 +65,8 @@ export default function AccountPage() {
 
 	return (
 		<>
-			<h1>My Account</h1>
+			<PageTitle>My Account</PageTitle>
+			<PageDescription>Manage your account details and preferences.</PageDescription>
 			<Card>
 				<CardContent>
 					<Form {...form}>

@@ -1,4 +1,4 @@
-import Logo from '@/components/logo'
+import Logo from '@/components/layout/logo'
 import Link from 'next/link'
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {

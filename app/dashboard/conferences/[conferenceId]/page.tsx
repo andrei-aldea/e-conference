@@ -6,10 +6,11 @@ import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { useDocument } from 'react-firebase-hooks/firestore'
 
+import { PageTitle } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { db } from '@/lib/firebase'
-import type { Conference } from '@/lib/schemas'
+import { db } from '@/lib/firebase/client'
+import type { Conference } from '@/lib/validation/schemas'
 
 export default function ConferenceDetailsPage() {
 	const params = useParams<{ conferenceId: string }>()
@@ -50,7 +51,7 @@ export default function ConferenceDetailsPage() {
 	return (
 		<>
 			<div>
-				<h1>Conference details</h1>
+				<PageTitle>Conference details</PageTitle>
 			</div>
 			<Card>
 				<CardHeader>

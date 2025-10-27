@@ -6,10 +6,11 @@ import { collection, orderBy, query } from 'firebase/firestore'
 import Link from 'next/link'
 import { useCollection } from 'react-firebase-hooks/firestore'
 
+import { PageDescription, PageTitle } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { db } from '@/lib/firebase'
+import { db } from '@/lib/firebase/client'
 
 interface ConferenceItem {
 	id: string
@@ -105,8 +106,8 @@ export default function ConferencesPage() {
 	return (
 		<div className='space-y-6'>
 			<header className='space-y-1'>
-				<h1 className='text-2xl font-semibold tracking-tight'>Conferences</h1>
-				<p className='text-sm text-muted-foreground'>Browse all upcoming conferences and view their details.</p>
+				<PageTitle>Conferences</PageTitle>
+				<PageDescription>Browse all upcoming conferences and view their details.</PageDescription>
 			</header>
 			{content}
 		</div>

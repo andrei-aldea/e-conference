@@ -7,7 +7,7 @@ const appName = 'e-Conference-nextjs'
 
 let app: App
 
-if (getApps().some((app) => app.name === appName)) {
+if (getApps().some((existingApp) => existingApp.name === appName)) {
 	app = getApp(appName)
 } else {
 	app = initializeApp(
@@ -18,6 +18,6 @@ if (getApps().some((app) => app.name === appName)) {
 	)
 }
 
-export const getFirebaseAdminApp = () => {
+export function getFirebaseAdminApp() {
 	return app
 }

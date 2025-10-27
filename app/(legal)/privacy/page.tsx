@@ -1,7 +1,9 @@
+import { PageTitle } from '@/components/layout/page-header'
+
 export default function PrivacyPage() {
 	return (
 		<main className='container mx-auto p-8'>
-			<h1 className='mb-4 text-3xl font-bold'>Privacy Policy</h1>
+			<PageTitle className='mb-4 text-3xl font-bold'>Privacy Policy</PageTitle>
 			<div className='space-y-4'>
 				<p>
 					At eConference, accessible from our domain, one of our main priorities is the privacy of our visitors. This

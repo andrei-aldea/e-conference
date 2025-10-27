@@ -1,65 +1,24 @@
-import { getAuth } from 'firebase-admin/auth'
-import { FieldValue, Timestamp, getFirestore, type DocumentData, type Firestore } from 'firebase-admin/firestore'
-import { cookies } from 'next/headers'
+import { FieldValue, Timestamp, type DocumentData, type Firestore } from 'firebase-admin/firestore'
 import { NextResponse, type NextRequest } from 'next/server'
 import { ZodError } from 'zod'
 
-import { getFirebaseAdminApp } from '@/lib/firebase-admin'
-import { DEFAULT_REVIEWER_DECISION, extractReviewerStatuses } from '@/lib/reviewer-status'
+import { DEFAULT_REVIEWER_DECISION, extractReviewerStatuses } from '@/lib/reviewer/status'
+import { ApiError } from '@/lib/server/api-error'
+import { authenticateRequest } from '@/lib/server/auth'
+import { handleApiRouteError } from '@/lib/server/error-response'
+import { toIsoString } from '@/lib/server/utils'
 import {
 	paperFormSchema,
 	paperReviewerAssignmentSchema,
 	reviewerStatusUpdateSchema,
 	type ReviewerDecision
-} from '@/lib/schemas'
+} from '@/lib/validation/schemas'
 
 const COLLECTIONS = {
 	PAPERS: 'papers',
 	USERS: 'users',
 	CONFERENCES: 'conferences'
 } as const
-
-class ApiError extends Error {
-	constructor(public readonly status: number, message: string) {
-		super(message)
-	}
-}
-
-function getFirestoreInstance() {
-	return getFirestore(getFirebaseAdminApp())
-}
-
-function getAuthInstance() {
-	return getAuth(getFirebaseAdminApp())
-}
-
-async function authenticateRequest(): Promise<{
-	firestore: Firestore
-	uid: string
-	user: DocumentData
-}> {
-	const cookieStore = await cookies()
-	const sessionCookie = cookieStore.get('session')?.value
-
-	if (!sessionCookie) {
-		throw new ApiError(401, 'Authentication required.')
-	}
-
-	const auth = getAuthInstance()
-	const decoded = await auth.verifySessionCookie(sessionCookie, true)
-	const firestore = getFirestoreInstance()
-	const userDoc = await firestore.collection(COLLECTIONS.USERS).doc(decoded.uid).get()
-
-	if (!userDoc.exists) {
-		throw new ApiError(404, 'User profile not found.')
-	}
-
-	return {
-		firestore,
-		uid: decoded.uid,
-		user: userDoc.data() as DocumentData
-	}
-}
 
 async function fetchDocumentsByIds(
 	firestore: Firestore,
@@ -79,28 +38,13 @@ async function fetchDocumentsByIds(
 	}, {})
 }
 
-function handleError(error: unknown, logMessage: string) {
-	if (error instanceof ApiError) {
-		return NextResponse.json({ error: error.message }, { status: error.status })
-	}
-
-	console.error(logMessage, error)
-	return NextResponse.json({ error: 'Internal server error. Please try again.' }, { status: 500 })
-}
-
-function toIsoString(value: unknown): string | null {
-	return typeof value === 'object' && value !== null && 'toDate' in value
-		? (value as Timestamp).toDate().toISOString()
-		: null
-}
-
 export async function GET(request: NextRequest) {
 	try {
 		const scope = request.nextUrl.searchParams.get('scope') ?? 'author'
-		const { firestore, uid, user } = await authenticateRequest()
+		const { firestore, uid, role } = await authenticateRequest()
 
 		if (scope === 'reviewer') {
-			if (user?.role !== 'reviewer') {
+			if (role !== 'reviewer') {
 				throw new ApiError(403, 'Only reviewers can load assigned papers.')
 			}
 
@@ -184,7 +128,7 @@ export async function GET(request: NextRequest) {
 			return NextResponse.json({ papers: payload })
 		}
 
-		if (user?.role !== 'author') {
+		if (role !== 'author') {
 			throw new ApiError(403, 'Only authors can view submitted papers.')
 		}
 
@@ -249,7 +193,7 @@ export async function GET(request: NextRequest) {
 
 		return NextResponse.json({ papers: payload })
 	} catch (error) {
-		return handleError(error, 'Failed to list papers:')
+		return handleApiRouteError(error, 'Failed to list papers:')
 	}
 }
 
@@ -257,9 +201,9 @@ export async function POST(request: NextRequest) {
 	try {
 		const payload = await request.json()
 		const { title, conferenceId } = paperFormSchema.parse(payload)
-		const { firestore, uid, user } = await authenticateRequest()
+		const { firestore, uid, role } = await authenticateRequest()
 
-		if (user?.role !== 'author') {
+		if (role !== 'author') {
 			throw new ApiError(403, 'Only authors can submit papers.')
 		}
 
@@ -311,7 +255,7 @@ export async function POST(request: NextRequest) {
 			return NextResponse.json({ error: 'Invalid paper payload.' }, { status: 400 })
 		}
 
-		return handleError(error, 'Failed to submit paper:')
+		return handleApiRouteError(error, 'Failed to submit paper:')
 	}
 }
 
@@ -320,14 +264,14 @@ export async function PATCH(request: NextRequest) {
 		const rawPayload = await request.json()
 		const statusPayload = reviewerStatusUpdateSchema.safeParse(rawPayload)
 		const assignmentPayload = paperReviewerAssignmentSchema.safeParse(rawPayload)
-		const { firestore, uid, user } = await authenticateRequest()
+		const { firestore, uid, role } = await authenticateRequest()
 
 		if (!statusPayload.success && !assignmentPayload.success) {
 			throw new ApiError(400, 'Invalid update payload.')
 		}
 
 		if (statusPayload.success) {
-			if (user?.role !== 'reviewer') {
+			if (role !== 'reviewer') {
 				throw new ApiError(403, 'Only reviewers can update paper statuses.')
 			}
 
@@ -361,7 +305,7 @@ export async function PATCH(request: NextRequest) {
 			throw new ApiError(400, 'Invalid update payload.')
 		}
 
-		if (user?.role !== 'organizer') {
+		if (role !== 'organizer') {
 			throw new ApiError(403, 'Only organizers can update reviewer assignments.')
 		}
 
@@ -435,7 +379,7 @@ export async function PATCH(request: NextRequest) {
 			return NextResponse.json({ error: 'Invalid update payload.' }, { status: 400 })
 		}
 
-		return handleError(error, 'Failed to update paper:')
+		return handleApiRouteError(error, 'Failed to update paper:')
 	}
 }
 

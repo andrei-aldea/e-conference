@@ -1,7 +1,7 @@
 'use client'
 
-import { auth, db } from '@/lib/firebase'
-import { type LoginInput, type SignupInput, type User, userSchema, type UserWithId } from '@/lib/schemas'
+import { auth, db } from '@/lib/firebase/client'
+import { type LoginInput, type SignupInput, type User, userSchema, type UserWithId } from '@/lib/validation/schemas'
 import { FirebaseError } from 'firebase/app'
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'firebase/auth'
 import { doc, getDoc, setDoc } from 'firebase/firestore'

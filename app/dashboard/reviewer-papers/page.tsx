@@ -2,13 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
-import { useAuth } from '@/components/auth-provider'
+import { useAuth } from '@/components/auth/auth-provider'
+import { PageDescription, PageTitle } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
-import { getReviewerStatusLabel, getReviewerStatusToneClass, REVIEWER_DECISIONS } from '@/lib/reviewer-status'
-import { type ReviewerDecision } from '@/lib/schemas'
+import { getReviewerStatusLabel, getReviewerStatusToneClass, REVIEWER_DECISIONS } from '@/lib/reviewer/status'
+import type { ReviewerDecision } from '@/lib/validation/schemas'
 
 const STATUS_OPTIONS: Array<{ value: ReviewerDecision; label: string }> = REVIEWER_DECISIONS.map((value) => ({
 	value,
@@ -316,8 +317,8 @@ export default function ReviewerPapersPage() {
 	return (
 		<div className='space-y-6'>
 			<header className='space-y-1'>
-				<h1 className='text-2xl font-semibold tracking-tight'>Assigned Papers</h1>
-				<p className='text-sm text-muted-foreground'>Keep track of the submissions you are expected to review.</p>
+				<PageTitle>Assigned Papers</PageTitle>
+				<PageDescription>Keep track of the submissions you are expected to review.</PageDescription>
 			</header>
 			{content}
 		</div>
