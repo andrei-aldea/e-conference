@@ -1,0 +1,108 @@
+{
+	"organizers": [
+		{
+			"name": "Olivia Organizer",
+			"email": "olivia.organizer@example.com",
+			"password": "Password123!",
+			"bio": "Lead coordinator for international AI summits."
+		},
+		{
+			"name": "Noah Newman",
+			"email": "noah.newman@example.com",
+			"password": "Password123!",
+			"bio": "Organizer focused on emerging technology forums."
+		}
+	],
+	"reviewers": [
+		{
+			"name": "Rachel Reviewer",
+			"email": "rachel.reviewer@example.com",
+			"password": "Password123!",
+			"expertise": ["Machine Learning", "NLP"]
+		},
+		{
+			"name": "Ryan Reviewer",
+			"email": "ryan.reviewer@example.com",
+			"password": "Password123!",
+			"expertise": ["Security", "Distributed Systems"]
+		},
+		{
+			"name": "Renee Reviewer",
+			"email": "renee.reviewer@example.com",
+			"password": "Password123!",
+			"expertise": ["Robotics", "Computer Vision"]
+		}
+	],
+	"authors": [
+		{
+			"name": "Alice Author",
+			"email": "alice.author@example.com",
+			"password": "Password123!"
+		},
+		{
+			"name": "Brian Author",
+			"email": "brian.author@example.com",
+			"password": "Password123!"
+		},
+		{
+			"name": "Chloe Author",
+			"email": "chloe.author@example.com",
+			"password": "Password123!"
+		}
+	],
+	"conferences": [
+		{
+			"id": "global-ai-summit",
+			"name": "Global AI Summit",
+			"description": "Exploring the latest breakthroughs in artificial intelligence across industries.",
+			"location": "San Francisco, CA",
+			"startDate": "2025-03-15T09:00:00.000Z",
+			"endDate": "2025-03-17T17:00:00.000Z",
+			"organizerEmail": "olivia.organizer@example.com"
+		},
+		{
+			"id": "quantum-tech-conference",
+			"name": "Quantum Tech Conference",
+			"description": "A gathering for researchers advancing quantum computing and communication.",
+			"location": "Berlin, Germany",
+			"startDate": "2025-04-20T09:00:00.000Z",
+			"endDate": "2025-04-22T17:00:00.000Z",
+			"organizerEmail": "noah.newman@example.com"
+		},
+		{
+			"id": "ethics-in-ai-forum",
+			"name": "Ethics in AI Forum",
+			"description": "Discussing responsible AI development and deployment across sectors.",
+			"location": "Toronto, Canada",
+			"startDate": "2025-05-10T09:00:00.000Z",
+			"endDate": "2025-05-11T16:00:00.000Z",
+			"organizerEmail": "olivia.organizer@example.com"
+		}
+	],
+	"submissions": [
+		{
+			"id": "paper-intent-aware-agents",
+			"title": "Intent-Aware Agents for Adaptive Assistance",
+			"authorEmail": "alice.author@example.com",
+			"conferenceId": "global-ai-summit",
+			"reviewerEmails": ["rachel.reviewer@example.com", "ryan.reviewer@example.com"],
+			"createdAt": "2025-01-12T10:00:00.000Z"
+		},
+		{
+			"id": "paper-quantum-routing",
+			"title": "Optimized Routing in Quantum Networks",
+			"authorEmail": "brian.author@example.com",
+			"conferenceId": "quantum-tech-conference",
+			"reviewerEmails": ["ryan.reviewer@example.com", "renee.reviewer@example.com"],
+			"createdAt": "2025-01-18T14:30:00.000Z"
+		},
+		{
+			"id": "paper-ethical-alignment",
+			"title": "Frameworks for Ethical Alignment in Large Models",
+			"authorEmail": "chloe.author@example.com",
+			"conferenceId": "ethics-in-ai-forum",
+			"reviewerEmails": ["rachel.reviewer@example.com", "renee.reviewer@example.com"],
+			"createdAt": "2025-01-25T09:15:00.000Z"
+		}
+	]
+}
