@@ -8,9 +8,10 @@ import { toast } from 'sonner'
 import { useAuth } from '@/components/auth-provider'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Skeleton } from '@/components/ui/skeleton'
 import { db } from '@/lib/firebase'
-import { getReviewerStatusLabel, getReviewerStatusToneClass } from '@/lib/reviewer-status'
+import { DEFAULT_REVIEWER_DECISION, getReviewerStatusLabel, getReviewerStatusToneClass } from '@/lib/reviewer-status'
 import { type ReviewerDecision } from '@/lib/schemas'
 
 interface ReviewerSummary {
@@ -36,12 +37,21 @@ interface OrganizerConference {
 	submissions: ConferenceSubmission[]
 }
 
+interface ReviewerOption {
+	id: string
+	name: string
+}
+
 export default function MyConferencesPage() {
 	const { user } = useAuth()
 	const [conferences, setConferences] = useState<OrganizerConference[]>([])
+	const [reviewers, setReviewers] = useState<ReviewerOption[]>([])
 	const [isLoading, setIsLoading] = useState(true)
 	const [error, setError] = useState<string | null>(null)
 	const [deletingId, setDeletingId] = useState<string | null>(null)
+	const [expandedSubmissionId, setExpandedSubmissionId] = useState<string | null>(null)
+	const [savingSubmissionId, setSavingSubmissionId] = useState<string | null>(null)
+	const [selectionBySubmission, setSelectionBySubmission] = useState<Record<string, string[]>>({})
 
 	const handleDeleteConference = useCallback(
 		(conferenceId: string) => {
@@ -76,6 +86,8 @@ export default function MyConferencesPage() {
 		async function loadConferences() {
 			if (!user || user.role !== 'organizer') {
 				setConferences([])
+				setReviewers([])
+				setSelectionBySubmission({})
 				setIsLoading(false)
 				return
 			}
@@ -88,8 +100,21 @@ export default function MyConferencesPage() {
 				if (!response.ok) {
 					throw new Error('Unable to load conferences.')
 				}
-				const payload = (await response.json()) as { conferences: OrganizerConference[] }
+				const payload = (await response.json()) as {
+					conferences: OrganizerConference[]
+					reviewers?: ReviewerOption[]
+				}
 				setConferences(payload.conferences)
+				setReviewers(payload.reviewers ?? [])
+				setSelectionBySubmission(() => {
+					const map: Record<string, string[]> = {}
+					for (const conference of payload.conferences) {
+						for (const submission of conference.submissions) {
+							map[submission.id] = submission.reviewers.map((reviewer) => reviewer.id)
+						}
+					}
+					return map
+				})
 			} catch (error) {
 				console.error('Failed to load organizer conferences:', error)
 				setError('Unable to load your conferences right now. Please try again later.')
@@ -100,6 +125,99 @@ export default function MyConferencesPage() {
 
 		void loadConferences()
 	}, [user])
+
+	const handleToggleSubmission = useCallback((submissionId: string) => {
+		setExpandedSubmissionId((current) => (current === submissionId ? null : submissionId))
+	}, [])
+
+	const handleToggleReviewer = useCallback((submissionId: string, reviewerId: string) => {
+		setSelectionBySubmission((current) => {
+			const existing = current[submissionId] ?? []
+			const next = new Set(existing)
+			if (next.has(reviewerId)) {
+				next.delete(reviewerId)
+			} else {
+				next.add(reviewerId)
+			}
+			return {
+				...current,
+				[submissionId]: Array.from(next)
+			}
+		})
+	}, [])
+
+	const handleResetSelection = useCallback((submissionId: string, baseline: string[]) => {
+		setSelectionBySubmission((current) => ({
+			...current,
+			[submissionId]: baseline
+		}))
+	}, [])
+
+	const handleSaveAssignments = useCallback(
+		async (submission: ConferenceSubmission) => {
+			const selectedReviewerIds = selectionBySubmission[submission.id] ?? []
+			if (selectedReviewerIds.length === 0) {
+				toast.error('Select at least one reviewer before saving.')
+				return
+			}
+
+			setSavingSubmissionId(submission.id)
+			const previousReviewerIds = submission.reviewers.map((reviewer) => reviewer.id)
+
+			try {
+				const response = await fetch('/api/submissions', {
+					method: 'PATCH',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({ submissionId: submission.id, reviewerIds: selectedReviewerIds })
+				})
+
+				if (!response.ok) {
+					throw new Error('Request failed')
+				}
+
+				setConferences((current) =>
+					current.map((conference) => ({
+						...conference,
+						submissions: conference.submissions.map((entry) => {
+							if (entry.id !== submission.id) {
+								return entry
+							}
+
+							const nextReviewers = selectedReviewerIds.map((reviewerId) => {
+								const existingReviewer = entry.reviewers.find((item) => item.id === reviewerId)
+								if (existingReviewer) {
+									return existingReviewer
+								}
+
+								const fallbackName = reviewers.find((option) => option.id === reviewerId)?.name ?? 'Reviewer'
+								return {
+									id: reviewerId,
+									name: fallbackName,
+									status: DEFAULT_REVIEWER_DECISION
+								}
+							})
+
+							return {
+								...entry,
+								reviewers: nextReviewers
+							}
+						})
+					}))
+				)
+
+				toast.success('Reviewer assignments updated successfully.')
+			} catch (error) {
+				console.error('Failed to update reviewer assignments:', error)
+				toast.error('Unable to update reviewers. Please try again.')
+				handleResetSelection(submission.id, previousReviewerIds)
+			} finally {
+				setSavingSubmissionId(null)
+			}
+		},
+		[handleResetSelection, reviewers, selectionBySubmission]
+	)
 
 	const content = useMemo(() => {
 		if (!user) {
@@ -205,6 +323,89 @@ export default function MyConferencesPage() {
 														<p className='text-sm'>Not assigned yet</p>
 													)}
 												</div>
+												<div className='mt-3 flex flex-col gap-3'>
+													<Button
+														variant='secondary'
+														size='sm'
+														onClick={() => handleToggleSubmission(submission.id)}
+													>
+														{expandedSubmissionId === submission.id ? 'Hide reviewer selection' : 'Manage reviewers'}
+													</Button>
+													{expandedSubmissionId === submission.id && (
+														<div className='rounded-lg border p-3'>
+															<div className='flex items-center justify-between text-sm font-medium'>
+																<span>Select reviewers</span>
+																<span className='text-xs text-muted-foreground'>
+																	{selectionBySubmission[submission.id]?.length ?? 0} selected
+																</span>
+															</div>
+															<div className='mt-3 max-h-52 space-y-2 overflow-y-auto pr-1'>
+																{reviewers.length === 0 ? (
+																	<p className='text-sm text-muted-foreground'>No reviewers available.</p>
+																) : (
+																	reviewers.map((reviewer) => {
+																		const checked = selectionBySubmission[submission.id]?.includes(reviewer.id) ?? false
+																		const controlId = `submission-${submission.id}-reviewer-${reviewer.id}`
+																		const statusForReviewer = submission.reviewers.find(
+																			(item) => item.id === reviewer.id
+																		)?.status
+
+																		return (
+																			<label
+																				key={reviewer.id}
+																				htmlFor={controlId}
+																				className='flex items-center justify-between gap-3 rounded-md border px-3 py-2 text-sm'
+																			>
+																				<span className='flex items-center gap-3'>
+																					<Checkbox
+																						id={controlId}
+																						checked={checked}
+																						onCheckedChange={() => handleToggleReviewer(submission.id, reviewer.id)}
+																					/>
+																					<span>{reviewer.name}</span>
+																				</span>
+																				{checked && (
+																					<span
+																						className={`rounded-full px-2 py-0.5 text-xs font-medium capitalize ${getReviewerStatusToneClass(
+																							statusForReviewer ?? DEFAULT_REVIEWER_DECISION
+																						)}`}
+																					>
+																						{getReviewerStatusLabel(statusForReviewer ?? DEFAULT_REVIEWER_DECISION)}
+																					</span>
+																				)}
+																			</label>
+																		)
+																	})
+																)}
+															</div>
+															<div className='mt-3 flex justify-end gap-2'>
+																<Button
+																	variant='ghost'
+																	size='sm'
+																	onClick={() =>
+																		handleResetSelection(
+																			submission.id,
+																			submission.reviewers.map((item) => item.id)
+																		)
+																	}
+																	disabled={savingSubmissionId === submission.id}
+																>
+																	Reset
+																</Button>
+																<Button
+																	size='sm'
+																	onClick={() => handleSaveAssignments(submission)}
+																	disabled={
+																		savingSubmissionId === submission.id ||
+																		(selectionBySubmission[submission.id]?.length ?? 0) === 0
+																	}
+																>
+																	{savingSubmissionId === submission.id ? 'Saving...' : 'Save changes'}
+																</Button>
+															</div>
+														</div>
+													)}
+												</div>
 											</li>
 										))}
 									</ul>
@@ -215,7 +416,22 @@ export default function MyConferencesPage() {
 				))}
 			</div>
 		)
-	}, [user, isLoading, error, conferences, deletingId, handleDeleteConference])
+	}, [
+		user,
+		isLoading,
+		error,
+		conferences,
+		deletingId,
+		handleDeleteConference,
+		expandedSubmissionId,
+		handleSaveAssignments,
+		handleToggleSubmission,
+		handleToggleReviewer,
+		handleResetSelection,
+		savingSubmissionId,
+		selectionBySubmission,
+		reviewers
+	])
 
 	return (
 		<div className='space-y-6'>

@@ -6,7 +6,12 @@ import { ZodError } from 'zod'
 
 import { getFirebaseAdminApp } from '@/lib/firebase-admin'
 import { DEFAULT_REVIEWER_DECISION, extractReviewerStatuses } from '@/lib/reviewer-status'
-import { reviewerStatusUpdateSchema, submissionFormSchema, type ReviewerDecision } from '@/lib/schemas'
+import {
+	reviewerStatusUpdateSchema,
+	submissionFormSchema,
+	submissionReviewerAssignmentSchema,
+	type ReviewerDecision
+} from '@/lib/schemas'
 
 function getFirestoreInstance() {
 	return getFirestore(getFirebaseAdminApp())
@@ -301,7 +306,13 @@ export async function POST(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
 	try {
-		const payload = reviewerStatusUpdateSchema.parse(await request.json())
+		const rawPayload = await request.json()
+		const statusPayload = reviewerStatusUpdateSchema.safeParse(rawPayload)
+		const assignmentPayload = submissionReviewerAssignmentSchema.safeParse(rawPayload)
+
+		if (!statusPayload.success && !assignmentPayload.success) {
+			return NextResponse.json({ error: 'Invalid update payload.' }, { status: 400 })
+		}
 
 		const cookieStore = await cookies()
 		const sessionCookie = cookieStore.get('session')?.value
@@ -320,36 +331,111 @@ export async function PATCH(request: NextRequest) {
 		}
 
 		const userData = userSnapshot.data()
-		if (userData?.role !== 'reviewer') {
-			return NextResponse.json({ error: 'Only reviewers can update paper statuses.' }, { status: 403 })
+
+		if (statusPayload.success) {
+			if (userData?.role !== 'reviewer') {
+				return NextResponse.json({ error: 'Only reviewers can update paper statuses.' }, { status: 403 })
+			}
+
+			const { submissionId, status } = statusPayload.data
+			const submissionRef = firestore.collection('submissions').doc(submissionId)
+			const submissionSnapshot = await submissionRef.get()
+			if (!submissionSnapshot.exists) {
+				return NextResponse.json({ error: 'Submission not found.' }, { status: 404 })
+			}
+
+			const submissionData = submissionSnapshot.data() as DocumentData
+			const assignedReviewers = Array.isArray(submissionData.reviewers) ? (submissionData.reviewers as string[]) : []
+
+			if (!assignedReviewers.includes(uid)) {
+				return NextResponse.json({ error: 'You are not assigned to this submission.' }, { status: 403 })
+			}
+
+			await submissionRef.set(
+				{
+					reviewerStatuses: { [uid]: status },
+					updatedAt: FieldValue.serverTimestamp()
+				},
+				{ merge: true }
+			)
+
+			return NextResponse.json({ success: true })
 		}
 
-		const submissionRef = firestore.collection('submissions').doc(payload.submissionId)
+		if (!assignmentPayload.success) {
+			return NextResponse.json({ error: 'Invalid update payload.' }, { status: 400 })
+		}
+
+		if (userData?.role !== 'organizer') {
+			return NextResponse.json({ error: 'Only organizers can update reviewer assignments.' }, { status: 403 })
+		}
+
+		const { submissionId, reviewerIds } = assignmentPayload.data
+		const uniqueReviewerIds = Array.from(new Set<string>(reviewerIds))
+		if (uniqueReviewerIds.length === 0) {
+			return NextResponse.json({ error: 'At least one reviewer must be selected.' }, { status: 400 })
+		}
+
+		const submissionRef = firestore.collection('submissions').doc(submissionId)
 		const submissionSnapshot = await submissionRef.get()
 		if (!submissionSnapshot.exists) {
 			return NextResponse.json({ error: 'Submission not found.' }, { status: 404 })
 		}
 
 		const submissionData = submissionSnapshot.data() as DocumentData
-		const assignedReviewers = Array.isArray(submissionData.reviewers) ? (submissionData.reviewers as string[]) : []
+		const priorReviewerIds = Array.isArray(submissionData.reviewers) ? (submissionData.reviewers as string[]) : []
+		const existingStatuses = extractReviewerStatuses(submissionData.reviewerStatuses)
 
-		if (!assignedReviewers.includes(uid)) {
-			return NextResponse.json({ error: 'You are not assigned to this submission.' }, { status: 403 })
+		const reviewerDocs = await firestore.getAll(
+			...uniqueReviewerIds.map((reviewerId) => firestore.collection('users').doc(reviewerId))
+		)
+
+		for (const docSnapshot of reviewerDocs) {
+			if (!docSnapshot.exists) {
+				return NextResponse.json({ error: 'One or more reviewers were not found.' }, { status: 400 })
+			}
+			const reviewerData = docSnapshot.data()
+			if (reviewerData?.role !== 'reviewer') {
+				return NextResponse.json({ error: 'Invalid reviewer selection.' }, { status: 400 })
+			}
 		}
 
-		await submissionRef.set(
+		const updatedStatuses = uniqueReviewerIds.reduce<Record<string, ReviewerDecision>>((acc, reviewerId) => {
+			acc[reviewerId] = existingStatuses[reviewerId] ?? DEFAULT_REVIEWER_DECISION
+			return acc
+		}, {})
+
+		const addedReviewerIds = uniqueReviewerIds.filter((reviewerId) => !priorReviewerIds.includes(reviewerId))
+		const removedReviewerIds = priorReviewerIds.filter((reviewerId) => !uniqueReviewerIds.includes(reviewerId))
+
+		const batch = firestore.batch()
+		batch.set(
+			submissionRef,
 			{
-				reviewerStatuses: { [uid]: payload.status },
+				reviewers: uniqueReviewerIds,
+				reviewerStatuses: updatedStatuses,
 				updatedAt: FieldValue.serverTimestamp()
 			},
 			{ merge: true }
 		)
 
+		for (const reviewerId of addedReviewerIds) {
+			const reviewerRef = firestore.collection('users').doc(reviewerId)
+			batch.set(reviewerRef, { assignedPapers: FieldValue.arrayUnion(submissionId) }, { merge: true })
+		}
+
+		for (const reviewerId of removedReviewerIds) {
+			const reviewerRef = firestore.collection('users').doc(reviewerId)
+			batch.set(reviewerRef, { assignedPapers: FieldValue.arrayRemove(submissionId) }, { merge: true })
+		}
+
+		await batch.commit()
+
 		return NextResponse.json({ success: true })
 	} catch (error) {
-		console.error('Failed to update reviewer status:', error)
+		console.error('Failed to update submission:', error)
 		if (error instanceof ZodError) {
-			return NextResponse.json({ error: 'Invalid status update payload.' }, { status: 400 })
+			return NextResponse.json({ error: 'Invalid update payload.' }, { status: 400 })
 		}
 
 		return NextResponse.json({ error: 'Internal server error. Please try again.' }, { status: 500 })

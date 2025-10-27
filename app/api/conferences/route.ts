@@ -52,10 +52,27 @@ export async function GET(request: NextRequest) {
 			return NextResponse.json({ error: 'Only organizers can view their conferences.' }, { status: 403 })
 		}
 
+		const reviewersSnapshot = await firestore.collection('users').where('role', '==', 'reviewer').get()
+
+		const reviewerDirectory = reviewersSnapshot.docs.map((doc) => {
+			const data = doc.data()
+			return {
+				id: doc.id,
+				name: typeof data?.name === 'string' && data.name.trim().length > 0 ? (data.name as string) : 'Reviewer'
+			}
+		})
+
+		reviewerDirectory.sort((a, b) => a.name.localeCompare(b.name))
+
+		const reviewerLookup = reviewerDirectory.reduce<Record<string, string>>((acc, reviewer) => {
+			acc[reviewer.id] = reviewer.name
+			return acc
+		}, {})
+
 		const conferencesSnapshot = await firestore.collection('conferences').where('organizerId', '==', uid).get()
 
 		if (conferencesSnapshot.empty) {
-			return NextResponse.json({ conferences: [] })
+			return NextResponse.json({ conferences: [], reviewers: reviewerDirectory })
 		}
 
 		const conferences = conferencesSnapshot.docs.map((doc) => {
@@ -89,7 +106,6 @@ export async function GET(request: NextRequest) {
 				createdAt: string | null
 			}>
 		> = {}
-		const reviewerIds = new Set<string>()
 
 		if (conferenceIds.length > 0) {
 			const chunks = chunkArray(conferenceIds, 10)
@@ -117,26 +133,8 @@ export async function GET(request: NextRequest) {
 						submissionsByConference[conferenceId] = []
 					}
 					submissionsByConference[conferenceId].push(submissionEntry)
-
-					for (const reviewerId of submissionEntry.reviewers) {
-						reviewerIds.add(reviewerId)
-					}
 				})
 			}
-		}
-
-		let reviewerLookup: Record<string, string> = {}
-		if (reviewerIds.size > 0) {
-			const reviewerDocs = await firestore.getAll(
-				...[...reviewerIds].map((reviewerId) => firestore.collection('users').doc(reviewerId))
-			)
-			reviewerLookup = reviewerDocs.reduce<Record<string, string>>((acc, snapshot) => {
-				if (snapshot.exists) {
-					const reviewerData = snapshot.data()
-					acc[snapshot.id] = typeof reviewerData?.name === 'string' ? reviewerData.name : 'Reviewer'
-				}
-				return acc
-			}, {})
 		}
 
 		const conferencesWithDetails = conferences.map((conference) => {
@@ -167,7 +165,7 @@ export async function GET(request: NextRequest) {
 			}
 		})
 
-		return NextResponse.json({ conferences: conferencesWithDetails })
+		return NextResponse.json({ conferences: conferencesWithDetails, reviewers: reviewerDirectory })
 	} catch (error) {
 		console.error('Failed to list organizer conferences:', error)
 		return NextResponse.json({ error: 'Internal server error. Please try again.' }, { status: 500 })

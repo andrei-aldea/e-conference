@@ -44,6 +44,11 @@ export const reviewerStatusUpdateSchema = z.object({
 	status: reviewerDecisionSchema
 })
 
+export const submissionReviewerAssignmentSchema = z.object({
+	submissionId: z.string().min(1, { message: 'Submission identifier is required.' }),
+	reviewerIds: z.array(z.string().min(1)).min(1, { message: 'At least one reviewer is required.' })
+})
+
 export type SignupInput = z.infer<typeof signupSchema>
 
 export type LoginInput = z.infer<typeof loginSchema>
