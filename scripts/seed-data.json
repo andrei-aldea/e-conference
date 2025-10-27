@@ -86,6 +86,10 @@
 			"authorEmail": "alice.author@example.com",
 			"conferenceId": "global-ai-summit",
 			"reviewerEmails": ["rachel.reviewer@example.com", "ryan.reviewer@example.com"],
+			"reviewerStatuses": {
+				"rachel.reviewer@example.com": "accepted",
+				"ryan.reviewer@example.com": "pending"
+			},
 			"createdAt": "2025-01-12T10:00:00.000Z"
 		},
 		{
@@ -94,6 +98,10 @@
 			"authorEmail": "brian.author@example.com",
 			"conferenceId": "quantum-tech-conference",
 			"reviewerEmails": ["ryan.reviewer@example.com", "renee.reviewer@example.com"],
+			"reviewerStatuses": {
+				"ryan.reviewer@example.com": "pending",
+				"renee.reviewer@example.com": "declined"
+			},
 			"createdAt": "2025-01-18T14:30:00.000Z"
 		},
 		{
@@ -102,6 +110,10 @@
 			"authorEmail": "chloe.author@example.com",
 			"conferenceId": "ethics-in-ai-forum",
 			"reviewerEmails": ["rachel.reviewer@example.com", "renee.reviewer@example.com"],
+			"reviewerStatuses": {
+				"rachel.reviewer@example.com": "pending",
+				"renee.reviewer@example.com": "pending"
+			},
 			"createdAt": "2025-01-25T09:15:00.000Z"
 		}
 	]

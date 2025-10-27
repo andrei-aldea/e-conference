@@ -10,10 +10,13 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { db } from '@/lib/firebase'
+import { getReviewerStatusLabel, getReviewerStatusToneClass } from '@/lib/reviewer-status'
+import { type ReviewerDecision } from '@/lib/schemas'
 
 interface ReviewerSummary {
 	id: string
 	name: string
+	status: ReviewerDecision
 }
 
 interface ConferenceSubmission {
@@ -178,11 +181,29 @@ export default function MyConferencesPage() {
 														</span>
 													)}
 												</div>
-												<div className='mt-2 text-sm text-muted-foreground'>
-													<strong className='font-medium text-foreground'>Reviewers:</strong>{' '}
-													{submission.reviewers.length > 0
-														? submission.reviewers.map((reviewer) => reviewer.name).join(', ')
-														: 'Not assigned yet'}
+												<div className='mt-2 space-y-2 text-sm text-muted-foreground'>
+													<strong className='font-medium text-foreground'>Reviewers:</strong>
+													{submission.reviewers.length > 0 ? (
+														<ul className='space-y-1'>
+															{submission.reviewers.map((reviewer) => (
+																<li
+																	key={reviewer.id}
+																	className='flex items-center justify-between gap-2'
+																>
+																	<span>{reviewer.name}</span>
+																	<span
+																		className={`rounded-full px-2 py-0.5 text-xs font-medium capitalize ${getReviewerStatusToneClass(
+																			reviewer.status
+																		)}`}
+																	>
+																		{getReviewerStatusLabel(reviewer.status)}
+																	</span>
+																</li>
+															))}
+														</ul>
+													) : (
+														<p className='text-sm'>Not assigned yet</p>
+													)}
 												</div>
 											</li>
 										))}

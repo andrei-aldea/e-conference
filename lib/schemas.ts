@@ -31,9 +31,17 @@ export const submissionFormSchema = z.object({
 	conferenceId: z.string().min(1, { message: 'Please select a conference' })
 })
 
+export const reviewerDecisionSchema = z.enum(['pending', 'accepted', 'declined'])
+
 export const submissionSchema = submissionFormSchema.extend({
 	authorId: z.string().min(1, { message: 'Author is required.' }),
-	reviewers: z.array(z.string())
+	reviewers: z.array(z.string()),
+	reviewerStatuses: z.record(z.string(), reviewerDecisionSchema).optional()
+})
+
+export const reviewerStatusUpdateSchema = z.object({
+	submissionId: z.string().min(1, { message: 'Submission identifier is required.' }),
+	status: reviewerDecisionSchema
 })
 
 export type SignupInput = z.infer<typeof signupSchema>
@@ -60,3 +68,5 @@ export type ConferenceInput = z.infer<typeof conferenceSchema>
 export type SubmissionFormInput = z.infer<typeof submissionFormSchema>
 
 export type Submission = z.infer<typeof submissionSchema>
+
+export type ReviewerDecision = z.infer<typeof reviewerDecisionSchema>

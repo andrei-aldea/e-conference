@@ -9,6 +9,9 @@ import { cert, getApp, getApps, initializeApp } from 'firebase-admin/app'
 import { getAuth } from 'firebase-admin/auth'
 import { FieldValue, Timestamp, getFirestore } from 'firebase-admin/firestore'
 
+const DEFAULT_REVIEWER_STATUS = 'pending'
+const VALID_REVIEWER_STATUSES = new Set(['pending', 'accepted', 'declined'])
+
 const APP_NAME = 'e-conference-seed-cli'
 
 const envPath = path.resolve(process.cwd(), '.env.local')
@@ -154,6 +157,17 @@ async function seedSubmissions(firestore, submissions, emailToIdMaps) {
 			return reviewerId
 		})
 
+		const reviewerStatuses = reviewerIds.reduce((acc, reviewerId, index) => {
+			const reviewerEmail = submission.reviewerEmails[index]
+			const explicitStatus = submission.reviewerStatuses?.[reviewerEmail]
+			const normalizedStatus =
+				typeof explicitStatus === 'string' && VALID_REVIEWER_STATUSES.has(explicitStatus)
+					? explicitStatus
+					: DEFAULT_REVIEWER_STATUS
+			acc[reviewerId] = normalizedStatus
+			return acc
+		}, {})
+
 		const conferenceRef = firestore.collection('conferences').doc(submission.conferenceId)
 		const conferenceSnapshot = await conferenceRef.get()
 		if (!conferenceSnapshot.exists) {
@@ -169,6 +183,7 @@ async function seedSubmissions(firestore, submissions, emailToIdMaps) {
 					authorId,
 					conferenceId: submission.conferenceId,
 					reviewers: reviewerIds,
+					reviewerStatuses,
 					createdAt: Timestamp.fromDate(new Date(submission.createdAt))
 				},
 				{ merge: true }

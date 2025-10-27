@@ -4,6 +4,8 @@ import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
 
 import { getFirebaseAdminApp } from '@/lib/firebase-admin'
+import { DEFAULT_REVIEWER_DECISION, extractReviewerStatuses } from '@/lib/reviewer-status'
+import type { ReviewerDecision } from '@/lib/schemas'
 
 function getAuthInstance() {
 	return getAuth(getFirebaseAdminApp())
@@ -79,7 +81,13 @@ export async function GET(request: NextRequest) {
 		const conferenceIds = conferences.map((conf) => conf.id)
 		const submissionsByConference: Record<
 			string,
-			Array<{ id: string; title: string; reviewers: string[]; createdAt: string | null }>
+			Array<{
+				id: string
+				title: string
+				reviewers: string[]
+				reviewerStatuses: Record<string, ReviewerDecision>
+				createdAt: string | null
+			}>
 		> = {}
 		const reviewerIds = new Set<string>()
 
@@ -95,10 +103,13 @@ export async function GET(request: NextRequest) {
 						return
 					}
 
+					const reviewerStatuses = extractReviewerStatuses(data.reviewerStatuses)
+
 					const submissionEntry = {
 						id: submissionDoc.id,
 						title: typeof data.title === 'string' ? data.title : 'Untitled submission',
 						reviewers: Array.isArray(data.reviewers) ? (data.reviewers as string[]) : [],
+						reviewerStatuses,
 						createdAt: data.createdAt?.toDate?.().toISOString?.() ?? null
 					}
 
@@ -149,7 +160,8 @@ export async function GET(request: NextRequest) {
 					createdAt: submission.createdAt,
 					reviewers: submission.reviewers.map((reviewerId) => ({
 						id: reviewerId,
-						name: reviewerLookup[reviewerId] ?? 'Reviewer'
+						name: reviewerLookup[reviewerId] ?? 'Reviewer',
+						status: submission.reviewerStatuses[reviewerId] ?? DEFAULT_REVIEWER_DECISION
 					}))
 				}))
 			}

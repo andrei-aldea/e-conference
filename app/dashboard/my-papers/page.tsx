@@ -5,13 +5,15 @@ import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '@/components/auth-provider'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { getReviewerStatusLabel, getReviewerStatusToneClass } from '@/lib/reviewer-status'
+import type { ReviewerDecision } from '@/lib/schemas'
 
 interface SubmissionItem {
 	id: string
 	title: string
 	conferenceId: string | null
 	conference: { id: string; name: string } | null
-	reviewers: Array<{ id: string; name: string }>
+	reviewers: Array<{ id: string; name: string; status: ReviewerDecision }>
 	createdAt?: string
 }
 
@@ -108,9 +110,16 @@ export default function MyPapersPage() {
 									{submission.reviewers.map((reviewer) => (
 										<li
 											key={reviewer.id}
-											className='text-sm'
+											className='flex items-center justify-between gap-2 text-sm'
 										>
-											{reviewer.name}
+											<span>{reviewer.name}</span>
+											<span
+												className={`rounded-full px-2 py-0.5 text-xs font-medium capitalize ${getReviewerStatusToneClass(
+													reviewer.status
+												)}`}
+											>
+												{getReviewerStatusLabel(reviewer.status)}
+											</span>
 										</li>
 									))}
 								</ul>

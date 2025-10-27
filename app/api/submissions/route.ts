@@ -5,7 +5,8 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { ZodError } from 'zod'
 
 import { getFirebaseAdminApp } from '@/lib/firebase-admin'
-import { submissionFormSchema } from '@/lib/schemas'
+import { DEFAULT_REVIEWER_DECISION, extractReviewerStatuses } from '@/lib/reviewer-status'
+import { reviewerStatusUpdateSchema, submissionFormSchema, type ReviewerDecision } from '@/lib/schemas'
 
 function getFirestoreInstance() {
 	return getFirestore(getFirebaseAdminApp())
@@ -70,27 +71,39 @@ export async function GET(request: NextRequest) {
 
 			const authorIds = new Set<string>()
 			const conferenceIds = new Set<string>()
+			const reviewerIds = new Set<string>()
 			const submissions = submissionsSnapshot.docs.map((doc) => {
 				const data = doc.data() as DocumentData
 				const authorId = typeof data.authorId === 'string' ? data.authorId : null
 				const conferenceId = typeof data.conferenceId === 'string' ? data.conferenceId : null
+				const reviewerAssignments = Array.isArray(data.reviewers) ? (data.reviewers as string[]) : []
+				const reviewerStatuses = extractReviewerStatuses(data.reviewerStatuses)
 				if (authorId) {
 					authorIds.add(authorId)
 				}
 				if (conferenceId) {
 					conferenceIds.add(conferenceId)
 				}
+				for (const reviewerId of reviewerAssignments) {
+					reviewerIds.add(reviewerId)
+				}
 				return {
 					id: doc.id,
 					title: typeof data.title === 'string' ? (data.title as string) : 'Untitled submission',
 					authorId,
 					conferenceId,
+					reviewerIds: reviewerAssignments,
+					reviewerStatuses,
+					status: reviewerStatuses[uid] ?? DEFAULT_REVIEWER_DECISION,
 					createdAt: data.createdAt?.toDate?.().toISOString?.() ?? null
 				}
 			})
 
-			const authorLookup = await fetchDocumentsByIds(firestore, 'users', authorIds)
-			const conferenceLookup = await fetchDocumentsByIds(firestore, 'conferences', conferenceIds)
+			const [authorLookup, conferenceLookup, reviewerLookup] = await Promise.all([
+				fetchDocumentsByIds(firestore, 'users', authorIds),
+				fetchDocumentsByIds(firestore, 'conferences', conferenceIds),
+				fetchDocumentsByIds(firestore, 'users', reviewerIds)
+			])
 
 			submissions.sort((a, b) => {
 				const aDate = a.createdAt ? new Date(a.createdAt).getTime() : 0
@@ -119,6 +132,15 @@ export async function GET(request: NextRequest) {
 									: 'Conference'
 					  }
 					: { id: 'unknown', name: 'Conference' },
+				status: submission.status,
+				reviewers: submission.reviewerIds.map((reviewerId) => ({
+					id: reviewerId,
+					name:
+						typeof reviewerLookup[reviewerId]?.name === 'string'
+							? (reviewerLookup[reviewerId]?.name as string)
+							: 'Reviewer',
+					status: submission.reviewerStatuses[reviewerId] ?? DEFAULT_REVIEWER_DECISION
+				})),
 				createdAt: submission.createdAt
 			}))
 
@@ -136,6 +158,7 @@ export async function GET(request: NextRequest) {
 		const submissions = submissionsSnapshot.docs.map((doc) => {
 			const data = doc.data() as DocumentData
 			const reviewers = Array.isArray(data.reviewers) ? (data.reviewers as string[]) : []
+			const reviewerStatuses = extractReviewerStatuses(data.reviewerStatuses)
 			for (const reviewerId of reviewers) {
 				reviewerIds.add(reviewerId)
 			}
@@ -147,13 +170,16 @@ export async function GET(request: NextRequest) {
 				id: doc.id,
 				title: typeof data.title === 'string' ? (data.title as string) : 'Untitled submission',
 				reviewers,
+				reviewerStatuses,
 				conferenceId,
 				createdAt: data.createdAt?.toDate?.().toISOString?.() ?? null
 			}
 		})
 
-		const reviewerLookup = await fetchDocumentsByIds(firestore, 'users', reviewerIds)
-		const conferenceLookup = await fetchDocumentsByIds(firestore, 'conferences', conferenceIds)
+		const [reviewerLookup, conferenceLookup] = await Promise.all([
+			fetchDocumentsByIds(firestore, 'users', reviewerIds),
+			fetchDocumentsByIds(firestore, 'conferences', conferenceIds)
+		])
 
 		submissions.sort((a, b) => {
 			const aDate = a.createdAt ? new Date(a.createdAt).getTime() : 0
@@ -179,7 +205,8 @@ export async function GET(request: NextRequest) {
 				name:
 					typeof reviewerLookup[reviewerId]?.name === 'string'
 						? (reviewerLookup[reviewerId]?.name as string)
-						: 'Reviewer'
+						: 'Reviewer',
+				status: submission.reviewerStatuses[reviewerId] ?? DEFAULT_REVIEWER_DECISION
 			})),
 			createdAt: submission.createdAt
 		}))
@@ -234,11 +261,16 @@ export async function POST(request: NextRequest) {
 		}
 
 		const assignedReviewers = pickRandomSample(reviewerIds, 2)
+		const reviewerStatuses = assignedReviewers.reduce<Record<string, ReviewerDecision>>((acc, reviewerId) => {
+			acc[reviewerId] = DEFAULT_REVIEWER_DECISION
+			return acc
+		}, {})
 
 		const submissionRef = await firestore.collection('submissions').add({
 			title,
 			authorId: uid,
 			reviewers: assignedReviewers,
+			reviewerStatuses,
 			conferenceId,
 			createdAt: Timestamp.now()
 		})
@@ -261,6 +293,63 @@ export async function POST(request: NextRequest) {
 		console.error('Failed to submit paper:', error)
 		if (error instanceof ZodError) {
 			return NextResponse.json({ error: 'Invalid submission payload.' }, { status: 400 })
+		}
+
+		return NextResponse.json({ error: 'Internal server error. Please try again.' }, { status: 500 })
+	}
+}
+
+export async function PATCH(request: NextRequest) {
+	try {
+		const payload = reviewerStatusUpdateSchema.parse(await request.json())
+
+		const cookieStore = await cookies()
+		const sessionCookie = cookieStore.get('session')?.value
+		if (!sessionCookie) {
+			return NextResponse.json({ error: 'Authentication required.' }, { status: 401 })
+		}
+
+		const auth = getAuthInstance()
+		const decoded = await auth.verifySessionCookie(sessionCookie, true)
+		const uid = decoded.uid
+
+		const firestore = getFirestoreInstance()
+		const userSnapshot = await firestore.collection('users').doc(uid).get()
+		if (!userSnapshot.exists) {
+			return NextResponse.json({ error: 'User profile not found.' }, { status: 404 })
+		}
+
+		const userData = userSnapshot.data()
+		if (userData?.role !== 'reviewer') {
+			return NextResponse.json({ error: 'Only reviewers can update paper statuses.' }, { status: 403 })
+		}
+
+		const submissionRef = firestore.collection('submissions').doc(payload.submissionId)
+		const submissionSnapshot = await submissionRef.get()
+		if (!submissionSnapshot.exists) {
+			return NextResponse.json({ error: 'Submission not found.' }, { status: 404 })
+		}
+
+		const submissionData = submissionSnapshot.data() as DocumentData
+		const assignedReviewers = Array.isArray(submissionData.reviewers) ? (submissionData.reviewers as string[]) : []
+
+		if (!assignedReviewers.includes(uid)) {
+			return NextResponse.json({ error: 'You are not assigned to this submission.' }, { status: 403 })
+		}
+
+		await submissionRef.set(
+			{
+				reviewerStatuses: { [uid]: payload.status },
+				updatedAt: FieldValue.serverTimestamp()
+			},
+			{ merge: true }
+		)
+
+		return NextResponse.json({ success: true })
+	} catch (error) {
+		console.error('Failed to update reviewer status:', error)
+		if (error instanceof ZodError) {
+			return NextResponse.json({ error: 'Invalid status update payload.' }, { status: 400 })
 		}
 
 		return NextResponse.json({ error: 'Internal server error. Please try again.' }, { status: 500 })
