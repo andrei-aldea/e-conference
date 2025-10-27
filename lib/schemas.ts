@@ -26,6 +26,16 @@ export const conferenceSchema = z.object({
 	endDate: z.date({ message: 'An end date is required.' })
 })
 
+export const submissionFormSchema = z.object({
+	title: z.string().min(3, { message: 'Title must be at least 3 characters long' }),
+	conferenceId: z.string().min(1, { message: 'Please select a conference' })
+})
+
+export const submissionSchema = submissionFormSchema.extend({
+	authorId: z.string().min(1, { message: 'Author is required.' }),
+	reviewers: z.array(z.string())
+})
+
 export type SignupInput = z.infer<typeof signupSchema>
 
 export type LoginInput = z.infer<typeof loginSchema>
@@ -42,3 +52,7 @@ export type UserWithId = User & { uid: string }
 export type Conference = z.infer<typeof conferenceSchema> & { id: string }
 
 export type ConferenceInput = z.infer<typeof conferenceSchema>
+
+export type SubmissionFormInput = z.infer<typeof submissionFormSchema>
+
+export type Submission = z.infer<typeof submissionSchema>

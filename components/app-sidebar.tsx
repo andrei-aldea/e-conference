@@ -11,7 +11,7 @@ import {
 	SidebarMenuButton,
 	SidebarMenuItem
 } from '@/components/ui/sidebar'
-import { FilePlus, LayoutDashboard, List, LogOut, PlusCircle, User2, Users } from 'lucide-react'
+import { FilePlus, FileText, LayoutDashboard, List, LogOut, PlusCircle, User2, Users } from 'lucide-react'
 import Link from 'next/link'
 
 import Logo from './logo'
@@ -50,6 +50,16 @@ export function AppSidebar() {
 									<SidebarMenuButton>
 										<FilePlus />
 										Submit Paper
+									</SidebarMenuButton>
+								</SidebarMenuItem>
+							</Link>
+						)}
+						{user?.role === 'author' && (
+							<Link href='/dashboard/my-papers'>
+								<SidebarMenuItem>
+									<SidebarMenuButton>
+										<FileText />
+										My Papers
 									</SidebarMenuButton>
 								</SidebarMenuItem>
 							</Link>
