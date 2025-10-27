@@ -18,6 +18,13 @@ export const loginSchema = z.object({
 	password: z.string().min(1, { message: 'Password is required' })
 })
 
+export const conferenceSchema = z.object({
+	name: z.string().min(3, { message: 'Conference name must be at least 3 characters long' }),
+	description: z.string().min(10, { message: 'Description must be at least 10 characters long' }),
+	startDate: z.date({ message: 'A start date is required.' }),
+	endDate: z.date({ message: 'An end date is required.' })
+})
+
 export type SignupInput = z.infer<typeof signupSchema>
 
 export type LoginInput = z.infer<typeof loginSchema>
@@ -28,3 +35,5 @@ export const userSchema = signupSchema.omit({
 	password: true,
 	confirmPassword: true
 })
+
+export type ConferenceInput = z.infer<typeof conferenceSchema>

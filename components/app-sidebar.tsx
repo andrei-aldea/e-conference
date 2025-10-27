@@ -12,7 +12,7 @@ import {
 	SidebarMenuButton,
 	SidebarMenuItem
 } from '@/components/ui/sidebar'
-import { ChevronUp, LayoutDashboard, User2 } from 'lucide-react'
+import { ChevronUp, LayoutDashboard, PlusCircle, User2 } from 'lucide-react'
 import Link from 'next/link'
 import Logo from './logo'
 export function AppSidebar() {
@@ -27,17 +27,24 @@ export function AppSidebar() {
 			<SidebarContent>
 				<SidebarGroup>
 					<SidebarMenu>
-						<SidebarMenuItem>
-							<SidebarMenuButton>
-								<Link
-									href='/dashboard'
-									className='flex items-center gap-2'
-								>
+						<Link href='/dashboard'>
+							<SidebarMenuItem>
+								<SidebarMenuButton>
 									<LayoutDashboard />
 									Dashboard
-								</Link>
-							</SidebarMenuButton>
-						</SidebarMenuItem>
+								</SidebarMenuButton>
+							</SidebarMenuItem>
+						</Link>
+						{user?.role === 'organizer' && (
+							<Link href='/dashboard/conferences/new'>
+								<SidebarMenuItem>
+									<SidebarMenuButton>
+										<PlusCircle />
+										New Conference
+									</SidebarMenuButton>
+								</SidebarMenuItem>
+							</Link>
+						)}
 					</SidebarMenu>
 				</SidebarGroup>
 			</SidebarContent>
