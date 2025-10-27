@@ -1,5 +1,4 @@
 import { AppSidebar } from '@/components/app-sidebar'
-import { DashboardBreadcrumbs } from '@/components/dashboard-breadcrumbs'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -7,11 +6,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 		<SidebarProvider>
 			<AppSidebar />
 			<SidebarInset>
-				<header className='flex items-center gap-3 border-b px-4 py-3'>
+				<header className='flex items-center p-5'>
 					<SidebarTrigger className='ml-0 mt-0 shrink-0' />
-					<DashboardBreadcrumbs className='truncate text-sm text-muted-foreground' />
 				</header>
-				<div className='flex-1 px-4 py-6'>{children}</div>
+				<div className='flex-1 px-4'>{children}</div>
 			</SidebarInset>
 		</SidebarProvider>
 	)

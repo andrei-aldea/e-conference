@@ -53,7 +53,6 @@ export default function ConferenceDetailsPage() {
 	}
 
 	const isOrganizer = user?.role === 'organizer'
-	const isAuthor = user?.role === 'author'
 
 	function handleDelete() {
 		if (!conferenceId || !conferenceRef) {
@@ -104,42 +103,22 @@ export default function ConferenceDetailsPage() {
 						</div>
 					</div>
 				</CardContent>
-				{(isOrganizer || isAuthor) && (
-					<CardFooter className='flex flex-wrap justify-between gap-4'>
+				<CardFooter className='flex flex-wrap justify-between gap-4'>
+					<Button
+						variant='secondary'
+						asChild
+					>
+						<Link href='/dashboard/conferences'>Back to conferences</Link>
+					</Button>
+					{isOrganizer && (
 						<Button
-							variant='secondary'
-							asChild
+							variant='destructive'
+							onClick={handleDelete}
 						>
-							<Link href='/dashboard/conferences'>Back to conferences</Link>
+							Delete conference
 						</Button>
-						<div className='flex flex-wrap gap-4'>
-							{isAuthor && (
-								<Button
-									variant='outline'
-									asChild
-								>
-									<Link href={`/dashboard/conferences/${conference.id}/submit-paper`}>Submit paper</Link>
-								</Button>
-							)}
-							{isOrganizer && (
-								<Button
-									variant='outline'
-									asChild
-								>
-									<Link href={`/dashboard/conferences/${conference.id}/assign-reviewers`}>Assign reviewers</Link>
-								</Button>
-							)}
-							{isOrganizer && (
-								<Button
-									variant='destructive'
-									onClick={handleDelete}
-								>
-									Delete conference
-								</Button>
-							)}
-						</div>
-					</CardFooter>
-				)}
+					)}
+				</CardFooter>
 			</Card>
 		</>
 	)
