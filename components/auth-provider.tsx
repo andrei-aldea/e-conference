@@ -29,38 +29,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 	const pathname = usePathname()
 	const searchParams = useSearchParams()
 
-	const logout = React.useCallback(() => {
-		signOut(auth)
-		// The onIdTokenChanged listener will handle clearing the cookie and redirecting.
-	}, [])
+	const logout = React.useCallback(async () => {
+		await signOut(auth)
+		// The onIdTokenChanged listener will handle clearing the cookie,
+		// but we also push to /login for an immediate redirect.
+		router.push('/login')
+	}, [router])
 
 	useEffect(() => {
 		const unsubscribe = auth.onIdTokenChanged(async (firebaseUser) => {
 			if (firebaseUser) {
 				const token = await firebaseUser.getIdToken()
 				// Set the cookie on the server.
-				// This is a critical step to establish a server-side session.
-				await fetch('/api/auth', {
+				const res = await fetch('/api/auth', {
 					method: 'POST',
 					headers: { Authorization: `Bearer ${token}` }
 				})
 
-				// Fetch custom user data from Firestore
-				const userDocRef = doc(db, 'users', firebaseUser.uid)
-				const userDoc = await getDoc(userDocRef)
-				if (userDoc.exists()) {
-					setUser({ uid: firebaseUser.uid, ...userSchema.parse(userDoc.data()) })
+				if (res.ok) {
+					// Fetch custom user data from Firestore
+					const userDocRef = doc(db, 'users', firebaseUser.uid)
+					const userDoc = await getDoc(userDocRef)
+
+					// Redirect only after the session cookie is set and user data is fetched
+					const redirect = searchParams.get('redirect')
+					router.push(redirect || '/dashboard')
+
+					if (userDoc.exists()) {
+						setUser({ uid: firebaseUser.uid, ...userSchema.parse(userDoc.data()) })
+					}
 				}
 			} else {
 				setUser(null)
 				// Clear the server-side session cookie
+				router.push('/login')
+				// Clear the server-side session cookie. The router push is now primarily
+				// handled in the logout function for explicit logouts.
 				await fetch('/api/auth', { method: 'DELETE' })
 			}
 			setIsLoading(false)
 		})
 
 		return () => unsubscribe()
-	}, [])
+	}, [router])
 
 	const login = async (data: LoginInput) => {
 		try {
@@ -68,8 +79,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 			if (userCredential.user) {
 				// The onIdTokenChanged listener will handle setting the cookie and user state.
 				// We can now redirect.
-				const redirect = searchParams.get('redirect')
-				router.push(redirect || '/dashboard')
 				toast.success('Login successful!')
 			}
 		} catch (error) {
@@ -96,8 +105,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 			// The onIdTokenChanged listener will handle setting the cookie and user state.
 			// We can now redirect.
-			const redirect = searchParams.get('redirect')
-			router.push(redirect || '/dashboard')
 			toast.success('Signup successful!')
 		} catch (error) {
 			if (error instanceof FirebaseError) {
