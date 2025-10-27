@@ -11,7 +11,17 @@ import {
 	SidebarMenuButton,
 	SidebarMenuItem
 } from '@/components/ui/sidebar'
-import { ClipboardList, FilePlus, FileText, LayoutDashboard, List, LogOut, PlusCircle, User2 } from 'lucide-react'
+import {
+	ClipboardList,
+	FilePlus,
+	FileText,
+	LayoutDashboard,
+	List,
+	LogOut,
+	PlusCircle,
+	User2,
+	Waypoints
+} from 'lucide-react'
 import Link from 'next/link'
 
 import Logo from './logo'
@@ -45,16 +55,6 @@ export function AppSidebar() {
 							</SidebarMenuItem>
 						</Link>
 						{user?.role === 'author' && (
-							<Link href='/dashboard/submit-paper'>
-								<SidebarMenuItem>
-									<SidebarMenuButton>
-										<FilePlus />
-										Submit Paper
-									</SidebarMenuButton>
-								</SidebarMenuItem>
-							</Link>
-						)}
-						{user?.role === 'author' && (
 							<Link href='/dashboard/my-papers'>
 								<SidebarMenuItem>
 									<SidebarMenuButton>
@@ -64,6 +64,17 @@ export function AppSidebar() {
 								</SidebarMenuItem>
 							</Link>
 						)}
+						{user?.role === 'author' && (
+							<Link href='/dashboard/submit-paper'>
+								<SidebarMenuItem>
+									<SidebarMenuButton>
+										<FilePlus />
+										Submit Paper
+									</SidebarMenuButton>
+								</SidebarMenuItem>
+							</Link>
+						)}
+
 						{user?.role === 'organizer' && (
 							<Link href='/dashboard/my-conferences'>
 								<SidebarMenuItem>
@@ -80,6 +91,16 @@ export function AppSidebar() {
 									<SidebarMenuButton>
 										<PlusCircle />
 										New Conference
+									</SidebarMenuButton>
+								</SidebarMenuItem>
+							</Link>
+						)}
+						{user?.role === 'reviewer' && (
+							<Link href='/dashboard/reviewer-papers'>
+								<SidebarMenuItem>
+									<SidebarMenuButton>
+										<Waypoints />
+										Assigned Papers
 									</SidebarMenuButton>
 								</SidebarMenuItem>
 							</Link>

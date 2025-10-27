@@ -5,9 +5,8 @@ import { type LoginInput, type SignupInput, type User, userSchema, type UserWith
 import { FirebaseError } from 'firebase/app'
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'firebase/auth'
 import { doc, getDoc, setDoc } from 'firebase/firestore'
-import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import React, { createContext, useContext, useEffect, useState } from 'react'
-import { useAuthState } from 'react-firebase-hooks/auth'
 import { toast } from 'sonner'
 
 type AuthContextType = {
@@ -22,12 +21,11 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType | null>(null)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-	const [authUser, authLoading] = useAuthState(auth)
 	const [user, setUser] = useState<UserWithId | null>(null) // Our custom user object
 	const [isLoading, setIsLoading] = useState(true) // Combined loading state
 	const router = useRouter()
-	const pathname = usePathname()
 	const searchParams = useSearchParams()
+	const redirectParam = searchParams?.get('redirect') ?? null
 
 	const logout = React.useCallback(async () => {
 		await signOut(auth)
@@ -52,8 +50,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 					const userDoc = await getDoc(userDocRef)
 
 					// Redirect only after the session cookie is set and user data is fetched
-					const redirect = searchParams.get('redirect')
-					router.push(redirect || '/dashboard')
+					router.push(redirectParam || '/dashboard')
 
 					if (userDoc.exists()) {
 						setUser({ uid: firebaseUser.uid, ...userSchema.parse(userDoc.data()) })
@@ -71,7 +68,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		})
 
 		return () => unsubscribe()
-	}, [router])
+	}, [router, redirectParam])
 
 	const login = async (data: LoginInput) => {
 		try {

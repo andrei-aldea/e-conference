@@ -32,7 +32,7 @@ export function LoginForm({ className, ...props }: ComponentProps<'div'>) {
 		setIsSubmitting(true)
 		try {
 			await login(data)
-		} catch (error) {
+		} catch {
 			// Error is already alerted in AuthProvider, just stop submitting
 		} finally {
 			setIsSubmitting(false)
