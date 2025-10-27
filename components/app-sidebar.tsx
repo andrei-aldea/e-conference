@@ -9,14 +9,12 @@ import {
 	SidebarMenuItem
 } from '@/components/ui/sidebar'
 import { ChevronUp, User2 } from 'lucide-react'
+import Logo from './logo'
 export function AppSidebar() {
 	return (
 		<Sidebar>
 			<SidebarHeader>
-				<div className='text-3xl'>
-					<span className='text-primary'>e</span>
-					<span className='font-bold'>Conference</span>
-				</div>
+				<Logo />
 			</SidebarHeader>
 			<SidebarContent />
 			<SidebarFooter>
