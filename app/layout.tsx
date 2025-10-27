@@ -1,3 +1,5 @@
+import { ThemeProvider } from '@/components/theme-provider'
+import { ModeToggle } from '@/components/theme-toggle'
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
@@ -23,10 +25,25 @@ export default function RootLayout({
 	children: React.ReactNode
 }>) {
 	return (
-		<html lang='en'>
+		<html
+			lang='en'
+			suppressHydrationWarning
+		>
 			<head></head>
-			<body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-				<main>{children}</main>
+			<body className={`${geistSans.variable} ${geistMono.variable}`}>
+				<main>
+					<ThemeProvider
+						attribute='class'
+						defaultTheme='system'
+						enableSystem
+						disableTransitionOnChange
+					>
+						<div className='fixed right-4 top-4 z-50'>
+							<ModeToggle />
+						</div>
+						{children}
+					</ThemeProvider>
+				</main>
 			</body>
 		</html>
 	)
