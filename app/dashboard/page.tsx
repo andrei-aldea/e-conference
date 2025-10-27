@@ -32,7 +32,9 @@ export default function DashboardPage() {
 
 	return (
 		<div>
-			<h1>Dashboard</h1>
+			<h1 className='text-2xl font-semibold tracking-tight'>Dashboard</h1>
+			<p className='text-sm text-muted-foreground'>Here you can see detailed analytics about your role!</p>
+			<br />
 			<Card>
 				<CardHeader>
 					<CardTitle>Welcome, {user?.name ?? 'User'}!</CardTitle>

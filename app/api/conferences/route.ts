@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
 		})
 
 		const conferenceIds = conferences.map((conf) => conf.id)
-		const submissionsByConference: Record<
+		const papersByConference: Record<
 			string,
 			Array<{
 				id: string
@@ -110,10 +110,10 @@ export async function GET(request: NextRequest) {
 		if (conferenceIds.length > 0) {
 			const chunks = chunkArray(conferenceIds, 10)
 			for (const chunk of chunks) {
-				const submissionsSnapshot = await firestore.collection('submissions').where('conferenceId', 'in', chunk).get()
+				const papersSnapshot = await firestore.collection('papers').where('conferenceId', 'in', chunk).get()
 
-				submissionsSnapshot.forEach((submissionDoc) => {
-					const data = submissionDoc.data()
+				papersSnapshot.forEach((paperDoc) => {
+					const data = paperDoc.data()
 					const conferenceId = data.conferenceId as string
 					if (!conferenceId) {
 						return
@@ -121,29 +121,40 @@ export async function GET(request: NextRequest) {
 
 					const reviewerStatuses = extractReviewerStatuses(data.reviewerStatuses)
 
-					const submissionEntry = {
-						id: submissionDoc.id,
-						title: typeof data.title === 'string' ? data.title : 'Untitled submission',
+					const paperEntry = {
+						id: paperDoc.id,
+						title: typeof data.title === 'string' ? data.title : 'Untitled paper',
 						reviewers: Array.isArray(data.reviewers) ? (data.reviewers as string[]) : [],
 						reviewerStatuses,
 						createdAt: data.createdAt?.toDate?.().toISOString?.() ?? null
 					}
 
-					if (!submissionsByConference[conferenceId]) {
-						submissionsByConference[conferenceId] = []
+					if (!papersByConference[conferenceId]) {
+						papersByConference[conferenceId] = []
 					}
-					submissionsByConference[conferenceId].push(submissionEntry)
+					papersByConference[conferenceId].push(paperEntry)
 				})
 			}
 		}
 
 		const conferencesWithDetails = conferences.map((conference) => {
-			const submissions = submissionsByConference[conference.id] ?? []
-			submissions.sort((a, b) => {
+			const papers = papersByConference[conference.id] ?? []
+			papers.sort((a, b) => {
 				const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0
 				const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0
 				return bTime - aTime
 			})
+
+			const papersPayload = papers.map((paper) => ({
+				id: paper.id,
+				title: paper.title,
+				createdAt: paper.createdAt,
+				reviewers: paper.reviewers.map((reviewerId) => ({
+					id: reviewerId,
+					name: reviewerLookup[reviewerId] ?? 'Reviewer',
+					status: paper.reviewerStatuses[reviewerId] ?? DEFAULT_REVIEWER_DECISION
+				}))
+			}))
 
 			return {
 				id: conference.id,
@@ -152,16 +163,8 @@ export async function GET(request: NextRequest) {
 				location: conference.location,
 				startDate: conference.startDate?.toISOString() ?? null,
 				endDate: conference.endDate?.toISOString() ?? null,
-				submissions: submissions.map((submission) => ({
-					id: submission.id,
-					title: submission.title,
-					createdAt: submission.createdAt,
-					reviewers: submission.reviewers.map((reviewerId) => ({
-						id: reviewerId,
-						name: reviewerLookup[reviewerId] ?? 'Reviewer',
-						status: submission.reviewerStatuses[reviewerId] ?? DEFAULT_REVIEWER_DECISION
-					}))
-				}))
+				papers: papersPayload,
+				submissions: papersPayload
 			}
 		})
 
