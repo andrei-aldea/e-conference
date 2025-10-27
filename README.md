@@ -1,36 +1,24 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# e-conference (Web Application for Conference Organization)
 
-## Getting Started
+This is a Next.js project for a Single Page Application (SPA) web app designed to manage scientific conferences.
 
-First, run the development server:
+## Description
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+The application allows for the organization of conferences, including the process of submitting, reviewing, and approving scientific papers. It is designed to be accessible from desktops and mobile devices.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Core Functionality
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+The application has three types of users with distinct roles:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Organizer**:
+  - Can create new conferences.
+  - Can assign reviewers to the created conferences.
+  - Can monitor the status of all submitted articles.
+- **Author**:
+  - Can register for a conference.
+  - Can submit a paper proposal.
+  - Can upload a new version of the article based on received feedback.
+- **Reviewer**:
+  - Automatically receives articles for review (2 reviewers per article).
+  - Can approve an article.
+  - Can provide feedback to the author for modifications.
