@@ -13,7 +13,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { db } from '@/lib/firebase'
-import { submissionFormSchema, type SubmissionFormInput } from '@/lib/schemas'
+import { paperFormSchema, type PaperFormInput } from '@/lib/schemas'
 
 interface ConferenceOption {
 	id: string
@@ -26,8 +26,8 @@ export default function SubmitPaperPage() {
 	const [isLoadingConferences, setIsLoadingConferences] = useState(true)
 	const [conferences, setConferences] = useState<ConferenceOption[]>([])
 
-	const form = useForm<SubmissionFormInput>({
-		resolver: zodResolver(submissionFormSchema),
+	const form = useForm<PaperFormInput>({
+		resolver: zodResolver(paperFormSchema),
 		defaultValues: {
 			title: '',
 			conferenceId: ''
@@ -67,7 +67,7 @@ export default function SubmitPaperPage() {
 		}
 	}, [form])
 
-	async function onSubmit(data: SubmissionFormInput) {
+	async function onSubmit(data: PaperFormInput) {
 		if (!user || user.role !== 'author') {
 			toast.error('You must be an author to submit a paper.')
 			return
@@ -76,7 +76,7 @@ export default function SubmitPaperPage() {
 		setIsSubmitting(true)
 
 		try {
-			const response = await fetch('/api/submissions', {
+			const response = await fetch('/api/papers', {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json'

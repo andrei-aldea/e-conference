@@ -38,7 +38,7 @@ export default function ReviewerPapersPage() {
 	const [error, setError] = useState<string | null>(null)
 	const [statusErrors, setStatusErrors] = useState<Record<string, string | null>>({})
 	const [updatingStatus, setUpdatingStatus] = useState<Record<string, boolean>>({})
-	const [editingSubmissionId, setEditingSubmissionId] = useState<string | null>(null)
+	const [editingPaperId, setEditingPaperId] = useState<string | null>(null)
 	const [draftStatuses, setDraftStatuses] = useState<Record<string, ReviewerDecision>>({})
 
 	useEffect(() => {
@@ -53,12 +53,12 @@ export default function ReviewerPapersPage() {
 			setError(null)
 
 			try {
-				const response = await fetch('/api/submissions?scope=reviewer')
+				const response = await fetch('/api/papers?scope=reviewer')
 				if (!response.ok) {
 					throw new Error('Unable to load assigned papers.')
 				}
-				const payload = (await response.json()) as { submissions: ReviewerAssignment[] }
-				setAssignments(payload.submissions)
+				const payload = (await response.json()) as { papers: ReviewerAssignment[] }
+				setAssignments(payload.papers)
 			} catch (error) {
 				console.error('Failed to fetch reviewer assignments:', error)
 				setError('Unable to load your assigned papers right now. Please try again later.')
@@ -71,19 +71,19 @@ export default function ReviewerPapersPage() {
 	}, [user])
 
 	const handleStatusChange = useCallback(
-		async (submissionId: string, status: ReviewerDecision) => {
+		async (paperId: string, status: ReviewerDecision) => {
 			if (!user || user.role !== 'reviewer') {
 				return false
 			}
 
-			setUpdatingStatus((prev) => ({ ...prev, [submissionId]: true }))
-			setStatusErrors((prev) => ({ ...prev, [submissionId]: null }))
+			setUpdatingStatus((prev) => ({ ...prev, [paperId]: true }))
+			setStatusErrors((prev) => ({ ...prev, [paperId]: null }))
 
 			try {
-				const response = await fetch('/api/submissions', {
+				const response = await fetch('/api/papers', {
 					method: 'PATCH',
 					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({ submissionId, status })
+					body: JSON.stringify({ paperId, status })
 				})
 
 				if (!response.ok) {
@@ -92,7 +92,7 @@ export default function ReviewerPapersPage() {
 
 				setAssignments((prev) =>
 					prev.map((assignment) =>
-						assignment.id === submissionId
+						assignment.id === paperId
 							? {
 									...assignment,
 									status,
@@ -105,7 +105,7 @@ export default function ReviewerPapersPage() {
 				)
 				setDraftStatuses((prev) => {
 					const next = { ...prev }
-					delete next[submissionId]
+					delete next[paperId]
 					return next
 				})
 				return true
@@ -113,39 +113,39 @@ export default function ReviewerPapersPage() {
 				console.error('Failed to update reviewer status:', requestError)
 				setStatusErrors((prev) => ({
 					...prev,
-					[submissionId]: 'Failed to save your decision. Please try again.'
+					[paperId]: 'Failed to save your decision. Please try again.'
 				}))
 				return false
 			} finally {
-				setUpdatingStatus((prev) => ({ ...prev, [submissionId]: false }))
+				setUpdatingStatus((prev) => ({ ...prev, [paperId]: false }))
 			}
 		},
 		[user]
 	)
 
-	const handleStartEditing = useCallback((submissionId: string, currentStatus: ReviewerDecision) => {
-		setEditingSubmissionId(submissionId)
-		setDraftStatuses((prev) => ({ ...prev, [submissionId]: currentStatus }))
+	const handleStartEditing = useCallback((paperId: string, currentStatus: ReviewerDecision) => {
+		setEditingPaperId(paperId)
+		setDraftStatuses((prev) => ({ ...prev, [paperId]: currentStatus }))
 	}, [])
 
-	const handleCancelEditing = useCallback((submissionId: string) => {
-		setEditingSubmissionId((prev) => (prev === submissionId ? null : prev))
+	const handleCancelEditing = useCallback((paperId: string) => {
+		setEditingPaperId((prev) => (prev === paperId ? null : prev))
 		setDraftStatuses((prev) => {
 			const next = { ...prev }
-			delete next[submissionId]
+			delete next[paperId]
 			return next
 		})
 	}, [])
 
-	const handleDraftStatusChange = useCallback((submissionId: string, status: ReviewerDecision) => {
-		setDraftStatuses((prev) => ({ ...prev, [submissionId]: status }))
+	const handleDraftStatusChange = useCallback((paperId: string, status: ReviewerDecision) => {
+		setDraftStatuses((prev) => ({ ...prev, [paperId]: status }))
 	}, [])
 
 	const handleSaveEditing = useCallback(
-		async (submissionId: string, status: ReviewerDecision) => {
-			const success = await handleStatusChange(submissionId, status)
+		async (paperId: string, status: ReviewerDecision) => {
+			const success = await handleStatusChange(paperId, status)
 			if (success) {
-				setEditingSubmissionId((prev) => (prev === submissionId ? null : prev))
+				setEditingPaperId((prev) => (prev === paperId ? null : prev))
 			}
 		},
 		[handleStatusChange]
@@ -190,7 +190,7 @@ export default function ReviewerPapersPage() {
 		return (
 			<div className='space-y-4'>
 				{assignments.map((assignment) => {
-					const isEditing = editingSubmissionId === assignment.id
+					const isEditing = editingPaperId === assignment.id
 					const draftStatus = draftStatuses[assignment.id]
 					const currentStatus = isEditing ? draftStatus ?? assignment.status : assignment.status
 					const isSaving = !!updatingStatus[assignment.id]
@@ -303,7 +303,7 @@ export default function ReviewerPapersPage() {
 		isLoading,
 		error,
 		assignments,
-		editingSubmissionId,
+		editingPaperId,
 		draftStatuses,
 		handleStartEditing,
 		handleCancelEditing,

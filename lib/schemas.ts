@@ -26,26 +26,26 @@ export const conferenceSchema = z.object({
 	endDate: z.date({ message: 'An end date is required.' })
 })
 
-export const submissionFormSchema = z.object({
+export const paperFormSchema = z.object({
 	title: z.string().min(3, { message: 'Title must be at least 3 characters long' }),
 	conferenceId: z.string().min(1, { message: 'Please select a conference' })
 })
 
 export const reviewerDecisionSchema = z.enum(['pending', 'accepted', 'declined'])
 
-export const submissionSchema = submissionFormSchema.extend({
+export const paperSchema = paperFormSchema.extend({
 	authorId: z.string().min(1, { message: 'Author is required.' }),
 	reviewers: z.array(z.string()),
 	reviewerStatuses: z.record(z.string(), reviewerDecisionSchema).optional()
 })
 
 export const reviewerStatusUpdateSchema = z.object({
-	submissionId: z.string().min(1, { message: 'Submission identifier is required.' }),
+	paperId: z.string().min(1, { message: 'Paper identifier is required.' }),
 	status: reviewerDecisionSchema
 })
 
-export const submissionReviewerAssignmentSchema = z.object({
-	submissionId: z.string().min(1, { message: 'Submission identifier is required.' }),
+export const paperReviewerAssignmentSchema = z.object({
+	paperId: z.string().min(1, { message: 'Paper identifier is required.' }),
 	reviewerIds: z.array(z.string().min(1)).min(1, { message: 'At least one reviewer is required.' })
 })
 
@@ -70,8 +70,8 @@ export type Conference = z.infer<typeof conferenceSchema> & {
 
 export type ConferenceInput = z.infer<typeof conferenceSchema>
 
-export type SubmissionFormInput = z.infer<typeof submissionFormSchema>
+export type PaperFormInput = z.infer<typeof paperFormSchema>
 
-export type Submission = z.infer<typeof submissionSchema>
+export type Paper = z.infer<typeof paperSchema>
 
 export type ReviewerDecision = z.infer<typeof reviewerDecisionSchema>

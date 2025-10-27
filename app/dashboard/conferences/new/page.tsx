@@ -64,7 +64,10 @@ export default function CreateConferencePage() {
 
 	return (
 		<>
-			<h1>Create New Conference</h1>
+			<header className='space-y-1 mb-6'>
+				<h1 className='text-2xl font-semibold tracking-tight'>Create New Conference</h1>
+				<p className='text-sm text-muted-foreground'>Fill out the form below to create a new conference.</p>
+			</header>
 			<Card>
 				<CardContent>
 					<Form {...form}>

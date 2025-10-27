@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { getReviewerStatusLabel, getReviewerStatusToneClass } from '@/lib/reviewer-status'
 import type { ReviewerDecision } from '@/lib/schemas'
 
-interface SubmissionItem {
+interface PaperItem {
 	id: string
 	title: string
 	conferenceId: string | null
@@ -19,14 +19,14 @@ interface SubmissionItem {
 
 export default function MyPapersPage() {
 	const { user } = useAuth()
-	const [submissions, setSubmissions] = useState<SubmissionItem[]>([])
+	const [papers, setPapers] = useState<PaperItem[]>([])
 	const [isLoading, setIsLoading] = useState(true)
 	const [error, setError] = useState<string | null>(null)
 
 	useEffect(() => {
-		async function loadSubmissions() {
+		async function loadPapers() {
 			if (!user || user.role !== 'author') {
-				setSubmissions([])
+				setPapers([])
 				setIsLoading(false)
 				return
 			}
@@ -34,26 +34,26 @@ export default function MyPapersPage() {
 			setIsLoading(true)
 			setError(null)
 			try {
-				const response = await fetch('/api/submissions?scope=self')
+				const response = await fetch('/api/papers?scope=self')
 				if (!response.ok) {
-					throw new Error('Failed to load submissions.')
+					throw new Error('Failed to load papers.')
 				}
-				const payload = (await response.json()) as { submissions: SubmissionItem[] }
-				setSubmissions(payload.submissions)
+				const payload = (await response.json()) as { papers: PaperItem[] }
+				setPapers(payload.papers)
 			} catch (error) {
-				console.error('Failed to fetch submissions:', error)
+				console.error('Failed to fetch papers:', error)
 				setError('Unable to load your papers right now. Please try again later.')
 			} finally {
 				setIsLoading(false)
 			}
 		}
 
-		void loadSubmissions()
+		void loadPapers()
 	}, [user])
 
 	const content = useMemo(() => {
 		if (!user) {
-			return <p>You must be logged in to view your submissions.</p>
+			return <p>You must be logged in to view your papers.</p>
 		}
 
 		if (user.role !== 'author') {
@@ -86,28 +86,26 @@ export default function MyPapersPage() {
 			return <p className='text-sm text-destructive'>{error}</p>
 		}
 
-		if (submissions.length === 0) {
+		if (papers.length === 0) {
 			return <p>You have not submitted any papers yet.</p>
 		}
 
 		return (
 			<div className='space-y-4'>
-				{submissions.map((submission) => (
-					<Card key={submission.id}>
+				{papers.map((paper) => (
+					<Card key={paper.id}>
 						<CardHeader>
-							<CardTitle>{submission.title}</CardTitle>
-							{!!submission.createdAt && (
-								<CardDescription>{new Date(submission.createdAt).toLocaleString()}</CardDescription>
-							)}
+							<CardTitle>{paper.title}</CardTitle>
+							{!!paper.createdAt && <CardDescription>{new Date(paper.createdAt).toLocaleString()}</CardDescription>}
 						</CardHeader>
 						<CardContent className='space-y-4'>
-							{submission.conference && (
-								<div className='text-sm text-muted-foreground'>Conference: {submission.conference.name}</div>
+							{paper.conference && (
+								<div className='text-sm text-muted-foreground'>Conference: {paper.conference.name}</div>
 							)}
 							<div>
 								<h2 className='text-sm font-medium text-muted-foreground'>Assigned reviewers</h2>
 								<ul className='mt-2 space-y-1'>
-									{submission.reviewers.map((reviewer) => (
+									{paper.reviewers.map((reviewer) => (
 										<li
 											key={reviewer.id}
 											className='flex items-center justify-between gap-2 text-sm'
@@ -129,7 +127,7 @@ export default function MyPapersPage() {
 				))}
 			</div>
 		)
-	}, [user, submissions, isLoading, error])
+	}, [user, papers, isLoading, error])
 
 	return (
 		<div className='space-y-6'>

@@ -20,7 +20,7 @@ interface ReviewerSummary {
 	status: ReviewerDecision
 }
 
-interface ConferenceSubmission {
+interface ConferencePaper {
 	id: string
 	title: string
 	createdAt: string | null
@@ -34,7 +34,7 @@ interface OrganizerConference {
 	location?: string
 	startDate: string | null
 	endDate: string | null
-	submissions: ConferenceSubmission[]
+	papers: ConferencePaper[]
 }
 
 interface ReviewerOption {
@@ -49,9 +49,9 @@ export default function MyConferencesPage() {
 	const [isLoading, setIsLoading] = useState(true)
 	const [error, setError] = useState<string | null>(null)
 	const [deletingId, setDeletingId] = useState<string | null>(null)
-	const [expandedSubmissionId, setExpandedSubmissionId] = useState<string | null>(null)
-	const [savingSubmissionId, setSavingSubmissionId] = useState<string | null>(null)
-	const [selectionBySubmission, setSelectionBySubmission] = useState<Record<string, string[]>>({})
+	const [expandedPaperId, setExpandedPaperId] = useState<string | null>(null)
+	const [savingPaperId, setSavingPaperId] = useState<string | null>(null)
+	const [selectionByPaper, setSelectionByPaper] = useState<Record<string, string[]>>({})
 
 	const handleDeleteConference = useCallback(
 		(conferenceId: string) => {
@@ -87,7 +87,7 @@ export default function MyConferencesPage() {
 			if (!user || user.role !== 'organizer') {
 				setConferences([])
 				setReviewers([])
-				setSelectionBySubmission({})
+				setSelectionByPaper({})
 				setIsLoading(false)
 				return
 			}
@@ -100,23 +100,30 @@ export default function MyConferencesPage() {
 				if (!response.ok) {
 					throw new Error('Unable to load conferences.')
 				}
+
 				const payload = (await response.json()) as {
-					conferences: OrganizerConference[]
+					conferences: Array<OrganizerConference & { papers?: ConferencePaper[] | null }>
 					reviewers?: ReviewerOption[]
 				}
-				setConferences(payload.conferences)
+
+				const normalizedConferences: OrganizerConference[] = payload.conferences.map((conference) => ({
+					...conference,
+					papers: Array.isArray(conference.papers) ? conference.papers : []
+				}))
+
+				setConferences(normalizedConferences)
 				setReviewers(payload.reviewers ?? [])
-				setSelectionBySubmission(() => {
+				setSelectionByPaper(() => {
 					const map: Record<string, string[]> = {}
-					for (const conference of payload.conferences) {
-						for (const submission of conference.submissions) {
-							map[submission.id] = submission.reviewers.map((reviewer) => reviewer.id)
+					for (const conference of normalizedConferences) {
+						for (const paper of conference.papers) {
+							map[paper.id] = paper.reviewers.map((reviewer) => reviewer.id)
 						}
 					}
 					return map
 				})
-			} catch (error) {
-				console.error('Failed to load organizer conferences:', error)
+			} catch (loadError) {
+				console.error('Failed to load organizer conferences:', loadError)
 				setError('Unable to load your conferences right now. Please try again later.')
 			} finally {
 				setIsLoading(false)
@@ -126,13 +133,13 @@ export default function MyConferencesPage() {
 		void loadConferences()
 	}, [user])
 
-	const handleToggleSubmission = useCallback((submissionId: string) => {
-		setExpandedSubmissionId((current) => (current === submissionId ? null : submissionId))
+	const handleTogglePaper = useCallback((paperId: string) => {
+		setExpandedPaperId((current) => (current === paperId ? null : paperId))
 	}, [])
 
-	const handleToggleReviewer = useCallback((submissionId: string, reviewerId: string) => {
-		setSelectionBySubmission((current) => {
-			const existing = current[submissionId] ?? []
+	const handleToggleReviewer = useCallback((paperId: string, reviewerId: string) => {
+		setSelectionByPaper((current) => {
+			const existing = current[paperId] ?? []
 			const next = new Set(existing)
 			if (next.has(reviewerId)) {
 				next.delete(reviewerId)
@@ -141,36 +148,36 @@ export default function MyConferencesPage() {
 			}
 			return {
 				...current,
-				[submissionId]: Array.from(next)
+				[paperId]: Array.from(next)
 			}
 		})
 	}, [])
 
-	const handleResetSelection = useCallback((submissionId: string, baseline: string[]) => {
-		setSelectionBySubmission((current) => ({
+	const handleResetSelection = useCallback((paperId: string, baseline: string[]) => {
+		setSelectionByPaper((current) => ({
 			...current,
-			[submissionId]: baseline
+			[paperId]: baseline
 		}))
 	}, [])
 
 	const handleSaveAssignments = useCallback(
-		async (submission: ConferenceSubmission) => {
-			const selectedReviewerIds = selectionBySubmission[submission.id] ?? []
+		async (paper: ConferencePaper) => {
+			const selectedReviewerIds = selectionByPaper[paper.id] ?? []
 			if (selectedReviewerIds.length === 0) {
 				toast.error('Select at least one reviewer before saving.')
 				return
 			}
 
-			setSavingSubmissionId(submission.id)
-			const previousReviewerIds = submission.reviewers.map((reviewer) => reviewer.id)
+			setSavingPaperId(paper.id)
+			const previousReviewerIds = paper.reviewers.map((reviewer) => reviewer.id)
 
 			try {
-				const response = await fetch('/api/submissions', {
+				const response = await fetch('/api/papers', {
 					method: 'PATCH',
 					headers: {
 						'Content-Type': 'application/json'
 					},
-					body: JSON.stringify({ submissionId: submission.id, reviewerIds: selectedReviewerIds })
+					body: JSON.stringify({ paperId: paper.id, reviewerIds: selectedReviewerIds })
 				})
 
 				if (!response.ok) {
@@ -178,45 +185,52 @@ export default function MyConferencesPage() {
 				}
 
 				setConferences((current) =>
-					current.map((conference) => ({
-						...conference,
-						submissions: conference.submissions.map((entry) => {
-							if (entry.id !== submission.id) {
-								return entry
-							}
+					current.map((conference) => {
+						const containsPaper = conference.papers.some((entry) => entry.id === paper.id)
+						if (!containsPaper) {
+							return conference
+						}
 
-							const nextReviewers = selectedReviewerIds.map((reviewerId) => {
-								const existingReviewer = entry.reviewers.find((item) => item.id === reviewerId)
-								if (existingReviewer) {
-									return existingReviewer
+						return {
+							...conference,
+							papers: conference.papers.map((entry) => {
+								if (entry.id !== paper.id) {
+									return entry
 								}
 
-								const fallbackName = reviewers.find((option) => option.id === reviewerId)?.name ?? 'Reviewer'
+								const nextReviewers = selectedReviewerIds.map((reviewerId) => {
+									const existingReviewer = entry.reviewers.find((item) => item.id === reviewerId)
+									if (existingReviewer) {
+										return existingReviewer
+									}
+
+									const fallbackName = reviewers.find((option) => option.id === reviewerId)?.name ?? 'Reviewer'
+									return {
+										id: reviewerId,
+										name: fallbackName,
+										status: DEFAULT_REVIEWER_DECISION
+									}
+								})
+
 								return {
-									id: reviewerId,
-									name: fallbackName,
-									status: DEFAULT_REVIEWER_DECISION
+									...entry,
+									reviewers: nextReviewers
 								}
 							})
-
-							return {
-								...entry,
-								reviewers: nextReviewers
-							}
-						})
-					}))
+						}
+					})
 				)
 
 				toast.success('Reviewer assignments updated successfully.')
-			} catch (error) {
-				console.error('Failed to update reviewer assignments:', error)
+			} catch (assignmentError) {
+				console.error('Failed to update reviewer assignments:', assignmentError)
 				toast.error('Unable to update reviewers. Please try again.')
-				handleResetSelection(submission.id, previousReviewerIds)
+				handleResetSelection(paper.id, previousReviewerIds)
 			} finally {
-				setSavingSubmissionId(null)
+				setSavingPaperId(null)
 			}
 		},
-		[handleResetSelection, reviewers, selectionBySubmission]
+		[handleResetSelection, reviewers, selectionByPaper]
 	)
 
 	const content = useMemo(() => {
@@ -282,28 +296,28 @@ export default function MyConferencesPage() {
 							{conference.description && <p className='text-sm text-muted-foreground'>{conference.description}</p>}
 							<div>
 								<h2 className='text-sm font-medium text-muted-foreground'>Submitted papers</h2>
-								{conference.submissions.length === 0 ? (
+								{conference.papers.length === 0 ? (
 									<p className='mt-2 text-sm'>No papers have been submitted to this conference yet.</p>
 								) : (
 									<ul className='mt-3 space-y-3'>
-										{conference.submissions.map((submission) => (
+										{conference.papers.map((paper) => (
 											<li
-												key={submission.id}
+												key={paper.id}
 												className='rounded-lg border p-3'
 											>
 												<div className='flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between'>
-													<span className='font-medium'>{submission.title}</span>
-													{submission.createdAt && (
+													<span className='font-medium'>{paper.title}</span>
+													{paper.createdAt && (
 														<span className='text-xs text-muted-foreground'>
-															Submitted {new Date(submission.createdAt).toLocaleString()}
+															Submitted {new Date(paper.createdAt).toLocaleString()}
 														</span>
 													)}
 												</div>
 												<div className='mt-2 space-y-2 text-sm text-muted-foreground'>
 													<strong className='font-medium text-foreground'>Reviewers:</strong>
-													{submission.reviewers.length > 0 ? (
+													{paper.reviewers.length > 0 ? (
 														<ul className='space-y-1'>
-															{submission.reviewers.map((reviewer) => (
+															{paper.reviewers.map((reviewer) => (
 																<li
 																	key={reviewer.id}
 																	className='flex items-center justify-between gap-2'
@@ -327,16 +341,16 @@ export default function MyConferencesPage() {
 													<Button
 														variant='secondary'
 														size='sm'
-														onClick={() => handleToggleSubmission(submission.id)}
+														onClick={() => handleTogglePaper(paper.id)}
 													>
-														{expandedSubmissionId === submission.id ? 'Hide reviewer selection' : 'Manage reviewers'}
+														{expandedPaperId === paper.id ? 'Hide reviewer selection' : 'Manage reviewers'}
 													</Button>
-													{expandedSubmissionId === submission.id && (
+													{expandedPaperId === paper.id && (
 														<div className='rounded-lg border p-3'>
 															<div className='flex items-center justify-between text-sm font-medium'>
 																<span>Select reviewers</span>
 																<span className='text-xs text-muted-foreground'>
-																	{selectionBySubmission[submission.id]?.length ?? 0} selected
+																	{selectionByPaper[paper.id]?.length ?? 0} selected
 																</span>
 															</div>
 															<div className='mt-3 max-h-52 space-y-2 overflow-y-auto pr-1'>
@@ -344,9 +358,9 @@ export default function MyConferencesPage() {
 																	<p className='text-sm text-muted-foreground'>No reviewers available.</p>
 																) : (
 																	reviewers.map((reviewer) => {
-																		const checked = selectionBySubmission[submission.id]?.includes(reviewer.id) ?? false
-																		const controlId = `submission-${submission.id}-reviewer-${reviewer.id}`
-																		const statusForReviewer = submission.reviewers.find(
+																		const checked = selectionByPaper[paper.id]?.includes(reviewer.id) ?? false
+																		const controlId = `paper-${paper.id}-reviewer-${reviewer.id}`
+																		const statusForReviewer = paper.reviewers.find(
 																			(item) => item.id === reviewer.id
 																		)?.status
 
@@ -360,7 +374,7 @@ export default function MyConferencesPage() {
 																					<Checkbox
 																						id={controlId}
 																						checked={checked}
-																						onCheckedChange={() => handleToggleReviewer(submission.id, reviewer.id)}
+																						onCheckedChange={() => handleToggleReviewer(paper.id, reviewer.id)}
 																					/>
 																					<span>{reviewer.name}</span>
 																				</span>
@@ -384,23 +398,22 @@ export default function MyConferencesPage() {
 																	size='sm'
 																	onClick={() =>
 																		handleResetSelection(
-																			submission.id,
-																			submission.reviewers.map((item) => item.id)
+																			paper.id,
+																			paper.reviewers.map((item) => item.id)
 																		)
 																	}
-																	disabled={savingSubmissionId === submission.id}
+																	disabled={savingPaperId === paper.id}
 																>
 																	Reset
 																</Button>
 																<Button
 																	size='sm'
-																	onClick={() => handleSaveAssignments(submission)}
+																	onClick={() => handleSaveAssignments(paper)}
 																	disabled={
-																		savingSubmissionId === submission.id ||
-																		(selectionBySubmission[submission.id]?.length ?? 0) === 0
+																		savingPaperId === paper.id || (selectionByPaper[paper.id]?.length ?? 0) === 0
 																	}
 																>
-																	{savingSubmissionId === submission.id ? 'Saving...' : 'Save changes'}
+																	{savingPaperId === paper.id ? 'Saving...' : 'Save changes'}
 																</Button>
 															</div>
 														</div>
@@ -423,13 +436,13 @@ export default function MyConferencesPage() {
 		conferences,
 		deletingId,
 		handleDeleteConference,
-		expandedSubmissionId,
+		expandedPaperId,
 		handleSaveAssignments,
-		handleToggleSubmission,
+		handleTogglePaper,
 		handleToggleReviewer,
 		handleResetSelection,
-		savingSubmissionId,
-		selectionBySubmission,
+		savingPaperId,
+		selectionByPaper,
 		reviewers
 	])
 
@@ -437,9 +450,7 @@ export default function MyConferencesPage() {
 		<div className='space-y-6'>
 			<header className='space-y-1'>
 				<h1 className='text-2xl font-semibold tracking-tight'>My Conferences</h1>
-				<p className='text-sm text-muted-foreground'>
-					Track submissions and reviewer assignments across your conferences.
-				</p>
+				<p className='text-sm text-muted-foreground'>Track papers and reviewer assignments across your conferences.</p>
 			</header>
 			{content}
 		</div>
