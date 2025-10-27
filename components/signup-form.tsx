@@ -1,8 +1,10 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
+import Link from 'next/link'
 import { useForm } from 'react-hook-form'
 
+import { useAuth } from '@/components/auth-provider'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
@@ -11,6 +13,7 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { type SignupInput, signupSchema } from '@/lib/schemas'
 import { cn } from '@/lib/utils'
+import { Loader } from 'lucide-react'
 
 export function SignupForm({ className, ...props }: React.ComponentProps<'div'>) {
 	const form = useForm<SignupInput>({
@@ -23,8 +26,11 @@ export function SignupForm({ className, ...props }: React.ComponentProps<'div'>)
 		}
 	})
 
-	function onSubmit(data: SignupInput) {
-		console.log(data)
+	const { isSubmitting } = form.formState
+	const { signup } = useAuth()
+
+	async function onSubmit(data: SignupInput) {
+		await signup(data)
 	}
 
 	return (
@@ -149,13 +155,15 @@ export function SignupForm({ className, ...props }: React.ComponentProps<'div'>)
 								</div>
 								<FieldDescription>Must be at least 8 characters long.</FieldDescription>
 								<Button
+									disabled={isSubmitting}
 									type='submit'
 									className='w-full'
 								>
+									{isSubmitting && <Loader className='mr-2 size-4 animate-spin' />}
 									Create Account
 								</Button>
 								<FieldDescription className='text-center'>
-									Already have an account? <a href='login'>Sign in</a>
+									Already have an account? <Link href='login'>Sign in</Link>
 								</FieldDescription>
 							</FieldGroup>
 						</form>

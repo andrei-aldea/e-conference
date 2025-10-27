@@ -244,9 +244,9 @@ function SidebarTrigger({ className, onClick, ...props }: React.ComponentProps<t
 		<Button
 			data-sidebar='trigger'
 			data-slot='sidebar-trigger'
-			variant='ghost'
+			variant='outline'
 			size='icon'
-			className={cn('size-7', className)}
+			className={cn('size-9 mt-4 ml-4', className)}
 			onClick={(event) => {
 				onClick?.(event)
 				toggleSidebar()
@@ -454,7 +454,7 @@ const sidebarMenuButtonVariants = cva(
 					'bg-background shadow-[0_0_0_1px_hsl(var(--sidebar-border))] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:shadow-[0_0_0_1px_hsl(var(--sidebar-accent))]'
 			},
 			size: {
-				default: 'h-8 text-sm',
+				default: 'h-10 text-base',
 				sm: 'h-7 text-xs',
 				lg: 'h-12 text-sm group-data-[collapsible=icon]:p-0!'
 			}

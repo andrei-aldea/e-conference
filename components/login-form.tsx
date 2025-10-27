@@ -1,8 +1,10 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
+import Link from 'next/link'
 import { useForm } from 'react-hook-form'
 
+import { useAuth } from '@/components/auth-provider'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
@@ -10,6 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormMessage } from '@/component
 import { Input } from '@/components/ui/input'
 import { type LoginInput, loginSchema } from '@/lib/schemas'
 import { cn } from '@/lib/utils'
+import { Loader } from 'lucide-react'
 
 export function LoginForm({ className, ...props }: React.ComponentProps<'div'>) {
 	const form = useForm<LoginInput>({
@@ -20,8 +23,11 @@ export function LoginForm({ className, ...props }: React.ComponentProps<'div'>) 
 		}
 	})
 
-	function onSubmit(data: LoginInput) {
-		console.log(data)
+	const { isSubmitting } = form.formState
+	const { login } = useAuth()
+
+	async function onSubmit(data: LoginInput) {
+		await login(data)
 	}
 
 	return (
@@ -79,9 +85,15 @@ export function LoginForm({ className, ...props }: React.ComponentProps<'div'>) 
 									)}
 								/>
 								<Field>
-									<Button type='submit'>Sign In</Button>
+									<Button
+										type='submit'
+										disabled={isSubmitting}
+									>
+										{isSubmitting && <Loader className='mr-2 size-4 animate-spin' />}
+										Sign In
+									</Button>
 									<FieldDescription className='text-center'>
-										Don&apos;t have an account? <a href='signup'>Sign up</a>
+										Don&apos;t have an account? <Link href='signup'>Sign up</Link>
 									</FieldDescription>
 								</Field>
 							</FieldGroup>

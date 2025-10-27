@@ -120,3 +120,7 @@
 		@apply bg-background text-foreground font-sans antialiased;
 	}
 }
+
+h1 {
+	@apply text-4xl lg:text-5xl font-bold mb-6;
+}

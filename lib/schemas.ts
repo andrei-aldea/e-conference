@@ -13,11 +13,18 @@ export const signupSchema = z
 		path: ['confirmPassword']
 	})
 
-export type SignupInput = z.infer<typeof signupSchema>
-
 export const loginSchema = z.object({
 	email: z.string().email({ message: 'Please enter a valid email' }),
 	password: z.string().min(1, { message: 'Password is required' })
 })
 
+export type SignupInput = z.infer<typeof signupSchema>
+
 export type LoginInput = z.infer<typeof loginSchema>
+
+export type User = z.infer<typeof userSchema>
+
+export const userSchema = signupSchema.omit({
+	password: true,
+	confirmPassword: true
+})
