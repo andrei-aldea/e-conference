@@ -45,7 +45,6 @@ export default function CreateConferencePage() {
 		try {
 			const conferenceData = {
 				...data,
-				organizerId: user.uid,
 				startDate: Timestamp.fromDate(data.startDate),
 				endDate: Timestamp.fromDate(data.endDate)
 			}

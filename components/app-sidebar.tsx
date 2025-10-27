@@ -13,7 +13,9 @@ import {
 } from '@/components/ui/sidebar'
 import { FilePlus, LayoutDashboard, List, LogOut, PlusCircle, User2, Users } from 'lucide-react'
 import Link from 'next/link'
+
 import Logo from './logo'
+
 export function AppSidebar() {
 	const { user, logout } = useAuth()
 
