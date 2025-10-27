@@ -12,7 +12,7 @@ import {
 	SidebarMenuButton,
 	SidebarMenuItem
 } from '@/components/ui/sidebar'
-import { ChevronUp, LayoutDashboard, PlusCircle, User2 } from 'lucide-react'
+import { ChevronUp, LayoutDashboard, List, PlusCircle, User2 } from 'lucide-react'
 import Link from 'next/link'
 import Logo from './logo'
 export function AppSidebar() {
@@ -32,6 +32,14 @@ export function AppSidebar() {
 								<SidebarMenuButton>
 									<LayoutDashboard />
 									Dashboard
+								</SidebarMenuButton>
+							</SidebarMenuItem>
+						</Link>
+						<Link href='/dashboard/conferences'>
+							<SidebarMenuItem>
+								<SidebarMenuButton>
+									<List />
+									All Conferences
 								</SidebarMenuButton>
 							</SidebarMenuItem>
 						</Link>

@@ -1,7 +1,7 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
-import Link from 'next/link'
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 
 import { useAuth } from '@/components/auth-provider'
@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { type SignupInput, signupSchema } from '@/lib/schemas'
 import { cn } from '@/lib/utils'
 import { Loader } from 'lucide-react'
+import Link from 'next/link'
 
 export function SignupForm({ className, ...props }: React.ComponentProps<'div'>) {
 	const form = useForm<SignupInput>({
@@ -26,11 +27,18 @@ export function SignupForm({ className, ...props }: React.ComponentProps<'div'>)
 		}
 	})
 
-	const { isSubmitting } = form.formState
+	const [isSubmitting, setIsSubmitting] = useState(false)
 	const { signup } = useAuth()
 
 	async function onSubmit(data: SignupInput) {
-		await signup(data)
+		setIsSubmitting(true)
+		try {
+			await signup(data)
+		} catch (error) {
+			// Error is already alerted in AuthProvider, just stop submitting
+		} finally {
+			setIsSubmitting(false)
+		}
 	}
 
 	return (

@@ -29,11 +29,15 @@ export type SignupInput = z.infer<typeof signupSchema>
 
 export type LoginInput = z.infer<typeof loginSchema>
 
-export type User = z.infer<typeof userSchema>
-
 export const userSchema = signupSchema.omit({
 	password: true,
 	confirmPassword: true
 })
+
+export type User = z.infer<typeof userSchema>
+
+export type UserWithId = User & { uid: string }
+
+export type Conference = z.infer<typeof conferenceSchema> & { id: string }
 
 export type ConferenceInput = z.infer<typeof conferenceSchema>
