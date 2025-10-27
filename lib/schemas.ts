@@ -49,7 +49,11 @@ export type User = z.infer<typeof userSchema>
 
 export type UserWithId = User & { uid: string }
 
-export type Conference = z.infer<typeof conferenceSchema> & { id: string }
+export type Conference = z.infer<typeof conferenceSchema> & {
+	id: string
+	organizerId?: string
+	papers?: string[]
+}
 
 export type ConferenceInput = z.infer<typeof conferenceSchema>
 

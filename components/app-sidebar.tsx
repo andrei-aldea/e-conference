@@ -11,7 +11,7 @@ import {
 	SidebarMenuButton,
 	SidebarMenuItem
 } from '@/components/ui/sidebar'
-import { FilePlus, FileText, LayoutDashboard, List, LogOut, PlusCircle, User2, Users } from 'lucide-react'
+import { ClipboardList, FilePlus, FileText, LayoutDashboard, List, LogOut, PlusCircle, User2 } from 'lucide-react'
 import Link from 'next/link'
 
 import Logo from './logo'
@@ -65,11 +65,11 @@ export function AppSidebar() {
 							</Link>
 						)}
 						{user?.role === 'organizer' && (
-							<Link href='/dashboard/conferences/assign'>
+							<Link href='/dashboard/my-conferences'>
 								<SidebarMenuItem>
 									<SidebarMenuButton>
-										<Users />
-										Assign Reviewers
+										<ClipboardList />
+										My Conferences
 									</SidebarMenuButton>
 								</SidebarMenuItem>
 							</Link>

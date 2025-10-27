@@ -1,13 +1,11 @@
 'use client'
 
 import { format } from 'date-fns'
-import { deleteDoc, doc, type Timestamp } from 'firebase/firestore'
+import { doc, type Timestamp } from 'firebase/firestore'
 import Link from 'next/link'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import { useDocument } from 'react-firebase-hooks/firestore'
-import { toast } from 'sonner'
 
-import { useAuth } from '@/components/auth-provider'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { db } from '@/lib/firebase'
@@ -16,9 +14,6 @@ import type { Conference } from '@/lib/schemas'
 export default function ConferenceDetailsPage() {
 	const params = useParams<{ conferenceId: string }>()
 	const conferenceId = params?.conferenceId
-	const { user } = useAuth()
-	const router = useRouter()
-
 	const conferenceRef = conferenceId ? doc(db, 'conferences', conferenceId) : null
 	const [snapshot, loading, error] = useDocument(conferenceRef)
 
@@ -50,30 +45,6 @@ export default function ConferenceDetailsPage() {
 		id: snapshot.id,
 		startDate: data.startDate.toDate(),
 		endDate: data.endDate.toDate()
-	}
-
-	const isOrganizer = user?.role === 'organizer'
-
-	function handleDelete() {
-		if (!conferenceId || !conferenceRef) {
-			return
-		}
-
-		toast.error('Are you sure you want to delete this conference?', {
-			action: {
-				label: 'Delete',
-				onClick: async () => {
-					try {
-						await deleteDoc(conferenceRef)
-						toast.success('Conference deleted successfully!')
-						router.push('/dashboard/conferences')
-					} catch (e) {
-						console.error('Error deleting conference: ', e)
-						toast.error('There was an error deleting the conference.')
-					}
-				}
-			}
-		})
 	}
 
 	return (
@@ -110,14 +81,6 @@ export default function ConferenceDetailsPage() {
 					>
 						<Link href='/dashboard/conferences'>Back to conferences</Link>
 					</Button>
-					{isOrganizer && (
-						<Button
-							variant='destructive'
-							onClick={handleDelete}
-						>
-							Delete conference
-						</Button>
-					)}
 				</CardFooter>
 			</Card>
 		</>

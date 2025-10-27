@@ -46,7 +46,9 @@ export default function CreateConferencePage() {
 			const conferenceData = {
 				...data,
 				startDate: Timestamp.fromDate(data.startDate),
-				endDate: Timestamp.fromDate(data.endDate)
+				endDate: Timestamp.fromDate(data.endDate),
+				organizerId: user.uid,
+				papers: []
 			}
 			const docRef = await addDoc(collection(db, 'conferences'), conferenceData)
 			console.log('Document written with ID: ', docRef.id)
