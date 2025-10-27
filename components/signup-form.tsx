@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 
 export function SignupForm({ className, ...props }: React.ComponentProps<'div'>) {
@@ -26,6 +27,19 @@ export function SignupForm({ className, ...props }: React.ComponentProps<'div'>)
 									placeholder='John Doe'
 									required
 								/>
+							</Field>
+							<Field>
+								<FieldLabel htmlFor='role'>Role</FieldLabel>
+								<Select name='role'>
+									<SelectTrigger id='role'>
+										<SelectValue placeholder='Select a role' />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value='organizer'>Organizer</SelectItem>
+										<SelectItem value='author'>Author</SelectItem>
+										<SelectItem value='reviewer'>Reviewer</SelectItem>
+									</SelectContent>
+								</Select>
 							</Field>
 							<Field>
 								<FieldLabel htmlFor='email'>Email</FieldLabel>
@@ -67,9 +81,6 @@ export function SignupForm({ className, ...props }: React.ComponentProps<'div'>)
 					</form>
 				</CardContent>
 			</Card>
-			<FieldDescription className='px-6 text-center'>
-				By clicking continue, you agree to our <a href='#'>Terms of Service</a> and <a href='#'>Privacy Policy</a>.
-			</FieldDescription>
 		</div>
 	)
 }
