@@ -36,7 +36,7 @@ export function SignupForm({ className, ...props }: ComponentProps<'div'>) {
 		setIsSubmitting(true)
 		try {
 			await signup(data)
-		} catch (error) {
+		} catch {
 			// Error is already alerted in AuthProvider, just stop submitting
 		} finally {
 			setIsSubmitting(false)

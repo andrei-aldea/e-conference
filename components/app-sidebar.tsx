@@ -1,7 +1,6 @@
 'use client'
 
 import { useAuth } from '@/components/auth-provider'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import {
 	Sidebar,
 	SidebarContent,
@@ -12,7 +11,7 @@ import {
 	SidebarMenuButton,
 	SidebarMenuItem
 } from '@/components/ui/sidebar'
-import { ChevronUp, LayoutDashboard, List, PlusCircle, User2 } from 'lucide-react'
+import { FilePlus, LayoutDashboard, List, LogOut, PlusCircle, User2, Users } from 'lucide-react'
 import Link from 'next/link'
 import Logo from './logo'
 export function AppSidebar() {
@@ -43,6 +42,26 @@ export function AppSidebar() {
 								</SidebarMenuButton>
 							</SidebarMenuItem>
 						</Link>
+						{user?.role === 'author' && (
+							<Link href='/dashboard/submit-paper'>
+								<SidebarMenuItem>
+									<SidebarMenuButton>
+										<FilePlus />
+										Submit Paper
+									</SidebarMenuButton>
+								</SidebarMenuItem>
+							</Link>
+						)}
+						{user?.role === 'organizer' && (
+							<Link href='/dashboard/conferences/assign'>
+								<SidebarMenuItem>
+									<SidebarMenuButton>
+										<Users />
+										Assign Reviewers
+									</SidebarMenuButton>
+								</SidebarMenuItem>
+							</Link>
+						)}
 						{user?.role === 'organizer' && (
 							<Link href='/dashboard/conferences/new'>
 								<SidebarMenuItem>
@@ -58,26 +77,19 @@ export function AppSidebar() {
 			</SidebarContent>
 			<SidebarFooter>
 				<SidebarMenu>
-					<SidebarMenuItem>
-						<DropdownMenu>
-							<DropdownMenuTrigger asChild>
-								<SidebarMenuButton>
-									<User2 /> {user?.name}
-									<ChevronUp className='ml-auto' />
-								</SidebarMenuButton>
-							</DropdownMenuTrigger>
-							<DropdownMenuContent
-								side='top'
-								className='w-[--radix-popper-anchor-width]'
-							>
-								<DropdownMenuItem asChild>
-									<Link href='/dashboard/account'>Account</Link>
-								</DropdownMenuItem>
-								<DropdownMenuItem onClick={logout}>
-									<span>Sign out</span>
-								</DropdownMenuItem>
-							</DropdownMenuContent>
-						</DropdownMenu>
+					<Link href='/dashboard/account'>
+						<SidebarMenuItem>
+							<SidebarMenuButton>
+								<User2 />
+								Account
+							</SidebarMenuButton>
+						</SidebarMenuItem>
+					</Link>
+					<SidebarMenuItem onClick={logout}>
+						<SidebarMenuButton>
+							<LogOut />
+							Log Out
+						</SidebarMenuButton>
 					</SidebarMenuItem>
 				</SidebarMenu>
 			</SidebarFooter>
