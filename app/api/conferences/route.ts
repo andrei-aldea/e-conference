@@ -6,6 +6,55 @@ import { handleApiRouteError } from '@/lib/server/error-response'
 import { chunkArray, toIsoString } from '@/lib/server/utils'
 import type { ReviewerDecision } from '@/lib/validation/schemas'
 
+const DEFAULT_STORAGE_BUCKET =
+	process.env.FIREBASE_STORAGE_BUCKET ?? process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ?? null
+
+interface PaperFileDetails {
+	name: string
+	size: number | null
+	contentType: string | null
+	downloadUrl: string | null
+	uploadedAt: string | null
+}
+
+function buildDownloadUrl(
+	bucketName: string | null | undefined,
+	storagePath: string | null | undefined,
+	downloadToken: string | null | undefined
+): string | null {
+	if (!bucketName || !storagePath || !downloadToken) {
+		return null
+	}
+	const encodedPath = encodeURIComponent(storagePath)
+	return `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodedPath}?alt=media&token=${downloadToken}`
+}
+
+function extractPaperFile(raw: unknown, uploadedAtRaw: unknown): PaperFileDetails | null {
+	if (!raw || typeof raw !== 'object') {
+		return null
+	}
+	const data = raw as Record<string, unknown>
+	const storagePath = typeof data.storagePath === 'string' ? data.storagePath : null
+	const storageBucket = typeof data.storageBucket === 'string' ? data.storageBucket : DEFAULT_STORAGE_BUCKET
+	const downloadToken = typeof data.downloadToken === 'string' ? data.downloadToken : null
+	const size = typeof data.size === 'number' ? data.size : null
+	const contentType = typeof data.contentType === 'string' ? data.contentType : null
+	const nameCandidate =
+		typeof data.originalName === 'string' && data.originalName.trim().length > 0
+			? data.originalName.trim()
+			: typeof data.name === 'string'
+			? data.name
+			: 'manuscript.pdf'
+
+	return {
+		name: nameCandidate,
+		size,
+		contentType,
+		downloadUrl: buildDownloadUrl(storageBucket, storagePath, downloadToken),
+		uploadedAt: toIsoString(uploadedAtRaw)
+	}
+}
+
 export async function GET(request: NextRequest) {
 	const scope = request.nextUrl.searchParams.get('scope')
 
@@ -68,6 +117,7 @@ export async function GET(request: NextRequest) {
 				reviewers: string[]
 				reviewerStatuses: Record<string, ReviewerDecision>
 				createdAt: string | null
+				file: PaperFileDetails | null
 			}>
 		> = {}
 
@@ -90,7 +140,8 @@ export async function GET(request: NextRequest) {
 						title: typeof data.title === 'string' ? data.title : 'Untitled paper',
 						reviewers: Array.isArray(data.reviewers) ? (data.reviewers as string[]) : [],
 						reviewerStatuses,
-						createdAt: data.createdAt?.toDate?.().toISOString?.() ?? null
+						createdAt: data.createdAt?.toDate?.().toISOString?.() ?? null,
+						file: extractPaperFile(data.file, data.fileUploadedAt)
 					}
 
 					if (!papersByConference[conferenceId]) {
@@ -117,7 +168,8 @@ export async function GET(request: NextRequest) {
 					id: reviewerId,
 					name: reviewerLookup[reviewerId] ?? 'Reviewer',
 					status: paper.reviewerStatuses[reviewerId] ?? DEFAULT_REVIEWER_DECISION
-				}))
+				})),
+				file: paper.file ?? null
 			}))
 
 			return {

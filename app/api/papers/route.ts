@@ -1,13 +1,23 @@
 import { FieldValue, Timestamp, type DocumentData, type Firestore } from 'firebase-admin/firestore'
+import { getStorage } from 'firebase-admin/storage'
 import { NextResponse, type NextRequest } from 'next/server'
+import { randomUUID } from 'node:crypto'
 import { ZodError } from 'zod'
 
+import { getFirebaseAdminApp } from '@/lib/firebase/firebase-admin'
+import {
+	MANUSCRIPT_MAX_SIZE_BYTES,
+	MANUSCRIPT_MAX_SIZE_LABEL,
+	isAllowedManuscriptExtension,
+	isAllowedManuscriptMimeType
+} from '@/lib/papers/constants'
 import { DEFAULT_REVIEWER_DECISION, extractReviewerStatuses } from '@/lib/reviewer/status'
 import { ApiError } from '@/lib/server/api-error'
 import { authenticateRequest } from '@/lib/server/auth'
 import { handleApiRouteError } from '@/lib/server/error-response'
 import { toIsoString } from '@/lib/server/utils'
 import {
+	paperAuthorUpdateSchema,
 	paperFormSchema,
 	paperReviewerAssignmentSchema,
 	reviewerStatusUpdateSchema,
@@ -19,6 +29,70 @@ const COLLECTIONS = {
 	USERS: 'users',
 	CONFERENCES: 'conferences'
 } as const
+
+const DEFAULT_STORAGE_BUCKET =
+	process.env.FIREBASE_STORAGE_BUCKET ?? process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ?? null
+
+interface PaperFilePayload {
+	name: string
+	size: number | null
+	contentType: string | null
+	downloadUrl: string | null
+	uploadedAt: string | null
+}
+
+function buildDownloadUrl(
+	bucketName: string | null | undefined,
+	storagePath: string | null | undefined,
+	downloadToken: string | null | undefined
+): string | null {
+	if (!bucketName || !storagePath || !downloadToken) {
+		return null
+	}
+	const encodedPath = encodeURIComponent(storagePath)
+	return `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodedPath}?alt=media&token=${downloadToken}`
+}
+
+function deriveFileNames(file: File): { originalName: string; storageName: string } {
+	const rawName = typeof file.name === 'string' ? file.name.trim() : ''
+	const originalName = rawName.length > 0 ? rawName : 'manuscript.pdf'
+	const baseName = originalName.replace(/\.[^/.]+$/, '')
+	const normalizedBase = baseName
+		.replace(/[^a-zA-Z0-9_-]+/g, '-')
+		.replace(/-+/g, '-')
+		.replace(/^-+|-+$/g, '')
+		.toLowerCase()
+	const fallbackBase = normalizedBase.length > 0 ? normalizedBase : 'manuscript'
+	return {
+		originalName,
+		storageName: `${fallbackBase}.pdf`
+	}
+}
+
+function extractPaperFilePayload(raw: unknown, uploadedAtRaw: unknown): PaperFilePayload | null {
+	if (!raw || typeof raw !== 'object') {
+		return null
+	}
+	const data = raw as Record<string, unknown>
+	const storagePath = typeof data.storagePath === 'string' ? data.storagePath : null
+	const storageBucket = typeof data.storageBucket === 'string' ? data.storageBucket : DEFAULT_STORAGE_BUCKET
+	const downloadToken = typeof data.downloadToken === 'string' ? data.downloadToken : null
+	const size = typeof data.size === 'number' ? data.size : null
+	const contentType = typeof data.contentType === 'string' ? data.contentType : null
+	const nameCandidate =
+		typeof data.originalName === 'string' && data.originalName.trim().length > 0
+			? data.originalName.trim()
+			: typeof data.name === 'string'
+			? data.name
+			: 'manuscript.pdf'
+	return {
+		name: nameCandidate,
+		size,
+		contentType,
+		downloadUrl: buildDownloadUrl(storageBucket, storagePath, downloadToken),
+		uploadedAt: toIsoString(uploadedAtRaw)
+	}
+}
 
 async function fetchDocumentsByIds(
 	firestore: Firestore,
@@ -59,6 +133,7 @@ export async function GET(request: NextRequest) {
 				const conferenceId = typeof data.conferenceId === 'string' ? data.conferenceId : null
 				const reviewerAssignments = Array.isArray(data.reviewers) ? (data.reviewers as string[]) : []
 				const reviewerStatuses = extractReviewerStatuses(data.reviewerStatuses)
+				const file = extractPaperFilePayload(data.file, data.fileUploadedAt)
 
 				if (authorId) {
 					authorIds.add(authorId)
@@ -76,7 +151,8 @@ export async function GET(request: NextRequest) {
 					reviewerIds: reviewerAssignments,
 					reviewerStatuses,
 					status: reviewerStatuses[uid] ?? DEFAULT_REVIEWER_DECISION,
-					createdAt: toIsoString(data.createdAt)
+					createdAt: toIsoString(data.createdAt),
+					file
 				}
 			})
 
@@ -122,7 +198,8 @@ export async function GET(request: NextRequest) {
 							: 'Reviewer',
 					status: paper.reviewerStatuses[reviewerId] ?? DEFAULT_REVIEWER_DECISION
 				})),
-				createdAt: paper.createdAt
+				createdAt: paper.createdAt,
+				file: paper.file
 			}))
 
 			return NextResponse.json({ papers: payload })
@@ -152,7 +229,8 @@ export async function GET(request: NextRequest) {
 				reviewers,
 				reviewerStatuses: extractReviewerStatuses(data.reviewerStatuses),
 				conferenceId,
-				createdAt: toIsoString(data.createdAt)
+				createdAt: toIsoString(data.createdAt),
+				file: extractPaperFilePayload(data.file, data.fileUploadedAt)
 			}
 		})
 
@@ -188,7 +266,8 @@ export async function GET(request: NextRequest) {
 						: 'Reviewer',
 				status: paper.reviewerStatuses[reviewerId] ?? DEFAULT_REVIEWER_DECISION
 			})),
-			createdAt: paper.createdAt
+			createdAt: paper.createdAt,
+			file: paper.file
 		}))
 
 		return NextResponse.json({ papers: payload })
@@ -199,8 +278,41 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
 	try {
-		const payload = await request.json()
-		const { title, conferenceId } = paperFormSchema.parse(payload)
+		const formData = await request.formData()
+		const rawTitle = formData.get('title')
+		const rawConferenceId = formData.get('conferenceId')
+		const fileEntry = formData.get('file')
+
+		const parsed = paperFormSchema.safeParse({
+			title: typeof rawTitle === 'string' ? rawTitle : '',
+			conferenceId: typeof rawConferenceId === 'string' ? rawConferenceId : ''
+		})
+
+		if (!parsed.success) {
+			throw new ApiError(400, 'Invalid paper payload.')
+		}
+
+		if (!(fileEntry instanceof File)) {
+			throw new ApiError(400, 'A PDF manuscript is required.')
+		}
+
+		if (fileEntry.size === 0) {
+			throw new ApiError(400, 'The uploaded manuscript is empty.')
+		}
+
+		const mimeType = fileEntry.type ?? ''
+		const mimeAllowed = isAllowedManuscriptMimeType(mimeType)
+		const extensionAllowed = isAllowedManuscriptExtension(fileEntry.name)
+
+		if (!mimeAllowed && !extensionAllowed) {
+			throw new ApiError(400, 'Only PDF manuscripts are supported at this time.')
+		}
+
+		if (fileEntry.size > MANUSCRIPT_MAX_SIZE_BYTES) {
+			throw new ApiError(413, `The manuscript exceeds the ${MANUSCRIPT_MAX_SIZE_LABEL} size limit.`)
+		}
+
+		const { title, conferenceId } = parsed.data
 		const { firestore, uid, role } = await authenticateRequest()
 
 		if (role !== 'author') {
@@ -227,13 +339,61 @@ export async function POST(request: NextRequest) {
 			return acc
 		}, {})
 
-		const paperRef = await firestore.collection(COLLECTIONS.PAPERS).add({
+		const app = getFirebaseAdminApp()
+		const paperRef = firestore.collection(COLLECTIONS.PAPERS).doc()
+		const { originalName, storageName } = deriveFileNames(fileEntry)
+		const storagePath = `${COLLECTIONS.PAPERS}/${paperRef.id}/${storageName}`
+		const downloadToken = randomUUID()
+		const fileBuffer = Buffer.from(await fileEntry.arrayBuffer())
+		const contentType = mimeAllowed ? mimeType : 'application/pdf'
+		const bucket = getStorage(app).bucket()
+		const bucketName = bucket.name || DEFAULT_STORAGE_BUCKET
+
+		if (!bucketName) {
+			throw new ApiError(500, 'Storage bucket is not configured. Please contact an administrator.')
+		}
+
+		try {
+			await bucket.file(storagePath).save(fileBuffer, {
+				metadata: {
+					contentType,
+					metadata: {
+						firebaseStorageDownloadTokens: downloadToken,
+						originalName
+					}
+				}
+			})
+		} catch (uploadError) {
+			console.error('Failed to upload manuscript to storage:', uploadError)
+			const message =
+				uploadError &&
+				typeof uploadError === 'object' &&
+				'code' in uploadError &&
+				(uploadError as { code?: number }).code === 404
+					? `Storage bucket "${bucketName}" is not available. Please contact an administrator.`
+					: 'Failed to upload manuscript. Please try again.'
+			throw new ApiError(500, message)
+		}
+
+		const timestamp = Timestamp.now()
+
+		await paperRef.set({
 			title,
 			authorId: uid,
 			reviewers: assignedReviewerIds,
 			reviewerStatuses,
 			conferenceId,
-			createdAt: Timestamp.now()
+			createdAt: timestamp,
+			fileUploadedAt: timestamp,
+			file: {
+				name: storageName,
+				originalName,
+				size: fileEntry.size,
+				contentType,
+				storagePath,
+				storageBucket: bucketName,
+				downloadToken
+			}
 		})
 
 		try {
@@ -245,7 +405,13 @@ export async function POST(request: NextRequest) {
 			})
 			await batch.commit()
 		} catch (commitError) {
-			await paperRef.delete()
+			await Promise.all([
+				paperRef.delete().catch((error) => console.error('Failed to clean up paper after commit failure:', error)),
+				bucket
+					.file(storagePath)
+					.delete({ ignoreNotFound: true })
+					.catch((error) => console.error('Failed to remove uploaded manuscript after commit failure:', error))
+			])
 			throw commitError
 		}
 
@@ -377,6 +543,171 @@ export async function PATCH(request: NextRequest) {
 	} catch (error) {
 		if (error instanceof ZodError) {
 			return NextResponse.json({ error: 'Invalid update payload.' }, { status: 400 })
+		}
+
+		return handleApiRouteError(error, 'Failed to update paper:')
+	}
+}
+
+export async function PUT(request: NextRequest) {
+	try {
+		const formData = await request.formData()
+		const rawPaperId = formData.get('paperId')
+		const rawTitle = formData.get('title')
+		const fileEntry = formData.get('file')
+
+		if (fileEntry !== null && !(fileEntry instanceof File)) {
+			throw new ApiError(400, 'Invalid manuscript upload.')
+		}
+
+		const parsed = paperAuthorUpdateSchema.safeParse({
+			paperId: typeof rawPaperId === 'string' ? rawPaperId : '',
+			title: typeof rawTitle === 'string' && rawTitle.trim().length > 0 ? rawTitle.trim() : undefined
+		})
+
+		if (!parsed.success) {
+			throw new ApiError(400, 'Invalid paper update payload.')
+		}
+
+		const hasNewFile = fileEntry instanceof File
+		const { paperId, title } = parsed.data
+
+		if (!hasNewFile && !title) {
+			throw new ApiError(400, 'Provide a new title or manuscript to update the paper.')
+		}
+
+		const { firestore, uid, role } = await authenticateRequest()
+
+		if (role !== 'author') {
+			throw new ApiError(403, 'Only authors can update papers.')
+		}
+
+		const paperRef = firestore.collection(COLLECTIONS.PAPERS).doc(paperId)
+		const paperSnapshot = await paperRef.get()
+
+		if (!paperSnapshot.exists) {
+			throw new ApiError(404, 'Paper not found.')
+		}
+
+		const paperData = paperSnapshot.data() as DocumentData
+
+		if (paperData.authorId !== uid) {
+			throw new ApiError(403, 'You can only update your own papers.')
+		}
+
+		const existingFile =
+			typeof paperData.file === 'object' && paperData.file !== null ? (paperData.file as Record<string, unknown>) : null
+		const previousStoragePath =
+			existingFile && typeof existingFile.storagePath === 'string' ? existingFile.storagePath : null
+		const previousBucketName =
+			existingFile && typeof existingFile.storageBucket === 'string' ? existingFile.storageBucket : null
+
+		const updatePayload: Record<string, unknown> = {
+			updatedAt: FieldValue.serverTimestamp()
+		}
+
+		if (title) {
+			updatePayload.title = title
+		}
+
+		let newFileDescriptor: { storagePath: string; bucketName: string } | null = null
+
+		if (hasNewFile && fileEntry) {
+			if (fileEntry.size === 0) {
+				throw new ApiError(400, 'The uploaded manuscript is empty.')
+			}
+
+			const mimeType = fileEntry.type ?? ''
+			const mimeAllowed = isAllowedManuscriptMimeType(mimeType)
+			const extensionAllowed = isAllowedManuscriptExtension(fileEntry.name)
+
+			if (!mimeAllowed && !extensionAllowed) {
+				throw new ApiError(400, 'Only PDF manuscripts are supported at this time.')
+			}
+
+			if (fileEntry.size > MANUSCRIPT_MAX_SIZE_BYTES) {
+				throw new ApiError(413, `The manuscript exceeds the ${MANUSCRIPT_MAX_SIZE_LABEL} size limit.`)
+			}
+
+			const { originalName, storageName } = deriveFileNames(fileEntry)
+			const storagePath = `${COLLECTIONS.PAPERS}/${paperRef.id}/${Date.now()}-${storageName}`
+			const downloadToken = randomUUID()
+			const contentType = mimeAllowed ? mimeType : 'application/pdf'
+			const fileBuffer = Buffer.from(await fileEntry.arrayBuffer())
+			const app = getFirebaseAdminApp()
+			const storage = getStorage(app)
+			const bucket = storage.bucket()
+			const bucketName = bucket.name || DEFAULT_STORAGE_BUCKET
+
+			if (!bucketName) {
+				throw new ApiError(500, 'Storage bucket is not configured. Please contact an administrator.')
+			}
+
+			try {
+				await bucket.file(storagePath).save(fileBuffer, {
+					metadata: {
+						contentType,
+						metadata: {
+							firebaseStorageDownloadTokens: downloadToken,
+							originalName
+						}
+					}
+				})
+			} catch (uploadError) {
+				console.error('Failed to upload manuscript to storage:', uploadError)
+				throw new ApiError(500, 'Failed to upload manuscript. Please try again.')
+			}
+
+			newFileDescriptor = { storagePath, bucketName }
+
+			updatePayload.file = {
+				name: storageName,
+				originalName,
+				size: fileEntry.size,
+				contentType,
+				storagePath,
+				storageBucket: bucketName,
+				downloadToken
+			}
+			updatePayload.fileUploadedAt = Timestamp.now()
+		}
+
+		try {
+			await paperRef.set(updatePayload, { merge: true })
+		} catch (commitError) {
+			if (newFileDescriptor) {
+				try {
+					const app = getFirebaseAdminApp()
+					await getStorage(app)
+						.bucket(newFileDescriptor.bucketName)
+						.file(newFileDescriptor.storagePath)
+						.delete({ ignoreNotFound: true })
+				} catch (cleanupError) {
+					console.error('Failed to clean up uploaded manuscript after commit failure:', cleanupError)
+				}
+			}
+			throw commitError
+		}
+
+		if (newFileDescriptor && previousStoragePath && previousStoragePath !== newFileDescriptor.storagePath) {
+			try {
+				const app = getFirebaseAdminApp()
+				const storage = getStorage(app)
+				const cleanupBucket = previousBucketName
+					? storage.bucket(previousBucketName)
+					: newFileDescriptor.bucketName
+					? storage.bucket(newFileDescriptor.bucketName)
+					: storage.bucket()
+				await cleanupBucket.file(previousStoragePath).delete({ ignoreNotFound: true })
+			} catch (cleanupError) {
+				console.error('Failed to remove previous manuscript from storage:', cleanupError)
+			}
+		}
+
+		return NextResponse.json({ success: true })
+	} catch (error) {
+		if (error instanceof ZodError) {
+			return NextResponse.json({ error: 'Invalid paper update payload.' }, { status: 400 })
 		}
 
 		return handleApiRouteError(error, 'Failed to update paper:')

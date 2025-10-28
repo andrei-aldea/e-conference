@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
+import { formatFileSize } from '@/lib/papers/constants'
 import { getReviewerStatusLabel, getReviewerStatusToneClass, REVIEWER_DECISIONS } from '@/lib/reviewer/status'
 import type { ReviewerDecision } from '@/lib/validation/schemas'
 
@@ -15,6 +16,14 @@ const STATUS_OPTIONS: Array<{ value: ReviewerDecision; label: string }> = REVIEW
 	value,
 	label: getReviewerStatusLabel(value)
 }))
+
+interface PaperFileDetails {
+	name: string
+	size: number | null
+	contentType: string | null
+	downloadUrl: string | null
+	uploadedAt: string | null
+}
 
 interface ReviewerAssignment {
 	id: string
@@ -30,6 +39,7 @@ interface ReviewerAssignment {
 	}
 	status: ReviewerDecision
 	reviewers: Array<{ id: string; name: string; status: ReviewerDecision }>
+	file: PaperFileDetails | null
 }
 
 export default function ReviewerPapersPage() {
@@ -217,6 +227,36 @@ export default function ReviewerPapersPage() {
 								<div className='text-sm text-muted-foreground'>
 									<strong className='font-medium text-foreground'>Author:</strong> {assignment.author.name}
 								</div>
+								{assignment.file ? (
+									<div className='flex flex-wrap items-center gap-3 text-sm text-muted-foreground'>
+										<span className='font-medium text-foreground'>Manuscript:</span>
+										{assignment.file.downloadUrl ? (
+											<Button
+												variant='outline'
+												size='sm'
+												asChild
+											>
+												<a
+													href={assignment.file.downloadUrl}
+													target='_blank'
+													rel='noopener noreferrer'
+												>
+													Download PDF
+												</a>
+											</Button>
+										) : (
+											<span>No download link available.</span>
+										)}
+										{typeof assignment.file.size === 'number' && assignment.file.size > 0 && (
+											<span>{formatFileSize(assignment.file.size)}</span>
+										)}
+										{assignment.file.uploadedAt && (
+											<span>Uploaded {new Date(assignment.file.uploadedAt).toLocaleString()}</span>
+										)}
+									</div>
+								) : (
+									<p className='text-sm text-muted-foreground'>No manuscript available yet.</p>
+								)}
 								<div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
 									<div className='flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3'>
 										<span className='text-sm font-medium text-foreground'>Your decision:</span>
@@ -292,7 +332,6 @@ export default function ReviewerPapersPage() {
 										))}
 									</ul>
 								</div>
-								<p>Additional manuscript details will appear here once the upload workflow is implemented.</p>
 							</CardContent>
 						</Card>
 					)

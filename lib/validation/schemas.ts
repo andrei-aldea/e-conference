@@ -26,6 +26,16 @@ export const conferenceSchema = z.object({
 	endDate: z.date({ message: 'An end date is required.' })
 })
 
+export const paperFileMetadataSchema = z.object({
+	name: z.string().min(1),
+	originalName: z.string().optional(),
+	size: z.number().nonnegative().nullable().optional(),
+	contentType: z.string().optional(),
+	storagePath: z.string().optional(),
+	storageBucket: z.string().optional(),
+	downloadToken: z.string().optional()
+})
+
 export const paperFormSchema = z.object({
 	title: z.string().min(3, { message: 'Title must be at least 3 characters long' }),
 	conferenceId: z.string().min(1, { message: 'Please select a conference' })
@@ -36,7 +46,9 @@ export const reviewerDecisionSchema = z.enum(['pending', 'accepted', 'declined']
 export const paperSchema = paperFormSchema.extend({
 	authorId: z.string().min(1, { message: 'Author is required.' }),
 	reviewers: z.array(z.string()),
-	reviewerStatuses: z.record(z.string(), reviewerDecisionSchema).optional()
+	reviewerStatuses: z.record(z.string(), reviewerDecisionSchema).optional(),
+	file: paperFileMetadataSchema.optional(),
+	fileUploadedAt: z.union([z.date(), z.string()]).optional()
 })
 
 export const reviewerStatusUpdateSchema = z.object({
@@ -47,6 +59,11 @@ export const reviewerStatusUpdateSchema = z.object({
 export const paperReviewerAssignmentSchema = z.object({
 	paperId: z.string().min(1, { message: 'Paper identifier is required.' }),
 	reviewerIds: z.array(z.string().min(1)).min(1, { message: 'At least one reviewer is required.' })
+})
+
+export const paperAuthorUpdateSchema = z.object({
+	paperId: z.string().min(1, { message: 'Paper identifier is required.' }),
+	title: z.string().min(3).optional()
 })
 
 export type SignupInput = z.infer<typeof signupSchema>

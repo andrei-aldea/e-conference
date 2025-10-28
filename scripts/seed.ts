@@ -1,19 +1,25 @@
 #!/usr/bin/env node
 
+import { randomUUID } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import type { Bucket } from '@google-cloud/storage'
 import dotenv from 'dotenv'
 import type { ServiceAccount } from 'firebase-admin'
 import { cert, getApps, initializeApp } from 'firebase-admin/app'
 import { getAuth, type Auth } from 'firebase-admin/auth'
 import { FieldValue, Timestamp, getFirestore, type Firestore } from 'firebase-admin/firestore'
+import { getStorage } from 'firebase-admin/storage'
 
 const APP_NAME = 'e-conference-seed-cli'
 
 const envPath = path.resolve(process.cwd(), '.env.local')
 dotenv.config({ path: envPath, override: false })
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 type ReviewerStatus = 'pending' | 'accepted' | 'declined'
 
@@ -58,6 +64,13 @@ type EmailToIdMaps = {
 	reviewer: Map<string, string>
 }
 
+type SeedManuscriptAsset = {
+	buffer: Buffer
+	originalName: string
+	size: number
+	contentType: string
+}
+
 const DEFAULT_REVIEWER_STATUS: ReviewerStatus = 'pending'
 const VALID_REVIEWER_STATUSES = new Set<ReviewerStatus>(['pending', 'accepted', 'declined'])
 
@@ -83,11 +96,24 @@ function assertServiceAccount(): ServiceAccount {
 }
 
 async function loadSeedData(): Promise<SeedData> {
-	const __filename = fileURLToPath(import.meta.url)
-	const __dirname = path.dirname(__filename)
 	const seedPath = path.resolve(__dirname, 'seed-data.json')
 	const contents = await readFile(seedPath, 'utf-8')
 	return JSON.parse(contents) as SeedData
+}
+
+async function loadSeedManuscriptAsset(): Promise<SeedManuscriptAsset> {
+	const assetPath = path.resolve(__dirname, '../public/conference-organizer.pdf')
+	try {
+		const buffer = await readFile(assetPath)
+		return {
+			buffer,
+			originalName: 'conference-organizer.pdf',
+			size: buffer.byteLength,
+			contentType: 'application/pdf'
+		}
+	} catch (error) {
+		throw new Error(`Failed to load seed manuscript at ${assetPath}`, { cause: error })
+	}
 }
 
 async function ensureAuthUser(auth: Auth, user: SeedUser): Promise<string> {
@@ -198,7 +224,19 @@ async function seedConferences(
 	}
 }
 
-async function seedPapers(firestore: Firestore, papers: SeedPaper[], emailToIdMaps: EmailToIdMaps): Promise<void> {
+async function seedPapers(
+	firestore: Firestore,
+	bucket: Bucket,
+	papers: SeedPaper[],
+	emailToIdMaps: EmailToIdMaps,
+	asset: SeedManuscriptAsset
+): Promise<void> {
+	const bucketName = bucket.name
+
+	if (!bucketName) {
+		throw new Error('Storage bucket is not configured. Set FIREBASE_STORAGE_BUCKET to seed manuscripts.')
+	}
+
 	for (const paper of papers) {
 		const authorId = emailToIdMaps.author.get(paper.authorEmail)
 		if (!authorId) {
@@ -228,6 +266,22 @@ async function seedPapers(firestore: Firestore, papers: SeedPaper[], emailToIdMa
 			throw new Error(`Conference ${paper.conferenceId} not found for paper ${paper.id}`)
 		}
 
+		const createdAt = Timestamp.fromDate(parseDate(paper.createdAt, `paper ${paper.id} createdAt`))
+		const fileUploadedAt = createdAt
+		const storageName = 'seed-manuscript.pdf'
+		const storagePath = `papers/${paper.id}/${storageName}`
+		const downloadToken = randomUUID()
+
+		await bucket.file(storagePath).save(asset.buffer, {
+			metadata: {
+				contentType: asset.contentType,
+				metadata: {
+					firebaseStorageDownloadTokens: downloadToken,
+					originalName: asset.originalName
+				}
+			}
+		})
+
 		await firestore
 			.collection('papers')
 			.doc(paper.id)
@@ -238,7 +292,17 @@ async function seedPapers(firestore: Firestore, papers: SeedPaper[], emailToIdMa
 					conferenceId: paper.conferenceId,
 					reviewers: reviewerIds,
 					reviewerStatuses,
-					createdAt: Timestamp.fromDate(parseDate(paper.createdAt, `paper ${paper.id} createdAt`))
+					createdAt,
+					fileUploadedAt,
+					file: {
+						name: storageName,
+						originalName: asset.originalName,
+						size: asset.size,
+						contentType: asset.contentType,
+						storagePath,
+						storageBucket: bucketName,
+						downloadToken
+					}
 				},
 				{ merge: true }
 			)
@@ -262,12 +326,19 @@ async function seedPapers(firestore: Firestore, papers: SeedPaper[], emailToIdMa
 async function main(): Promise<void> {
 	const serviceAccount = assertServiceAccount()
 	const existingApp = getApps().find((appInstance) => appInstance.name === APP_NAME)
-	const app = existingApp ?? initializeApp({ credential: cert(serviceAccount) }, APP_NAME)
+	const storageBucket = process.env.FIREBASE_STORAGE_BUCKET ?? process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+	const appOptions = storageBucket
+		? { credential: cert(serviceAccount), storageBucket }
+		: { credential: cert(serviceAccount) }
+	const app = existingApp ?? initializeApp(appOptions, APP_NAME)
 
 	const auth = getAuth(app)
 	const firestore = getFirestore(app)
+	const storage = getStorage(app)
+	const bucket = storage.bucket()
 
 	const seed = await loadSeedData()
+	const manuscriptAsset = await loadSeedManuscriptAsset()
 
 	await purgeExistingData(auth, firestore)
 
@@ -280,10 +351,16 @@ async function main(): Promise<void> {
 	await seedConferences(firestore, seed.conferences, organizerMap)
 
 	console.log('Seeding papers...')
-	await seedPapers(firestore, seed.papers, {
-		author: authorMap,
-		reviewer: reviewerMap
-	})
+	await seedPapers(
+		firestore,
+		bucket,
+		seed.papers,
+		{
+			author: authorMap,
+			reviewer: reviewerMap
+		},
+		manuscriptAsset
+	)
 
 	console.log('Seed data written successfully.')
 }

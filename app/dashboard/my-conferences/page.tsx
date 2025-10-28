@@ -13,8 +13,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Checkbox } from '@/components/ui/checkbox'
 import { Skeleton } from '@/components/ui/skeleton'
 import { db } from '@/lib/firebase/client'
+import { formatFileSize } from '@/lib/papers/constants'
 import { DEFAULT_REVIEWER_DECISION, getReviewerStatusLabel, getReviewerStatusToneClass } from '@/lib/reviewer/status'
 import type { ReviewerDecision } from '@/lib/validation/schemas'
+
+interface PaperFileDetails {
+	name: string
+	size: number | null
+	contentType: string | null
+	downloadUrl: string | null
+	uploadedAt: string | null
+}
 
 interface ReviewerSummary {
 	id: string
@@ -27,6 +36,7 @@ interface ConferencePaper {
 	title: string
 	createdAt: string | null
 	reviewers: ReviewerSummary[]
+	file: PaperFileDetails | null
 }
 
 interface OrganizerConference {
@@ -324,6 +334,36 @@ export default function MyConferencesPage() {
 														</span>
 													)}
 												</div>
+												{paper.file ? (
+													<div className='flex flex-wrap items-center gap-3 text-xs sm:text-sm text-muted-foreground'>
+														<span className='font-medium text-foreground'>Manuscript:</span>
+														{paper.file.downloadUrl ? (
+															<Button
+																variant='outline'
+																size='sm'
+																asChild
+															>
+																<a
+																	href={paper.file.downloadUrl}
+																	target='_blank'
+																	rel='noopener noreferrer'
+																>
+																	Download PDF
+																</a>
+															</Button>
+														) : (
+															<span>No download link available.</span>
+														)}
+														{typeof paper.file.size === 'number' && paper.file.size > 0 && (
+															<span>{formatFileSize(paper.file.size)}</span>
+														)}
+														{paper.file.uploadedAt && (
+															<span>Uploaded {new Date(paper.file.uploadedAt).toLocaleString()}</span>
+														)}
+													</div>
+												) : (
+													<p className='text-xs text-muted-foreground'>No manuscript uploaded yet.</p>
+												)}
 												<div className='mt-2 space-y-2 text-sm text-muted-foreground'>
 													<strong className='font-medium text-foreground'>Reviewers:</strong>
 													{paper.reviewers.length > 0 ? (

@@ -78,6 +78,23 @@ service cloud.firestore {
                       || (isOrganizer()
                         && request.resource.data.keys().hasAll(['reviewers', 'reviewerStatuses', 'updatedAt'])
                         && request.resource.data.reviewers is list)
+                      || (isAuthor()
+                        && resource.data.authorId == request.auth.uid
+                        && request.resource.data.authorId == resource.data.authorId
+                        && request.resource.data.conferenceId == resource.data.conferenceId
+                        && request.resource.data.reviewers == resource.data.reviewers
+                        && request.resource.data.reviewerStatuses == resource.data.reviewerStatuses
+                        && request.resource.data.createdAt == resource.data.createdAt
+                        && request.resource.data.diff(resource.data).changedKeys().hasOnly(['title', 'file', 'fileUploadedAt', 'updatedAt'])
+                        && (!request.resource.data.diff(resource.data).changedKeys().hasAny(['title']) || request.resource.data.title is string)
+                        && (!request.resource.data.diff(resource.data).changedKeys().hasAny(['file'])
+                          || (request.resource.data.file is map
+                            && request.resource.data.file.name is string
+                            && request.resource.data.file.storagePath is string
+                            && request.resource.data.file.storageBucket is string
+                            && request.resource.data.file.downloadToken is string))
+                        && (!request.resource.data.diff(resource.data).changedKeys().hasAny(['fileUploadedAt']) || request.resource.data.fileUploadedAt is timestamp)
+                        && (!request.resource.data.diff(resource.data).changedKeys().hasAny(['updatedAt']) || request.resource.data.updatedAt is timestamp))
                     );
       allow delete: if isSignedIn() && (isOrganizer() || resource.data.authorId == request.auth.uid);
     }

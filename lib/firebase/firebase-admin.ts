@@ -1,5 +1,5 @@
 import { credential } from 'firebase-admin'
-import { type App, getApp, getApps, initializeApp } from 'firebase-admin/app'
+import { type App, type AppOptions, getApp, getApps, initializeApp } from 'firebase-admin/app'
 
 const serviceKey = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY as string)
 
@@ -10,12 +10,16 @@ let app: App
 if (getApps().some((existingApp) => existingApp.name === appName)) {
 	app = getApp(appName)
 } else {
-	app = initializeApp(
-		{
-			credential: credential.cert(serviceKey)
-		},
-		appName
-	)
+	const storageBucket = process.env.FIREBASE_STORAGE_BUCKET ?? process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+	const options: AppOptions = {
+		credential: credential.cert(serviceKey)
+	}
+
+	if (storageBucket) {
+		options.storageBucket = storageBucket
+	}
+
+	app = initializeApp(options, appName)
 }
 
 export function getFirebaseAdminApp() {

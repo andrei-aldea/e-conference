@@ -7,8 +7,8 @@ export const PUBLIC_PATHS = ['/', '/login', '/signup', '/roles', '/contact', '/c
 const SHARED_AUTHENTICATED_PATHS = ['/dashboard', '/dashboard/account', '/dashboard/account/*'] as const
 
 const ORGANIZER_ONLY_PATHS = [
-	'/dashboard/conferences',
-	'/dashboard/conferences/*',
+	'/dashboard/conferences/new',
+	'/dashboard/conferences/new/*',
 	'/dashboard/my-conferences',
 	'/dashboard/my-conferences/*'
 ] as const
@@ -71,6 +71,15 @@ export function getAllowedPathsForRole(role: UserRole): readonly string[] {
 
 export function isPathAllowedForRole(pathname: string, role: UserRole): boolean {
 	if (isPublicPath(pathname)) {
+		return true
+	}
+
+	const normalizedPath = normalizePath(pathname)
+
+	if (normalizedPath === '/dashboard/conferences' || normalizedPath.startsWith('/dashboard/conferences/')) {
+		if (normalizedPath === '/dashboard/conferences/new' || normalizedPath.startsWith('/dashboard/conferences/new/')) {
+			return role === 'organizer'
+		}
 		return true
 	}
 

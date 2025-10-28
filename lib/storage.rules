@@ -1,0 +1,58 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function getUser(userId) {
+      return get(/databases/(default)/documents/users/$(userId));
+    }
+
+    function userRole(userId) {
+      return getUser(userId).data.role;
+    }
+
+    function isOrganizer(userId) {
+      return userRole(userId) == 'organizer';
+    }
+
+    function paperSnapshot(paperId) {
+      return get(/databases/(default)/documents/papers/$(paperId));
+    }
+
+    function conferenceSnapshot(conferenceId) {
+      return get(/databases/(default)/documents/conferences/$(conferenceId));
+    }
+
+    function paperExists(paperId) {
+      return paperSnapshot(paperId).exists();
+    }
+
+    function isAuthorForPaper(paperId) {
+      return paperExists(paperId) && paperSnapshot(paperId).data.authorId == request.auth.uid;
+    }
+
+    function isReviewerForPaper(paperId) {
+      return paperExists(paperId) && request.auth.uid in paperSnapshot(paperId).data.reviewers;
+    }
+
+    function isOrganizerForPaper(paperId) {
+      return paperExists(paperId)
+             && paperSnapshot(paperId).data.conferenceId != null
+             && conferenceSnapshot(paperSnapshot(paperId).data.conferenceId).exists()
+             && conferenceSnapshot(paperSnapshot(paperId).data.conferenceId).data.organizerId == request.auth.uid;
+    }
+
+    match /papers/{paperId}/{allPaths=**} {
+      allow read: if isSignedIn() && (isAuthorForPaper(paperId) || isReviewerForPaper(paperId) || isOrganizerForPaper(paperId));
+      allow create, update: if isSignedIn() && isAuthorForPaper(paperId);
+      allow delete: if isSignedIn() && (isAuthorForPaper(paperId) || isOrganizerForPaper(paperId));
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -2,7 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod'
 import { collection, getDocs, orderBy, query } from 'firebase/firestore'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 
@@ -14,6 +14,13 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { db } from '@/lib/firebase/client'
+import {
+	MANUSCRIPT_MAX_SIZE_BYTES,
+	MANUSCRIPT_MAX_SIZE_LABEL,
+	formatFileSize,
+	isAllowedManuscriptExtension,
+	isAllowedManuscriptMimeType
+} from '@/lib/papers/constants'
 import { paperFormSchema, type PaperFormInput } from '@/lib/validation/schemas'
 
 interface ConferenceOption {
@@ -26,6 +33,9 @@ export default function SubmitPaperPage() {
 	const [isSubmitting, setIsSubmitting] = useState(false)
 	const [isLoadingConferences, setIsLoadingConferences] = useState(true)
 	const [conferences, setConferences] = useState<ConferenceOption[]>([])
+	const fileInputRef = useRef<HTMLInputElement | null>(null)
+	const [selectedFile, setSelectedFile] = useState<File | null>(null)
+	const [fileError, setFileError] = useState<string | null>(null)
 
 	const form = useForm<PaperFormInput>({
 		resolver: zodResolver(paperFormSchema),
@@ -74,15 +84,36 @@ export default function SubmitPaperPage() {
 			return
 		}
 
+		if (!selectedFile) {
+			setFileError('Please upload your manuscript as a PDF file.')
+			return
+		}
+
+		const mimeAllowed = isAllowedManuscriptMimeType(selectedFile.type)
+		const extensionAllowed = isAllowedManuscriptExtension(selectedFile.name)
+		if (!mimeAllowed && !extensionAllowed) {
+			setFileError('Only PDF manuscripts are supported right now.')
+			return
+		}
+
+		if (selectedFile.size > MANUSCRIPT_MAX_SIZE_BYTES) {
+			setFileError(`The manuscript must be ${MANUSCRIPT_MAX_SIZE_LABEL} or smaller.`)
+			return
+		}
+
+		setFileError(null)
+
 		setIsSubmitting(true)
 
 		try {
+			const payload = new FormData()
+			payload.append('title', data.title)
+			payload.append('conferenceId', data.conferenceId)
+			payload.append('file', selectedFile)
+
 			const response = await fetch('/api/papers', {
 				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({ title: data.title, conferenceId: data.conferenceId })
+				body: payload
 			})
 
 			if (!response.ok) {
@@ -95,11 +126,19 @@ export default function SubmitPaperPage() {
 				} catch (error) {
 					console.warn('Failed to parse paper error response:', error)
 				}
+				if (message.toLowerCase().includes('manuscript')) {
+					setFileError(message)
+				}
 				throw new Error(message)
 			}
 
 			toast.success('Paper submitted successfully!')
 			form.reset({ title: '', conferenceId: '' })
+			setSelectedFile(null)
+			if (fileInputRef.current) {
+				fileInputRef.current.value = ''
+			}
+			setFileError(null)
 		} catch (error) {
 			console.error('Error submitting paper:', error)
 			const message =
@@ -177,12 +216,32 @@ export default function SubmitPaperPage() {
 									</FormItem>
 								)}
 							/>
-							<p className='text-sm text-muted-foreground'>
-								Reviewers will see the title once your manuscript upload flow is ready.
-							</p>
+							<div className='space-y-2'>
+								<FormLabel>Manuscript</FormLabel>
+								<Input
+									type='file'
+									accept='application/pdf'
+									disabled={isSubmitting || isLoadingConferences || conferences.length === 0}
+									ref={fileInputRef}
+									onChange={(event) => {
+										const file = event.target.files?.[0] ?? null
+										setSelectedFile(file)
+										setFileError(null)
+									}}
+								/>
+								{selectedFile ? (
+									<p className='text-xs text-muted-foreground'>
+										Selected file: {selectedFile.name} ({formatFileSize(selectedFile.size)})
+									</p>
+								) : (
+									<p className='text-xs text-muted-foreground'>No manuscript selected yet.</p>
+								)}
+								<p className='text-xs text-muted-foreground'>Upload a PDF up to {MANUSCRIPT_MAX_SIZE_LABEL}.</p>
+								{fileError && <p className='text-xs text-destructive'>{fileError}</p>}
+							</div>
 							<Button
 								type='submit'
-								disabled={isSubmitting || isLoadingConferences || conferences.length === 0}
+								disabled={isSubmitting || isLoadingConferences || conferences.length === 0 || !selectedFile}
 							>
 								{isSubmitting ? 'Submitting...' : 'Submit paper'}
 							</Button>
