@@ -46,8 +46,8 @@ export function LoginForm({ className, ...props }: ComponentProps<'div'>) {
 		>
 			<Card>
 				<CardHeader className='text-center'>
-					<CardTitle className='text-xl'>Sign in to your account</CardTitle>
-					<CardDescription>Enter your email and password below to sign in</CardDescription>
+					<CardTitle className='text-xl'>Log in to your account</CardTitle>
+					<CardDescription>Enter your email and password below to log in.</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<Form {...form}>
@@ -110,11 +110,11 @@ export function LoginForm({ className, ...props }: ComponentProps<'div'>) {
 										disabled={isSubmitting}
 									>
 										{isSubmitting && <Loader className='mr-2 size-4 animate-spin' />}
-										Sign In
+										Log in
 									</Button>
 									<FieldDescription className='flex flex-col items-center gap-1 text-center text-sm text-muted-foreground'>
 										<span>
-											Don&apos;t have an account? <Link href='signup'>Sign up</Link>
+											Don&apos;t have an account? <Link href='/signup'>Sign up</Link>
 										</span>
 										<Link
 											href='/'

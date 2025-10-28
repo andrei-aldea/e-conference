@@ -4,7 +4,7 @@ import Link from 'next/link'
 
 import { PageDescription, PageTitle } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 type FeatureHighlight = {
 	title: string
@@ -15,12 +15,6 @@ type FeatureHighlight = {
 type WorkflowStage = {
 	title: string
 	description: string
-}
-
-type PersonaHighlight = {
-	role: string
-	summary: string
-	accent: string
 }
 
 type HeroStat = {
@@ -56,14 +50,14 @@ const featureHighlights: FeatureHighlight[] = [
 	},
 	{
 		title: 'Secure access',
-		description: 'Firebase authentication and protected APIs keep conference data safe while enabling quick sign-ins.',
+		description: 'Firebase authentication and protected APIs keep conference data safe while enabling quick logins.',
 		icon: ShieldCheck
 	}
 ]
 
 const workflowStages: WorkflowStage[] = [
 	{
-		title: 'Register and choose your role',
+		title: 'Sign up and choose your role',
 		description:
 			'Sign up as an organiser, author, or reviewer to unlock the workspace that matches your responsibilities.'
 	},
@@ -79,24 +73,6 @@ const workflowStages: WorkflowStage[] = [
 		title: 'Review and track decisions',
 		description:
 			'Reviewers log decisions, organisers track responses, and everyone stays prepared for the final programme.'
-	}
-]
-
-const personaHighlights: PersonaHighlight[] = [
-	{
-		role: 'Organisers',
-		summary: 'Launch conferences, monitor papers, and coordinate reviewer assignments with instant status updates.',
-		accent: 'programme chairs stay in control'
-	},
-	{
-		role: 'Authors',
-		summary: 'Submit papers, revisit conference details, and follow reviewer decisions right from your dashboard.',
-		accent: 'clarity on every paper'
-	},
-	{
-		role: 'Reviewers',
-		summary: 'Work through assignments, record decisions, and keep organisers informed of progress in seconds.',
-		accent: 'decisions with less friction'
 	}
 ]
 
@@ -123,7 +99,7 @@ export default function HomePage() {
 							Bring organisers, authors, and reviewers together
 						</PageTitle>
 						<PageDescription className='text-balance text-base text-muted-foreground md:text-lg'>
-							eConference centralises conference setup, paper workflows, and reviewer feedback so every role sees what
+							eConference centralises conference setup, paper workflows, and reviewer decisions so every role sees what
 							to do next.
 						</PageDescription>
 						<div className='flex flex-col items-center gap-4 sm:flex-row sm:justify-start'>
@@ -132,7 +108,7 @@ export default function HomePage() {
 								asChild
 							>
 								<Link href='/signup'>
-									Get started
+									Sign up
 									<ArrowRight className='size-4' />
 								</Link>
 							</Button>
@@ -141,7 +117,7 @@ export default function HomePage() {
 								size='lg'
 								asChild
 							>
-								<Link href='/login'>Sign in</Link>
+								<Link href='/login'>Log in</Link>
 							</Button>
 						</div>
 						<div className='grid w-full gap-4 sm:grid-cols-3 sm:text-left'>
@@ -262,60 +238,6 @@ export default function HomePage() {
 						))}
 					</ol>
 				</div>
-			</section>
-			<section className='px-4 py-20'>
-				<div className='mx-auto max-w-6xl space-y-10'>
-					<PageTitle className='text-center text-3xl font-semibold tracking-tight text-foreground md:text-4xl'>
-						Built for every role in your conference
-					</PageTitle>
-					<div className='grid gap-6 md:grid-cols-3'>
-						{personaHighlights.map((persona) => (
-							<Card
-								key={persona.role}
-								className='border border-border/60 bg-background/80 p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg'
-							>
-								<CardHeader className='space-y-2 px-0'>
-									<CardTitle className='text-xl font-semibold'>{persona.role}</CardTitle>
-									<CardDescription className='text-sm text-primary/80'>{persona.accent}</CardDescription>
-								</CardHeader>
-								<CardContent className='space-y-3 px-0 text-sm text-muted-foreground'>
-									<p>{persona.summary}</p>
-								</CardContent>
-							</Card>
-						))}
-					</div>
-				</div>
-			</section>
-			<section className='px-4 pb-24'>
-				<Card className='relative mx-auto max-w-5xl overflow-hidden border-none bg-primary text-primary-foreground shadow-xl'>
-					<div className='absolute -left-16 top-0 h-64 w-64 rounded-full bg-white/10 blur-3xl' />
-					<div className='absolute -right-20 bottom-0 h-72 w-72 rounded-full bg-white/10 blur-3xl' />
-					<CardHeader className='relative z-10 space-y-3 text-center'>
-						<CardTitle className='text-balance text-3xl font-semibold tracking-tight md:text-4xl'>
-							Ready to host your most seamless conference yet?
-						</CardTitle>
-						<CardDescription className='text-base text-primary-foreground/80 md:text-lg'>
-							Launch your workspace, invite the rest of your committee, and have papers live before the week wraps.
-						</CardDescription>
-					</CardHeader>
-					<CardFooter className='relative z-10 flex flex-col items-center justify-center gap-4 pb-10 sm:flex-row'>
-						<Button
-							variant='secondary'
-							size='lg'
-							asChild
-						>
-							<Link href='/signup'>Create your workspace</Link>
-						</Button>
-						<Button
-							variant='ghost'
-							size='lg'
-							className='text-primary-foreground hover:bg-primary-foreground/10'
-							asChild
-						>
-							<Link href='/login'>Already onboard? Sign in</Link>
-						</Button>
-					</CardFooter>
-				</Card>
 			</section>
 		</div>
 	)

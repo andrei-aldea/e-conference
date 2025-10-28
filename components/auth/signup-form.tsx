@@ -50,8 +50,8 @@ export function SignupForm({ className, ...props }: ComponentProps<'div'>) {
 		>
 			<Card>
 				<CardHeader className='text-center'>
-					<CardTitle className='text-xl'>Create your account</CardTitle>
-					<CardDescription>Enter your email below to create your account</CardDescription>
+					<CardTitle className='text-xl'>Sign up for eConference</CardTitle>
+					<CardDescription>Enter your details below to sign up.</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<Form {...form}>
@@ -192,11 +192,11 @@ export function SignupForm({ className, ...props }: ComponentProps<'div'>) {
 									className='w-full'
 								>
 									{isSubmitting && <Loader className='mr-2 size-4 animate-spin' />}
-									Create Account
+									Sign up
 								</Button>
 								<FieldDescription className='flex flex-col items-center gap-1 text-center text-sm text-muted-foreground'>
 									<span>
-										Already have an account? <Link href='login'>Sign in</Link>
+										Already have an account? <Link href='/login'>Log in</Link>
 									</span>
 									<Link
 										href='/'

@@ -109,13 +109,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 			if (userCredential.user) {
 				// The onIdTokenChanged listener will handle setting the cookie and user state.
 				// We can now redirect.
-				toast.success('Login successful!')
+				toast.success('Log in successful!')
 			}
 		} catch (error) {
 			if (error instanceof FirebaseError) {
-				toast.error(`Login failed: ${error.message}`)
+				toast.error(`Log in failed: ${error.message}`)
 			} else {
-				toast.error('An unknown error occurred during login.')
+				toast.error('An unknown error occurred during log in.')
 			}
 			throw error // Re-throw to be caught by the form's finally block
 		}
@@ -135,12 +135,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 			// The onIdTokenChanged listener will handle setting the cookie and user state.
 			// We can now redirect.
-			toast.success('Signup successful!')
+			toast.success('Sign up successful!')
 		} catch (error) {
 			if (error instanceof FirebaseError) {
-				toast.error(`Signup failed: ${error.message}`)
+				toast.error(`Sign up failed: ${error.message}`)
 			} else {
-				toast.error('An unknown error occurred during signup.')
+				toast.error('An unknown error occurred during sign up.')
 			}
 			throw error
 		}

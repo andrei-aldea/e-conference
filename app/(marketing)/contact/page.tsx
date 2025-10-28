@@ -1,12 +1,35 @@
-import { Mail, MessageCircle, Phone } from 'lucide-react'
+'use client'
+
+import { Mail, Phone } from 'lucide-react'
 import Link from 'next/link'
+import { FormEvent, useState } from 'react'
+import { toast } from 'sonner'
+import { z } from 'zod'
 
 import { PageDescription, PageTitle } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+
+const contactFormSchema = z.object({
+	name: z.string().trim().min(1, 'Please enter your full name.'),
+	email: z.string().trim().email('Please provide a valid email address.'),
+	role: z.string().trim().min(1, 'Let us know your primary role.'),
+	message: z.string().trim().min(10, 'Share a bit more context so we can help effectively.')
+})
+
+type ContactFormValues = z.infer<typeof contactFormSchema>
+type ContactFormErrors = Record<keyof ContactFormValues, string>
+
+const EMPTY_ERRORS: ContactFormErrors = {
+	name: '',
+	email: '',
+	role: '',
+	message: ''
+}
 
 const contactChannels = [
 	{
@@ -22,17 +45,44 @@ const contactChannels = [
 		description: 'Schedule a 30-minute onboarding call with our team.',
 		value: '+40 733 626 626',
 		mailto: 'tel:+40733626626'
-	},
-	{
-		icon: MessageCircle,
-		title: 'Community Slack',
-		description: 'Discuss workflows and share best practices with other organisers.',
-		value: 'Email for an invite',
-		mailto: 'mailto:contact@aldeaandrei.com?subject=Slack%20Invite'
 	}
 ]
 
 export default function ContactPage() {
+	const [errors, setErrors] = useState<ContactFormErrors>({ ...EMPTY_ERRORS })
+
+	const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+		event.preventDefault()
+		const form = event.currentTarget
+
+		const formData = new FormData(form)
+		const payload: ContactFormValues = {
+			name: (formData.get('name') as string | null) ?? '',
+			email: (formData.get('email') as string | null) ?? '',
+			role: (formData.get('role') as string | null) ?? '',
+			message: (formData.get('message') as string | null) ?? ''
+		}
+
+		const result = contactFormSchema.safeParse(payload)
+
+		if (!result.success) {
+			const nextErrors: ContactFormErrors = { ...EMPTY_ERRORS }
+			result.error.issues.forEach((issue) => {
+				const field = issue.path[0]
+				if (typeof field === 'string' && field in nextErrors) {
+					nextErrors[field as keyof typeof nextErrors] = issue.message
+				}
+			})
+			setErrors(nextErrors)
+			toast.error('Please review the highlighted fields and try again.')
+			return
+		}
+
+		setErrors({ ...EMPTY_ERRORS })
+		form.reset()
+		toast.success("Thanks for reaching out! We'll get back to you shortly.")
+	}
+
 	return (
 		<div className='bg-linear-to-b from-background via-background to-muted/40 py-20'>
 			<section className='mx-auto flex max-w-3xl flex-col items-center gap-6 px-4 text-center'>
@@ -52,40 +102,59 @@ export default function ContactPage() {
 						</CardDescription>
 					</CardHeader>
 					<CardContent>
-						<form className='space-y-4'>
-							<div className='grid gap-4 md:grid-cols-2'>
+						<form
+							onSubmit={handleSubmit}
+							className='space-y-4'
+						>
+							<div className='grid gap-4 md:grid-cols-3'>
 								<div className='space-y-2'>
 									<Label htmlFor='name'>Full name</Label>
 									<Input
 										id='name'
 										type='text'
+										name='name'
 										placeholder='Ada Lovelace'
 									/>
+									{errors.name && <p className='text-xs text-destructive'>{errors.name}</p>}
 								</div>
 								<div className='space-y-2'>
 									<Label htmlFor='email'>Work email</Label>
 									<Input
 										id='email'
 										type='email'
+										name='email'
 										placeholder='you@organisation.org'
 									/>
+									{errors.email && <p className='text-xs text-destructive'>{errors.email}</p>}
 								</div>
-							</div>
-							<div className='space-y-2'>
-								<Label htmlFor='role'>Primary role</Label>
-								<Input
-									id='role'
-									type='text'
-									placeholder='Organiser'
-								/>
+								<div className='space-y-2'>
+									<Label htmlFor='role'>Primary role</Label>
+									<Select
+										name='role'
+										defaultValue='organizer'
+									>
+										<SelectTrigger id='role'>
+											<SelectValue placeholder='Select role' />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value='organizer'>Organizer</SelectItem>
+											<SelectItem value='author'>Author</SelectItem>
+											<SelectItem value='reviewer'>Reviewer</SelectItem>
+											<SelectItem value='other'>Other</SelectItem>
+										</SelectContent>
+									</Select>
+									{errors.role && <p className='text-xs text-destructive'>{errors.role}</p>}
+								</div>
 							</div>
 							<div className='space-y-2'>
 								<Label htmlFor='message'>How can we help?</Label>
 								<Textarea
 									id='message'
 									placeholder='Tell us about your conference goals, timelines, or blockers.'
+									name='message'
 									rows={5}
 								/>
+								{errors.message && <p className='text-xs text-destructive'>{errors.message}</p>}
 							</div>
 							<Button type='submit'>Send message</Button>
 						</form>

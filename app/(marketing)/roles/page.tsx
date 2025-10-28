@@ -1,10 +1,7 @@
+import { PageDescription, PageTitle } from '@/components/layout/page-header'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import type { LucideIcon } from 'lucide-react'
 import { CalendarCog, ClipboardCheck, FileText } from 'lucide-react'
-import Link from 'next/link'
-
-import { PageDescription, PageTitle } from '@/components/layout/page-header'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 type RoleDetail = {
 	title: string
@@ -16,32 +13,32 @@ type RoleDetail = {
 const roleDetails: RoleDetail[] = [
 	{
 		title: 'Organisers',
-		summary: 'Set up conferences, keep assignments on track, and guide the entire review cycle.',
+		summary: 'Set up conferences, assign reviewers, and follow every paper from submission to decision.',
 		icon: CalendarCog,
 		highlights: [
-			'Configure conference information, deadlines, and review criteria in minutes.',
-			'Assign reviewers to papers and monitor their progress in real time.',
-			'Communicate outcomes to authors and keep the programme committee aligned.'
+			'Publish conference details with dates, descriptions, and locations in minutes.',
+			'Assign reviewers to papers and monitor decision statuses as they change.',
+			'Keep one view of every paper so the whole committee stays aligned.'
 		]
 	},
 	{
 		title: 'Authors',
-		summary: 'Submit manuscripts, confirm requirements, and follow reviewer feedback without guesswork.',
+		summary: 'Submit manuscripts, revisit conference details, and keep track of reviewer decisions.',
 		icon: FileText,
 		highlights: [
-			'Upload papers using structured forms with required metadata already mapped.',
-			'Track paper status, reviewer decisions, and organiser announcements from one dashboard.',
-			'Update files or respond to organiser requests before deadlines close.'
+			'Upload papers using a guided form that captures the essentials.',
+			'Track paper status and reviewer decisions from one dashboard.',
+			'Update titles or resubmit manuscripts whenever changes are needed.'
 		]
 	},
 	{
 		title: 'Reviewers',
-		summary: 'Work through assigned papers efficiently and keep organisers informed of every decision.',
+		summary: 'Work through assigned papers efficiently and keep organisers informed with timely decisions.',
 		icon: ClipboardCheck,
 		highlights: [
-			'View all assigned papers alongside due dates and organiser instructions.',
-			'Score papers, leave structured feedback, and flag conflicts for follow-up.',
-			'Confirm recommendations so organisers always know which papers are ready for decisions.'
+			'View all assigned papers with conference context in one place.',
+			'Update your decision (pending, accepted, or declined) in just a few clicks.',
+			'Confirm recommendations so organisers always know which papers are ready for the programme.'
 		]
 	}
 ]
@@ -85,25 +82,6 @@ export default function RolesPage() {
 						</CardContent>
 					</Card>
 				))}
-			</section>
-			<section className='mx-auto mt-16 flex max-w-3xl flex-col items-center gap-6 px-4 text-center'>
-				<PageTitle className='text-balance text-3xl font-semibold tracking-tight text-foreground md:text-4xl'>
-					Ready to empower your team?
-				</PageTitle>
-				<PageDescription className='text-balance text-base text-muted-foreground md:text-lg'>
-					Create an organiser account, invite reviewers, and start collecting papers in minutes.
-				</PageDescription>
-				<div className='flex flex-col items-center gap-3 sm:flex-row'>
-					<Button asChild>
-						<Link href='/signup'>Create organiser account</Link>
-					</Button>
-					<Button
-						variant='ghost'
-						asChild
-					>
-						<Link href='/contact'>Talk to us</Link>
-					</Button>
-				</div>
 			</section>
 		</div>
 	)

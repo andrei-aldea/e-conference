@@ -9,8 +9,8 @@ const quickLinks = [
 ]
 
 const supportLinks = [
-	{ href: '/login', label: 'Sign in' },
-	{ href: '/signup', label: 'Create account' },
+	{ href: '/login', label: 'Log in' },
+	{ href: '/signup', label: 'Sign up' },
 	{ href: '/dashboard', label: 'Dashboard' }
 ]
 
@@ -55,7 +55,7 @@ export function SiteFooter() {
 					</ul>
 				</div>
 				<div>
-					<h3 className='text-sm font-semibold uppercase tracking-wide text-muted-foreground'>Get started</h3>
+					<h3 className='text-sm font-semibold uppercase tracking-wide text-muted-foreground'>Log in & Sign up</h3>
 					<ul className='mt-4 space-y-2 text-sm text-muted-foreground'>
 						{supportLinks.map((link) => (
 							<li key={link.href}>

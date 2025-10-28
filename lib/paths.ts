@@ -27,9 +27,9 @@ const ROLE_SPECIFIC_PATHS: Record<UserRole, readonly string[]> = {
 }
 
 export const ROLE_HOME_PATH: Record<UserRole, string> = {
-	organizer: '/dashboard/conferences',
-	author: '/dashboard/my-papers',
-	reviewer: '/dashboard/reviewer-papers'
+	organizer: '/dashboard',
+	author: '/dashboard',
+	reviewer: '/dashboard'
 }
 
 export function formatPathPrefix(path: string): string {

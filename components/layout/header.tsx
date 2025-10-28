@@ -36,13 +36,13 @@ export function SiteHeader() {
 						size='sm'
 						asChild
 					>
-						<Link href='/login'>Sign in</Link>
+						<Link href='/login'>Log in</Link>
 					</Button>
 					<Button
 						size='sm'
 						asChild
 					>
-						<Link href='/signup'>Get started</Link>
+						<Link href='/signup'>Sign up</Link>
 					</Button>
 				</div>
 			</div>
