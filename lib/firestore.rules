@@ -2,8 +2,6 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Helper functions to improve readability and reuse logic.
     function isSignedIn() {
       return request.auth != null;
     }
@@ -33,40 +31,22 @@ service cloud.firestore {
       return isSignedIn() && isUserRole(request.auth.uid, 'reviewer');
     }
 
-    // =====================================================================
-    // User Profiles
-    // =====================================================================
     match /users/{userId} {
-      // Users can create their own profile upon signup.
-      // Users can read their own full profile.
-      // Organizers can read any user's profile (e.g., to find reviewers).
       allow get: if isUser(userId) || isOrganizer();
-
-      // Authenticated users can see the public portion of other user profiles.
       allow list: if isSignedIn();
-
-      // Users can update their own name, but not their role or email.
       allow create: if isUser(userId)
                     && request.resource.data.name is string
                     && request.resource.data.email is string
                     && request.resource.data.role in ['organizer', 'author', 'reviewer'];
-  allow update: if isUser(userId)
-        && request.resource.data.diff(resource.data).changedKeys().hasOnly(['name', 'role'])
-        && (!request.resource.data.diff(resource.data).changedKeys().hasAny(['name']) || request.resource.data.name is string)
-        && (!request.resource.data.diff(resource.data).changedKeys().hasAny(['role']) || request.resource.data.role in ['organizer', 'author', 'reviewer']);
-
-      // Deleting users should be handled by a backend process, not the client.
+      allow update: if isUser(userId)
+                    && request.resource.data.diff(resource.data).changedKeys().hasOnly(['name', 'role'])
+                    && (!request.resource.data.diff(resource.data).changedKeys().hasAny(['name']) || request.resource.data.name is string)
+                    && (!request.resource.data.diff(resource.data).changedKeys().hasAny(['role']) || request.resource.data.role in ['organizer', 'author', 'reviewer']);
       allow delete: if false;
     }
 
-    // =====================================================================
-    // Conferences
-    // =====================================================================
     match /conferences/{conferenceId} {
-      // Anyone can view conference details.
       allow read: if true;
-
-      // Only organizers can create conferences.
       allow create: if isOrganizer()
                     && request.resource.data.organizerId == request.auth.uid
                     && request.resource.data.name is string
@@ -74,73 +54,32 @@ service cloud.firestore {
                     && request.resource.data.description is string
                     && request.resource.data.startDate is timestamp
                     && request.resource.data.endDate is timestamp;
-
-      // Only the original organizer can update or delete their conference.
       allow update, delete: if isSignedIn() && resource.data.organizerId == request.auth.uid;
     }
 
-    // =====================================================================
-    // Papers
-    // =====================================================================
     match /papers/{paperId} {
-      // Who can read a paper?
-      // 1. The author of the paper.
-      // 2. A reviewer assigned to the paper.
-      // 3. An organizer (e.g., to manage assignments).
-      allow get: if isSignedIn() &&
-                  (resource.data.authorId == request.auth.uid ||
-                   request.auth.uid in resource.data.reviewers ||
-                   isOrganizer());
-
-      // Who can list papers?
-      // Authors can list their own papers.
-      // Reviewers can list papers assigned to them.
-      // Organizers can list all papers for a conference.
+      allow get: if isSignedIn()
+                  && (resource.data.authorId == request.auth.uid
+                      || request.auth.uid in resource.data.reviewers
+                      || isOrganizer());
       allow list: if isAuthor() || isReviewer() || isOrganizer();
-
-      // Only authors can submit new papers.
       allow create: if isAuthor()
                     && request.resource.data.authorId == request.auth.uid
                     && request.resource.data.title is string
                     && request.resource.data.conferenceId is string
                     && request.resource.data.reviewers is list
                     && request.resource.data.reviewerStatuses is map;
-
-      // Who can update a paper?
-      // 1. A reviewer can update their own status in `reviewerStatuses`.
-      // 2. An organizer can re-assign reviewers.
-      allow update: if isSignedIn() &&
-                    (
-                      // Reviewer updating their own status
-                      isReviewer() &&
-                      request.auth.uid in resource.data.reviewers &&
-                      request.resource.data.keys().hasAll(['reviewerStatuses', 'updatedAt']) &&
-                      request.resource.data.reviewerStatuses.diff(resource.data.reviewerStatuses).affectedKeys().hasOnly([request.auth.uid])
-                    ) || (
-                      // Organizer re-assigning reviewers
-                      isOrganizer() &&
-                      request.resource.data.keys().hasAll(['reviewers', 'reviewerStatuses', 'updatedAt']) &&
-                      request.resource.data.reviewers is list
+      allow update: if isSignedIn()
+                    && (
+                      (isReviewer()
+                        && request.auth.uid in resource.data.reviewers
+                        && request.resource.data.keys().hasAll(['reviewerStatuses', 'updatedAt'])
+                        && request.resource.data.reviewerStatuses.diff(resource.data.reviewerStatuses).affectedKeys().hasOnly([request.auth.uid]))
+                      || (isOrganizer()
+                        && request.resource.data.keys().hasAll(['reviewers', 'reviewerStatuses', 'updatedAt'])
+                        && request.resource.data.reviewers is list)
                     );
-
-      // Only organizers or the original author should be able to delete a paper.
       allow delete: if isSignedIn() && (isOrganizer() || resource.data.authorId == request.auth.uid);
     }
   }
 }
-```
-
-### Highlights of These Rules:
-
-1.  **Role-Based Logic**: The rules heavily use helper functions like `isOrganizer()`, `isAuthor()`, and `isReviewer()` to grant permissions based on the user's role, which is derived directly from your `userSchema`.
-2.  **Ownership Checks**: Operations are restricted to the correct user. For example, only the user whose UID matches the `authorId` on a paper can perform certain actions. Organizers can only delete conferences they created (`resource.data.organizerId == request.auth.uid`).
-3.  **Granular Updates**: The `update` rule for papers is very specific. It allows a reviewer to change *only their own status* in the `reviewerStatuses` map, preventing them from changing other reviewers' decisions. It also provides a separate path for organizers to update the list of reviewers.
-4.  **Data Validation**: The `create` rules validate that incoming data has the correct shape and types (e.g., `is string`, `is timestamp`), mirroring the constraints in your Zod schemas. This is a critical defense against corrupted or malicious data.
-5.  **Readability**: Using helper functions and clear comments makes the rules easier to understand and maintain as your application grows.
-
-You can save this code as `firestore.rules` and deploy it to your Firebase project. It provides a strong security foundation for your e-conference platform.
-
-<!--
-[PROMPT_SUGGESTION]How can I test these Firebase rules before deploying them?[/PROMPT_SUGGESTION]
-[PROMPT_SUGGESTION]Write a Firebase Function that sends an email to reviewers when they are assigned to a new paper.[/PROMPT_SUGGESTION]
--->
