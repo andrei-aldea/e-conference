@@ -127,8 +127,7 @@ export async function GET(request: NextRequest) {
 				location: conference.location,
 				startDate: conference.startDate?.toISOString() ?? null,
 				endDate: conference.endDate?.toISOString() ?? null,
-				papers: papersPayload,
-				submissions: papersPayload
+				papers: papersPayload
 			}
 		})
 

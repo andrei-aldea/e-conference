@@ -1,53 +1,53 @@
 {
 	"organizers": [
 		{
-			"name": "Olivia Organizer",
-			"email": "olivia.organizer@example.com",
-			"password": "Password123!",
-			"bio": "Lead coordinator for international AI summits."
+			"name": "Elena Popescu",
+			"email": "elena.popescu@exemplu.ro",
+			"password": "ParolaSigura123!"
 		},
 		{
-			"name": "Noah Newman",
-			"email": "noah.newman@example.com",
-			"password": "Password123!",
-			"bio": "Organizer focused on emerging technology forums."
+			"name": "Andrei Ionescu",
+			"email": "andrei.ionescu@exemplu.ro",
+			"password": "ParolaSigura123!"
+		},
+		{
+			"name": "Matei Anghel",
+			"email": "matei.anghel@exemplu.ro",
+			"password": "ParolaSigura123!"
 		}
 	],
 	"reviewers": [
 		{
-			"name": "Rachel Reviewer",
-			"email": "rachel.reviewer@example.com",
-			"password": "Password123!",
-			"expertise": ["Machine Learning", "NLP"]
+			"name": "Raluca Georgescu",
+			"email": "raluca.georgescu@exemplu.ro",
+			"password": "ParolaSigura123!"
 		},
 		{
-			"name": "Ryan Reviewer",
-			"email": "ryan.reviewer@example.com",
-			"password": "Password123!",
-			"expertise": ["Security", "Distributed Systems"]
+			"name": "Radu Stoica",
+			"email": "radu.stoica@exemplu.ro",
+			"password": "ParolaSigura123!"
 		},
 		{
-			"name": "Renee Reviewer",
-			"email": "renee.reviewer@example.com",
-			"password": "Password123!",
-			"expertise": ["Robotics", "Computer Vision"]
+			"name": "Roxana Vasiliu",
+			"email": "roxana.vasiliu@exemplu.ro",
+			"password": "ParolaSigura123!"
 		}
 	],
 	"authors": [
 		{
-			"name": "Alice Author",
-			"email": "alice.author@example.com",
-			"password": "Password123!"
+			"name": "Ana Tudor",
+			"email": "ana.tudor@exemplu.ro",
+			"password": "ParolaSigura123!"
 		},
 		{
-			"name": "Brian Author",
-			"email": "brian.author@example.com",
-			"password": "Password123!"
+			"name": "Bogdan Marin",
+			"email": "bogdan.marin@exemplu.ro",
+			"password": "ParolaSigura123!"
 		},
 		{
-			"name": "Chloe Author",
-			"email": "chloe.author@example.com",
-			"password": "Password123!"
+			"name": "Cristina Dobre",
+			"email": "cristina.dobre@exemplu.ro",
+			"password": "ParolaSigura123!"
 		}
 	],
 	"conferences": [
@@ -58,7 +58,7 @@
 			"location": "San Francisco, CA",
 			"startDate": "2025-03-15T09:00:00.000Z",
 			"endDate": "2025-03-17T17:00:00.000Z",
-			"organizerEmail": "olivia.organizer@example.com"
+			"organizerEmail": "elena.popescu@exemplu.ro"
 		},
 		{
 			"id": "quantum-tech-conference",
@@ -67,7 +67,7 @@
 			"location": "Berlin, Germany",
 			"startDate": "2025-04-20T09:00:00.000Z",
 			"endDate": "2025-04-22T17:00:00.000Z",
-			"organizerEmail": "noah.newman@example.com"
+			"organizerEmail": "andrei.ionescu@exemplu.ro"
 		},
 		{
 			"id": "ethics-in-ai-forum",
@@ -76,45 +76,78 @@
 			"location": "Toronto, Canada",
 			"startDate": "2025-05-10T09:00:00.000Z",
 			"endDate": "2025-05-11T16:00:00.000Z",
-			"organizerEmail": "olivia.organizer@example.com"
+			"organizerEmail": "elena.popescu@exemplu.ro"
+		},
+		{
+			"id": "blockchain-forum-2025",
+			"name": "Forumul Blockchain 2025",
+			"description": "O analiză a tehnologiilor descentralizate și a impactului lor.",
+			"location": "București, România",
+			"startDate": "2025-06-10T09:00:00.000Z",
+			"endDate": "2025-06-11T17:00:00.000Z",
+			"organizerEmail": "matei.anghel@exemplu.ro"
 		}
 	],
-	"submissions": [
+	"papers": [
 		{
 			"id": "paper-intent-aware-agents",
 			"title": "Intent-Aware Agents for Adaptive Assistance",
-			"authorEmail": "alice.author@example.com",
+			"authorEmail": "ana.tudor@exemplu.ro",
 			"conferenceId": "global-ai-summit",
-			"reviewerEmails": ["rachel.reviewer@example.com", "ryan.reviewer@example.com"],
+			"reviewerEmails": ["raluca.georgescu@exemplu.ro", "radu.stoica@exemplu.ro"],
 			"reviewerStatuses": {
-				"rachel.reviewer@example.com": "accepted",
-				"ryan.reviewer@example.com": "pending"
+				"raluca.georgescu@exemplu.ro": "accepted",
+				"radu.stoica@exemplu.ro": "pending"
 			},
 			"createdAt": "2025-01-12T10:00:00.000Z"
 		},
 		{
 			"id": "paper-quantum-routing",
 			"title": "Optimized Routing in Quantum Networks",
-			"authorEmail": "brian.author@example.com",
+			"authorEmail": "bogdan.marin@exemplu.ro",
 			"conferenceId": "quantum-tech-conference",
-			"reviewerEmails": ["ryan.reviewer@example.com", "renee.reviewer@example.com"],
+			"reviewerEmails": ["radu.stoica@exemplu.ro", "roxana.vasiliu@exemplu.ro"],
 			"reviewerStatuses": {
-				"ryan.reviewer@example.com": "pending",
-				"renee.reviewer@example.com": "declined"
+				"radu.stoica@exemplu.ro": "pending",
+				"roxana.vasiliu@exemplu.ro": "declined"
 			},
 			"createdAt": "2025-01-18T14:30:00.000Z"
 		},
 		{
 			"id": "paper-ethical-alignment",
 			"title": "Frameworks for Ethical Alignment in Large Models",
-			"authorEmail": "chloe.author@example.com",
+			"authorEmail": "cristina.dobre@exemplu.ro",
 			"conferenceId": "ethics-in-ai-forum",
-			"reviewerEmails": ["rachel.reviewer@example.com", "renee.reviewer@example.com"],
+			"reviewerEmails": ["raluca.georgescu@exemplu.ro", "roxana.vasiliu@exemplu.ro"],
 			"reviewerStatuses": {
-				"rachel.reviewer@example.com": "pending",
-				"renee.reviewer@example.com": "pending"
+				"raluca.georgescu@exemplu.ro": "pending",
+				"roxana.vasiliu@exemplu.ro": "pending"
 			},
 			"createdAt": "2025-01-25T09:15:00.000Z"
+		},
+		{
+			"id": "paper-decentralized-identity",
+			"title": "Identitatea Decentralizată pe Blockchain",
+			"authorEmail": "ana.tudor@exemplu.ro",
+			"conferenceId": "blockchain-forum-2025",
+			"reviewerEmails": ["radu.stoica@exemplu.ro", "raluca.georgescu@exemplu.ro"],
+			"reviewerStatuses": {
+				"radu.stoica@exemplu.ro": "pending",
+				"raluca.georgescu@exemplu.ro": "pending"
+			},
+			"createdAt": "2025-02-15T11:00:00.000Z"
+		},
+		{
+			"id": "paper-smart-contract-security",
+			"title": "Securitatea Contractelor Inteligente",
+			"authorEmail": "bogdan.marin@exemplu.ro",
+			"conferenceId": "blockchain-forum-2025",
+			"reviewerEmails": ["radu.stoica@exemplu.ro", "roxana.vasiliu@exemplu.ro"],
+			"reviewerStatuses": {
+				"radu.stoica@exemplu.ro": "accepted",
+				"roxana.vasiliu@exemplu.ro": "pending"
+			},
+			"createdAt": "2025-02-20T16:45:00.000Z"
 		}
 	]
 }

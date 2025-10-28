@@ -20,7 +20,7 @@ const roleDetails: RoleDetail[] = [
 		icon: CalendarCog,
 		highlights: [
 			'Configure conference information, deadlines, and review criteria in minutes.',
-			'Assign reviewers to submissions and monitor their progress in real time.',
+			'Assign reviewers to papers and monitor their progress in real time.',
 			'Communicate outcomes to authors and keep the programme committee aligned.'
 		]
 	},
@@ -30,7 +30,7 @@ const roleDetails: RoleDetail[] = [
 		icon: FileText,
 		highlights: [
 			'Upload papers using structured forms with required metadata already mapped.',
-			'Track submission status, reviewer decisions, and organiser announcements from one dashboard.',
+			'Track paper status, reviewer decisions, and organiser announcements from one dashboard.',
 			'Update files or respond to organiser requests before deadlines close.'
 		]
 	},
@@ -40,7 +40,7 @@ const roleDetails: RoleDetail[] = [
 		icon: ClipboardCheck,
 		highlights: [
 			'View all assigned papers alongside due dates and organiser instructions.',
-			'Score submissions, leave structured feedback, and flag conflicts for follow-up.',
+			'Score papers, leave structured feedback, and flag conflicts for follow-up.',
 			'Confirm recommendations so organisers always know which papers are ready for decisions.'
 		]
 	}
@@ -91,7 +91,7 @@ export default function RolesPage() {
 					Ready to empower your team?
 				</PageTitle>
 				<PageDescription className='text-balance text-base text-muted-foreground md:text-lg'>
-					Create an organiser account, invite reviewers, and start collecting submissions in minutes.
+					Create an organiser account, invite reviewers, and start collecting papers in minutes.
 				</PageDescription>
 				<div className='flex flex-col items-center gap-3 sm:flex-row'>
 					<Button asChild>

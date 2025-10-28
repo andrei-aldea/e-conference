@@ -27,8 +27,8 @@ export function OrganizerDashboard() {
 			<section className='space-y-2'>
 				<h2 className='text-xl font-semibold'>Organizer overview</h2>
 				<p className='text-sm text-muted-foreground'>
-					You orchestrate the full submission pipeline—from creating calls to assigning reviewers. E-Conference keeps
-					your events organised so you can focus on curating memorable programs and supporting your community.
+					You orchestrate the full submission pipeline—from creating conferences to assigning reviewers. E-Conference keeps your
+					events organised so you can focus on curating memorable programs and supporting your community.
 				</p>
 			</section>
 
@@ -42,7 +42,7 @@ export function OrganizerDashboard() {
 						<p>
 							You are managing <strong className='text-foreground'>{roleStats.conferenceCount}</strong> conference
 							{roleStats.conferenceCount === 1 ? '' : 's'} with{' '}
-							<strong className='text-foreground'>{roleStats.paperCount}</strong> paper submission
+							<strong className='text-foreground'>{roleStats.paperCount}</strong> paper
 							{roleStats.paperCount === 1 ? '' : 's'}.
 						</p>
 						<p>

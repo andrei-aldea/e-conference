@@ -19,7 +19,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
 	title: 'eConference | Role-aware conference management',
 	description:
-		'Plan conferences, manage submissions, and collaborate with organisers, authors, and reviewers in one workspace.'
+		'Plan conferences, manage papers, and collaborate with organisers, authors, and reviewers in one workspace.'
 }
 
 export default function RootLayout({

@@ -134,7 +134,7 @@ export default function MyPapersPage() {
 		<div className='space-y-6'>
 			<header className='space-y-1'>
 				<PageTitle>My Papers</PageTitle>
-				<PageDescription>Review your submissions and see who is assigned to review them.</PageDescription>
+				<PageDescription>Review your papers and see who is assigned to review them.</PageDescription>
 			</header>
 			{content}
 		</div>

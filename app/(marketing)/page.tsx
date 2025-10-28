@@ -35,7 +35,7 @@ const featureHighlights: FeatureHighlight[] = [
 		icon: CalendarCheck
 	},
 	{
-		title: 'Submission intake',
+		title: 'Paper intake',
 		description: 'Authors submit papers with guided forms and can revisit their work from the dashboard at any time.',
 		icon: FileText
 	},
@@ -46,7 +46,7 @@ const featureHighlights: FeatureHighlight[] = [
 	},
 	{
 		title: 'Role-based dashboards',
-		description: 'Every role receives tailored stats highlighting pending actions and recent submissions.',
+		description: 'Every role receives tailored stats highlighting pending actions and recent papers.',
 		icon: BarChart3
 	},
 	{
@@ -85,14 +85,13 @@ const workflowStages: WorkflowStage[] = [
 const personaHighlights: PersonaHighlight[] = [
 	{
 		role: 'Organisers',
-		summary:
-			'Launch conferences, monitor submissions, and coordinate reviewer assignments with instant status updates.',
+		summary: 'Launch conferences, monitor papers, and coordinate reviewer assignments with instant status updates.',
 		accent: 'programme chairs stay in control'
 	},
 	{
 		role: 'Authors',
 		summary: 'Submit papers, revisit conference details, and follow reviewer decisions right from your dashboard.',
-		accent: 'clarity on every submission'
+		accent: 'clarity on every paper'
 	},
 	{
 		role: 'Reviewers',
@@ -124,7 +123,7 @@ export default function HomePage() {
 							Bring organisers, authors, and reviewers together
 						</PageTitle>
 						<PageDescription className='text-balance text-base text-muted-foreground md:text-lg'>
-							eConference centralises conference setup, paper submissions, and reviewer feedback so every role sees what
+							eConference centralises conference setup, paper workflows, and reviewer feedback so every role sees what
 							to do next.
 						</PageDescription>
 						<div className='flex flex-col items-center gap-4 sm:flex-row sm:justify-start'>
@@ -162,14 +161,14 @@ export default function HomePage() {
 							<CardHeader className='space-y-2'>
 								<CardTitle className='text-foreground'>Live conference snapshot</CardTitle>
 								<CardDescription className='text-sm text-muted-foreground'>
-									Organisers watch submissions roll in and keep reviewer queues balanced.
+									Organisers watch papers roll in and keep reviewer queues balanced.
 								</CardDescription>
 							</CardHeader>
 							<CardContent className='space-y-4 text-left'>
 								<div className='rounded-lg border border-border/60 bg-muted/50 p-4'>
 									<p className='text-xs font-medium uppercase text-muted-foreground'>Today</p>
 									<div className='mt-2 flex items-center justify-between'>
-										<span className='text-sm text-muted-foreground'>New submissions</span>
+										<span className='text-sm text-muted-foreground'>New papers</span>
 										<span className='text-lg font-semibold'>8</span>
 									</div>
 									<div className='mt-3 h-2 w-full overflow-hidden rounded-full bg-border'>
@@ -212,8 +211,8 @@ export default function HomePage() {
 						The end-to-end toolkit for conference teams
 					</PageTitle>
 					<PageDescription className='text-balance text-base text-muted-foreground md:text-lg'>
-						Stay focused on building a memorable conference while eConference keeps submissions, assignments, and
-						dashboards in sync.
+						Stay focused on building a memorable conference while eConference keeps papers, assignments, and dashboards
+						in sync.
 					</PageDescription>
 				</div>
 				<div className='mx-auto mt-12 grid max-w-6xl gap-6 sm:grid-cols-2 xl:grid-cols-3'>
@@ -296,7 +295,7 @@ export default function HomePage() {
 							Ready to host your most seamless conference yet?
 						</CardTitle>
 						<CardDescription className='text-base text-primary-foreground/80 md:text-lg'>
-							Launch your workspace, invite the rest of your committee, and have submissions live before the week wraps.
+							Launch your workspace, invite the rest of your committee, and have papers live before the week wraps.
 						</CardDescription>
 					</CardHeader>
 					<CardFooter className='relative z-10 flex flex-col items-center justify-center gap-4 pb-10 sm:flex-row'>

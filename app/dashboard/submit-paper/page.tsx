@@ -52,7 +52,7 @@ export default function SubmitPaperPage() {
 					form.setValue('conferenceId', '')
 				}
 			} catch (error) {
-				console.error('Failed to load conferences for paper submission:', error)
+				console.error('Failed to load conferences for paper drafting:', error)
 				toast.error('Unable to load conferences right now. Please try again later.')
 			} finally {
 				if (isMounted) {
@@ -93,7 +93,7 @@ export default function SubmitPaperPage() {
 						message = payload.error
 					}
 				} catch (error) {
-					console.warn('Failed to parse submission error response:', error)
+					console.warn('Failed to parse paper error response:', error)
 				}
 				throw new Error(message)
 			}
@@ -116,7 +116,7 @@ export default function SubmitPaperPage() {
 			<PageDescription>Provide your manuscript title. Two reviewers will be assigned automatically.</PageDescription>
 			<Card>
 				<CardHeader>
-					<CardTitle>Paper submission</CardTitle>
+					<CardTitle>Submit a paper</CardTitle>
 					<CardDescription>
 						Provide your manuscript title. Two reviewers will be assigned automatically.
 					</CardDescription>

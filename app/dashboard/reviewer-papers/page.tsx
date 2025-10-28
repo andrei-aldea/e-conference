@@ -318,7 +318,7 @@ export default function ReviewerPapersPage() {
 		<div className='space-y-6'>
 			<header className='space-y-1'>
 				<PageTitle>Assigned Papers</PageTitle>
-				<PageDescription>Keep track of the submissions you are expected to review.</PageDescription>
+				<PageDescription>Keep track of the papers you are expected to review.</PageDescription>
 			</header>
 			{content}
 		</div>

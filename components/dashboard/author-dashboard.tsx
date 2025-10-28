@@ -27,7 +27,7 @@ export function AuthorDashboard() {
 			<section className='space-y-2'>
 				<h2 className='text-xl font-semibold'>Author overview</h2>
 				<p className='text-sm text-muted-foreground'>
-					You champion new ideas and submit work to conferences. E-Conference helps you track submissions, stay close to
+					You champion new ideas and submit work to conferences. E-Conference helps you track your papers, stay close to
 					reviewer feedback, and discover the reach of your research across events.
 				</p>
 			</section>
@@ -35,12 +35,12 @@ export function AuthorDashboard() {
 			<div className='grid gap-4 lg:grid-cols-2'>
 				<Card>
 					<CardHeader>
-						<CardTitle>Your submissions</CardTitle>
+						<CardTitle>Your papers</CardTitle>
 						<CardDescription>A quick tour of your research footprint.</CardDescription>
 					</CardHeader>
 					<CardContent className='space-y-3 text-sm text-muted-foreground'>
 						<p>
-							You have submitted <strong className='text-foreground'>{roleStats.paperCount}</strong> paper submission
+							You have submitted <strong className='text-foreground'>{roleStats.paperCount}</strong> paper
 							{roleStats.paperCount === 1 ? '' : 's'} spanning{' '}
 							<strong className='text-foreground'>{roleStats.conferenceParticipationCount}</strong> conference
 							{roleStats.conferenceParticipationCount === 1 ? '' : 's'}.
