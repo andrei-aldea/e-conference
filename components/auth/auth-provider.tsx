@@ -1,13 +1,14 @@
 'use client'
 
-import { auth, db } from '@/lib/firebase/client'
-import { type LoginInput, type SignupInput, type User, userSchema, type UserWithId } from '@/lib/validation/schemas'
 import { FirebaseError } from 'firebase/app'
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'firebase/auth'
 import { doc, getDoc, setDoc } from 'firebase/firestore'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { toast } from 'sonner'
+
+import { auth, db } from '@/lib/firebase/client'
+import { type LoginInput, type SignupInput, type User, userSchema, type UserWithId } from '@/lib/validation/schemas'
 
 type AuthContextType = {
 	user: UserWithId | null
@@ -20,11 +21,14 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | null>(null)
 
+const PUBLIC_PATHS: ReadonlyArray<string> = ['/', '/login', '/signup']
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
 	const [user, setUser] = useState<UserWithId | null>(null) // Our custom user object
 	const [isLoading, setIsLoading] = useState(true) // Combined loading state
 	const router = useRouter()
 	const searchParams = useSearchParams()
+	const pathname = usePathname()
 	const redirectParam = searchParams?.get('redirect') ?? null
 
 	const logout = React.useCallback(async () => {
@@ -59,7 +63,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 			} else {
 				setUser(null)
 				// Clear the server-side session cookie
-				router.push('/login')
+				if (!PUBLIC_PATHS.includes(pathname)) {
+					router.push('/login')
+				}
 				// Clear the server-side session cookie. The router push is now primarily
 				// handled in the logout function for explicit logouts.
 				await fetch('/api/auth', { method: 'DELETE' })
@@ -68,7 +74,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		})
 
 		return () => unsubscribe()
-	}, [router, redirectParam])
+	}, [router, redirectParam, pathname])
 
 	const login = async (data: LoginInput) => {
 		try {
