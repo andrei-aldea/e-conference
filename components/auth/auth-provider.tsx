@@ -8,7 +8,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
 import { auth, db } from '@/lib/firebase/client'
-import { PUBLIC_PATHS } from '@/lib/public-paths'
+import { isPathAllowedForRole, isPublicPath, ROLE_HOME_PATH } from '@/lib/paths'
 import { type LoginInput, type SignupInput, type User, userSchema, type UserWithId } from '@/lib/validation/schemas'
 
 type AuthContextType = {
@@ -52,19 +52,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 					const userDocRef = doc(db, 'users', firebaseUser.uid)
 					const userDoc = await getDoc(userDocRef)
 
-					const nextPath = redirectParam || '/dashboard'
-					if ((redirectParam || PUBLIC_PATHS.includes(pathname)) && pathname !== nextPath) {
-						router.replace(nextPath)
-					}
-
 					if (userDoc.exists()) {
-						setUser({ uid: firebaseUser.uid, ...userSchema.parse(userDoc.data()) })
+						const parsedUser = userSchema.parse(userDoc.data())
+						const resolvedRedirect =
+							redirectParam && isPathAllowedForRole(redirectParam, parsedUser.role)
+								? redirectParam
+								: ROLE_HOME_PATH[parsedUser.role]
+
+						setUser({ uid: firebaseUser.uid, ...parsedUser })
+
+						const currentlyPublic = isPublicPath(pathname)
+						const shouldRedirectFromPublic = (redirectParam !== null && redirectParam !== pathname) || currentlyPublic
+
+						if (shouldRedirectFromPublic && pathname !== resolvedRedirect) {
+							router.replace(resolvedRedirect)
+						} else if (!isPathAllowedForRole(pathname, parsedUser.role)) {
+							router.replace(resolvedRedirect)
+						}
 					}
 				}
 			} else {
 				setUser(null)
 				// Clear the server-side session cookie
-				if (!PUBLIC_PATHS.includes(pathname)) {
+				if (!isPublicPath(pathname)) {
 					router.push('/login')
 				}
 				// Clear the server-side session cookie. The router push is now primarily
@@ -76,6 +86,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 		return () => unsubscribe()
 	}, [router, redirectParam, pathname])
+
+	useEffect(() => {
+		if (!user) {
+			return
+		}
+
+		if (isPublicPath(pathname)) {
+			return
+		}
+
+		if (isPathAllowedForRole(pathname, user.role)) {
+			return
+		}
+
+		router.replace(ROLE_HOME_PATH[user.role])
+	}, [user, pathname, router])
 
 	const login = async (data: LoginInput) => {
 		try {
