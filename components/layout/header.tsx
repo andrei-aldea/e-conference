@@ -12,7 +12,7 @@ const navItems = [
 export function SiteHeader() {
 	return (
 		<header className='sticky top-0 z-40 border-b border-border/80 bg-background/80 backdrop-blur supports-backdrop-filter:bg-background/60'>
-			<div className='mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4  py-3 md:flex-nowrap'>
+			<div className='mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-3 md:flex-nowrap'>
 				<Link
 					href='/'
 					className='flex items-center gap-2 text-foreground transition hover:opacity-90'

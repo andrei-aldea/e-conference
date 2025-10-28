@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { deleteDoc, doc } from 'firebase/firestore'
+import Link from 'next/link'
 import { toast } from 'sonner'
 
 import { useAuth } from '@/components/auth/auth-provider'
@@ -283,14 +284,23 @@ export default function MyConferencesPage() {
 										{formatConferenceDates(conference.startDate, conference.endDate)}
 									</CardDescription>
 								</div>
-								<Button
-									variant='destructive'
-									size='sm'
-									onClick={() => handleDeleteConference(conference.id)}
-									disabled={deletingId === conference.id}
-								>
-									{deletingId === conference.id ? 'Deleting...' : 'Delete'}
-								</Button>
+								<div className='flex gap-2'>
+									<Button
+										variant='outline'
+										size='sm'
+										asChild
+									>
+										<Link href={`/dashboard/conferences/${conference.id}?edit=true`}>Edit</Link>
+									</Button>
+									<Button
+										variant='destructive'
+										size='sm'
+										onClick={() => handleDeleteConference(conference.id)}
+										disabled={deletingId === conference.id}
+									>
+										{deletingId === conference.id ? 'Deleting...' : 'Delete'}
+									</Button>
+								</div>
 							</div>
 						</CardHeader>
 						<CardContent className='space-y-4'>
