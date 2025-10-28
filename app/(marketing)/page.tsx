@@ -1,5 +1,5 @@
-import { ArrowRight, BarChart3, CalendarCheck, FileText, ShieldCheck, Users } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { ArrowRight, BarChart3, CalendarCheck, FileText, ShieldCheck, Users } from 'lucide-react'
 import Link from 'next/link'
 
 import { PageDescription, PageTitle } from '@/components/layout/page-header'
@@ -64,7 +64,8 @@ const featureHighlights: FeatureHighlight[] = [
 const workflowStages: WorkflowStage[] = [
 	{
 		title: 'Register and choose your role',
-		description: 'Sign up as an organiser, author, or reviewer to unlock the workspace that matches your responsibilities.'
+		description:
+			'Sign up as an organiser, author, or reviewer to unlock the workspace that matches your responsibilities.'
 	},
 	{
 		title: 'Set up conferences',
@@ -76,14 +77,16 @@ const workflowStages: WorkflowStage[] = [
 	},
 	{
 		title: 'Review and track decisions',
-		description: 'Reviewers log decisions, organisers track responses, and everyone stays prepared for the final programme.'
+		description:
+			'Reviewers log decisions, organisers track responses, and everyone stays prepared for the final programme.'
 	}
 ]
 
 const personaHighlights: PersonaHighlight[] = [
 	{
 		role: 'Organisers',
-		summary: 'Launch conferences, monitor submissions, and coordinate reviewer assignments with instant status updates.',
+		summary:
+			'Launch conferences, monitor submissions, and coordinate reviewer assignments with instant status updates.',
 		accent: 'programme chairs stay in control'
 	},
 	{
@@ -106,7 +109,7 @@ const heroStats: HeroStat[] = [
 
 export default function HomePage() {
 	return (
-		<div className='flex min-h-screen flex-col bg-linear-to-b from-background via-background to-muted/40'>
+		<div className='flex flex-1 flex-col bg-linear-to-b from-background via-background to-muted/40'>
 			<section className='relative overflow-hidden px-4 pb-24 pt-28 sm:pb-32 sm:pt-36'>
 				<div className='absolute inset-x-0 -top-40 -z-10 flex justify-center md:-top-48'>
 					<div className='h-104 w-160 rounded-full bg-primary/15 blur-3xl' />
@@ -121,7 +124,8 @@ export default function HomePage() {
 							Bring organisers, authors, and reviewers together
 						</PageTitle>
 						<PageDescription className='text-balance text-base text-muted-foreground md:text-lg'>
-							eConference centralises conference setup, paper submissions, and reviewer feedback so every role sees what to do next.
+							eConference centralises conference setup, paper submissions, and reviewer feedback so every role sees what
+							to do next.
 						</PageDescription>
 						<div className='flex flex-col items-center gap-4 sm:flex-row sm:justify-start'>
 							<Button
@@ -190,7 +194,9 @@ export default function HomePage() {
 									<li className='flex items-start justify-between rounded-lg border border-border/60 bg-background/70 p-3'>
 										<div>
 											<p className='font-medium text-foreground'>Author updates</p>
-											<p className='text-xs text-muted-foreground'>Notify contributors once reviewer decisions are finalised.</p>
+											<p className='text-xs text-muted-foreground'>
+												Notify contributors once reviewer decisions are finalised.
+											</p>
 										</div>
 										<span className='text-xs font-semibold uppercase text-muted-foreground'>Next</span>
 									</li>
@@ -206,7 +212,8 @@ export default function HomePage() {
 						The end-to-end toolkit for conference teams
 					</PageTitle>
 					<PageDescription className='text-balance text-base text-muted-foreground md:text-lg'>
-						Stay focused on building a memorable conference while eConference keeps submissions, assignments, and dashboards in sync.
+						Stay focused on building a memorable conference while eConference keeps submissions, assignments, and
+						dashboards in sync.
 					</PageDescription>
 				</div>
 				<div className='mx-auto mt-12 grid max-w-6xl gap-6 sm:grid-cols-2 xl:grid-cols-3'>

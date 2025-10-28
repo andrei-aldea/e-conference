@@ -1,7 +1,7 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
-import { doc, updateDoc } from 'firebase/firestore'
+import { doc, writeBatch } from 'firebase/firestore'
 import { Edit } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -44,13 +44,15 @@ export default function AccountPage() {
 
 		try {
 			const userDocRef = doc(db, 'users', user.uid)
+			const batch = writeBatch(db)
 			const updatedData = {
 				name: data.name,
 				role: data.role
 			}
-			await updateDoc(userDocRef, updatedData)
+			batch.set(userDocRef, { ...user, ...updatedData })
+			await batch.commit()
 
-			updateUser(updatedData) // Update the user in the auth context
+			updateUser(updatedData)
 			toast.success('Profile updated successfully!')
 			setIsEditing(false)
 		} catch (error) {

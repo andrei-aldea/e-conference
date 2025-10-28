@@ -50,9 +50,10 @@ service cloud.firestore {
                     && request.resource.data.name is string
                     && request.resource.data.email is string
                     && request.resource.data.role in ['organizer', 'author', 'reviewer'];
-      allow update: if isUser(userId)
-                    && request.resource.data.name != resource.data.name
-                    && request.resource.data.keys().hasOnly(['name']);
+  allow update: if isUser(userId)
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly(['name', 'role'])
+        && (!request.resource.data.diff(resource.data).changedKeys().hasAny(['name']) || request.resource.data.name is string)
+        && (!request.resource.data.diff(resource.data).changedKeys().hasAny(['role']) || request.resource.data.role in ['organizer', 'author', 'reviewer']);
 
       // Deleting users should be handled by a backend process, not the client.
       allow delete: if false;

@@ -70,7 +70,7 @@ export function SignupForm({ className, ...props }: ComponentProps<'div'>) {
 												<FormControl>
 													<Input
 														type='text'
-														placeholder='John Doe'
+														placeholder='John'
 														{...field}
 													/>
 												</FormControl>
@@ -194,8 +194,16 @@ export function SignupForm({ className, ...props }: ComponentProps<'div'>) {
 									{isSubmitting && <Loader className='mr-2 size-4 animate-spin' />}
 									Create Account
 								</Button>
-								<FieldDescription className='text-center'>
-									Already have an account? <Link href='login'>Sign in</Link>
+								<FieldDescription className='flex flex-col items-center gap-1 text-center text-sm text-muted-foreground'>
+									<span>
+										Already have an account? <Link href='login'>Sign in</Link>
+									</span>
+									<Link
+										href='/'
+										className='text-foreground underline-offset-4 hover:underline'
+									>
+										Back to landing page
+									</Link>
 								</FieldDescription>
 							</FieldGroup>
 						</form>

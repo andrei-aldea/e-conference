@@ -112,8 +112,16 @@ export function LoginForm({ className, ...props }: ComponentProps<'div'>) {
 										{isSubmitting && <Loader className='mr-2 size-4 animate-spin' />}
 										Sign In
 									</Button>
-									<FieldDescription className='text-center'>
-										Don&apos;t have an account? <Link href='signup'>Sign up</Link>
+									<FieldDescription className='flex flex-col items-center gap-1 text-center text-sm text-muted-foreground'>
+										<span>
+											Don&apos;t have an account? <Link href='signup'>Sign up</Link>
+										</span>
+										<Link
+											href='/'
+											className='text-foreground underline-offset-4 hover:underline'
+										>
+											Back to landing page
+										</Link>
 									</FieldDescription>
 								</Field>
 							</FieldGroup>

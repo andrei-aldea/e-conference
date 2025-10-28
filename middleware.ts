@@ -1,13 +1,13 @@
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 
-const publicPaths = ['/', '/login', '/signup']
+import { PUBLIC_PATHS } from '@/lib/public-paths'
 
 export function middleware(request: NextRequest) {
 	const session = request.cookies.get('session')?.value
 	const { pathname } = request.nextUrl
 
-	const isPublicPath = publicPaths.includes(pathname)
+	const isPublicPath = PUBLIC_PATHS.includes(pathname)
 
 	if (session && isPublicPath) {
 		return NextResponse.redirect(new URL('/dashboard', request.url))

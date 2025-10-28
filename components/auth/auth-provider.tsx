@@ -8,6 +8,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
 import { auth, db } from '@/lib/firebase/client'
+import { PUBLIC_PATHS } from '@/lib/public-paths'
 import { type LoginInput, type SignupInput, type User, userSchema, type UserWithId } from '@/lib/validation/schemas'
 
 type AuthContextType = {
@@ -20,8 +21,6 @@ type AuthContextType = {
 }
 
 const AuthContext = createContext<AuthContextType | null>(null)
-
-const PUBLIC_PATHS: ReadonlyArray<string> = ['/', '/login', '/signup']
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
 	const [user, setUser] = useState<UserWithId | null>(null) // Our custom user object
@@ -53,8 +52,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 					const userDocRef = doc(db, 'users', firebaseUser.uid)
 					const userDoc = await getDoc(userDocRef)
 
-					// Redirect only after the session cookie is set and user data is fetched
-					router.push(redirectParam || '/dashboard')
+					const nextPath = redirectParam || '/dashboard'
+					if ((redirectParam || PUBLIC_PATHS.includes(pathname)) && pathname !== nextPath) {
+						router.replace(nextPath)
+					}
 
 					if (userDoc.exists()) {
 						setUser({ uid: firebaseUser.uid, ...userSchema.parse(userDoc.data()) })
