@@ -1,3 +1,5 @@
+import { Suspense } from 'react'
+
 import { AuthProvider } from '@/components/auth/auth-provider'
 import { ThemeProvider } from '@/components/theme/theme-provider'
 import { ModeToggle } from '@/components/theme/theme-toggle'
@@ -34,22 +36,24 @@ export default function RootLayout({
 		>
 			<head></head>
 			<body className={`${geistSans.variable} ${geistMono.variable}`}>
-				<AuthProvider>
-					<main>
-						<ThemeProvider
-							attribute='class'
-							defaultTheme='system'
-							enableSystem
-							disableTransitionOnChange
-						>
-							<div className='fixed right-5 top-5 z-50'>
-								<ModeToggle />
-							</div>
-							{children}
-							<Toaster />
-						</ThemeProvider>
-					</main>
-				</AuthProvider>
+				<Suspense fallback={null}>
+					<AuthProvider>
+						<main>
+							<ThemeProvider
+								attribute='class'
+								defaultTheme='system'
+								enableSystem
+								disableTransitionOnChange
+							>
+								<div className='fixed right-5 top-5 z-50'>
+									<ModeToggle />
+								</div>
+								{children}
+								<Toaster />
+							</ThemeProvider>
+						</main>
+					</AuthProvider>
+				</Suspense>
 			</body>
 		</html>
 	)
