@@ -18,7 +18,7 @@ export function SiteHeader() {
 				>
 					<Logo />
 				</Link>
-				<nav className='flex w-full flex-wrap text-lg px-2 items-center justify-start gap-4 font-medium text-muted-foreground md:w-auto md:flex-1 md:justify-center'>
+				<nav className='flex w-full flex-wrap text-lg px-2 items-center justify-start gap-4 font-medium text-muted-foreground md:w-auto md:flex-1 md:justify-end'>
 					{navItems.map((item) => (
 						<Link
 							key={item.href}
