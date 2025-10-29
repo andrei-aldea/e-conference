@@ -99,6 +99,10 @@
 				"raluca.georgescu@exemplu.ro": "accepted",
 				"radu.stoica@exemplu.ro": "pending"
 			},
+			"reviewerFeedback": {
+				"raluca.georgescu@exemplu.ro": "Well-structured study with clear evaluation methodology. Consider expanding the ablation details for clarity.",
+				"radu.stoica@exemplu.ro": "Review in progress; focusing next on the user study section."
+			},
 			"createdAt": "2025-01-12T10:00:00.000Z"
 		},
 		{
@@ -110,6 +114,10 @@
 			"reviewerStatuses": {
 				"radu.stoica@exemplu.ro": "pending",
 				"roxana.vasiliu@exemplu.ro": "declined"
+			},
+			"reviewerFeedback": {
+				"radu.stoica@exemplu.ro": "Gathering additional references on quantum entanglement routing before final remarks.",
+				"roxana.vasiliu@exemplu.ro": "Unfortunately unable to continue the review due to a conflict of interest."
 			},
 			"createdAt": "2025-01-18T14:30:00.000Z"
 		},
@@ -123,6 +131,10 @@
 				"raluca.georgescu@exemplu.ro": "pending",
 				"roxana.vasiliu@exemplu.ro": "pending"
 			},
+			"reviewerFeedback": {
+				"raluca.georgescu@exemplu.ro": "Appreciate the policy implications section; will suggest adding concrete case studies.",
+				"roxana.vasiliu@exemplu.ro": "Drafted notes on transparency guidelines; final feedback coming after Thursday's review session."
+			},
 			"createdAt": "2025-01-25T09:15:00.000Z"
 		},
 		{
@@ -135,6 +147,10 @@
 				"radu.stoica@exemplu.ro": "pending",
 				"raluca.georgescu@exemplu.ro": "pending"
 			},
+			"reviewerFeedback": {
+				"radu.stoica@exemplu.ro": "Need clarification on real-world deployment constraints for rural regions.",
+				"raluca.georgescu@exemplu.ro": "Planning to verify the identity management assumptions with the cited standards."
+			},
 			"createdAt": "2025-02-15T11:00:00.000Z"
 		},
 		{
@@ -146,6 +162,10 @@
 			"reviewerStatuses": {
 				"radu.stoica@exemplu.ro": "accepted",
 				"roxana.vasiliu@exemplu.ro": "pending"
+			},
+			"reviewerFeedback": {
+				"radu.stoica@exemplu.ro": "Solid security analysis with actionable mitigation strategies. Maybe emphasize gas cost trade-offs.",
+				"roxana.vasiliu@exemplu.ro": "Will focus on verifying the formal proofs this weekend."
 			},
 			"createdAt": "2025-02-20T16:45:00.000Z"
 		}
