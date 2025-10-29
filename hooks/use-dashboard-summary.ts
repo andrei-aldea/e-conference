@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import type {
 	DashboardGeneralStats,
@@ -18,6 +18,7 @@ interface DashboardSummaryResult<R extends DashboardRole> {
 	roleStats: DashboardRoleMap[R] | null
 	isLoading: boolean
 	error: string | null
+	reload: () => Promise<void>
 }
 
 export function useDashboardSummary<R extends DashboardRole>(
@@ -28,61 +29,68 @@ export function useDashboardSummary<R extends DashboardRole>(
 	const [roleStats, setRoleStats] = useState<DashboardRoleMap[R] | null>(null)
 	const [isLoading, setIsLoading] = useState(true)
 	const [error, setError] = useState<string | null>(null)
+	const isMountedRef = useRef(true)
 
 	const fallbackMessage = options?.fallbackErrorMessage ?? 'Unable to load dashboard data. Please try again later.'
 
 	useEffect(() => {
-		let isMounted = true
+		isMountedRef.current = true
+		return () => {
+			isMountedRef.current = false
+		}
+	}, [])
 
-		async function load() {
-			setIsLoading(true)
-			setError(null)
+	const load = useCallback(async () => {
+		if (!isMountedRef.current) {
+			return
+		}
 
-			try {
-				const response = await fetch('/api/dashboard')
-				if (!response.ok) {
-					throw new Error('Failed to fetch dashboard summary')
-				}
+		setIsLoading(true)
+		setError(null)
 
-				const payload = (await response.json()) as DashboardSummaryResponse
+		try {
+			const response = await fetch('/api/dashboard')
+			if (!response.ok) {
+				throw new Error('Failed to fetch dashboard summary')
+			}
 
-				if (!isMounted) {
-					return
-				}
+			const payload = (await response.json()) as DashboardSummaryResponse
 
-				setGeneral(payload.general ?? null)
+			if (!isMountedRef.current) {
+				return
+			}
 
-				if (payload.role && payload.role.role === expectedRole) {
-					setRoleStats(payload.role as DashboardRoleMap[R])
-				} else {
-					setRoleStats(null)
-					setError(fallbackMessage)
-				}
-			} catch (loadError) {
-				console.error('Failed to load dashboard summary:', loadError)
-				if (isMounted) {
-					setGeneral(null)
-					setRoleStats(null)
-					setError(fallbackMessage)
-				}
-			} finally {
-				if (isMounted) {
-					setIsLoading(false)
-				}
+			setGeneral(payload.general ?? null)
+
+			if (payload.role && payload.role.role === expectedRole) {
+				setRoleStats(payload.role as DashboardRoleMap[R])
+			} else {
+				setRoleStats(null)
+				setError(fallbackMessage)
+			}
+		} catch (loadError) {
+			console.error('Failed to load dashboard summary:', loadError)
+			if (isMountedRef.current) {
+				setGeneral(null)
+				setRoleStats(null)
+				setError(fallbackMessage)
+			}
+		} finally {
+			if (isMountedRef.current) {
+				setIsLoading(false)
 			}
 		}
-
-		void load()
-
-		return () => {
-			isMounted = false
-		}
 	}, [expectedRole, fallbackMessage])
+
+	useEffect(() => {
+		void load()
+	}, [load])
 
 	return {
 		general,
 		roleStats,
 		isLoading,
-		error
+		error,
+		reload: load
 	}
 }

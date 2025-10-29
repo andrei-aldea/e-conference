@@ -1,12 +1,13 @@
 'use client'
 
 import { DashboardCommunitySnapshotCard } from '@/components/dashboard/dashboard-community-snapshot-card'
+import { DashboardErrorState } from '@/components/dashboard/dashboard-error-state'
 import { DashboardLoadingPlaceholder } from '@/components/dashboard/dashboard-loading-placeholder'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useDashboardSummary } from '@/hooks/use-dashboard-summary'
 
 export function OrganizerDashboard() {
-	const { general, roleStats, isLoading, error } = useDashboardSummary('organizer', {
+	const { general, roleStats, isLoading, error, reload } = useDashboardSummary('organizer', {
 		fallbackErrorMessage: 'Unable to load organizer dashboard. Please try again later.'
 	})
 
@@ -15,11 +16,21 @@ export function OrganizerDashboard() {
 	}
 
 	if (error) {
-		return <p className='text-sm text-destructive'>{error}</p>
+		return (
+			<DashboardErrorState
+				message={error}
+				onRetry={() => void reload()}
+			/>
+		)
 	}
 
 	if (!general || !roleStats || roleStats.role !== 'organizer') {
-		return null
+		return (
+			<DashboardErrorState
+				message='Organizer insights are currently unavailable. Please try again.'
+				onRetry={() => void reload()}
+			/>
+		)
 	}
 
 	return (
@@ -27,8 +38,8 @@ export function OrganizerDashboard() {
 			<section className='space-y-2'>
 				<h2 className='text-xl font-semibold'>Organizer overview</h2>
 				<p className='text-sm text-muted-foreground'>
-					You orchestrate the full submission pipeline—from creating conferences to assigning reviewers. E-Conference keeps your
-					events organised so you can focus on curating memorable programs and supporting your community.
+					You orchestrate the full submission pipeline—from creating conferences to assigning reviewers. E-Conference
+					keeps your events organised so you can focus on curating memorable programs and supporting your community.
 				</p>
 			</section>
 

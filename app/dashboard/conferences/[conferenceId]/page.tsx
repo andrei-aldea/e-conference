@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { format } from 'date-fns'
 import { doc, Timestamp, updateDoc } from 'firebase/firestore'
-import { CalendarIcon } from 'lucide-react'
+import { CalendarIcon, Loader } from 'lucide-react'
 import Link from 'next/link'
 import { useParams, useSearchParams } from 'next/navigation'
 import { useDocument } from 'react-firebase-hooks/firestore'
@@ -320,7 +320,8 @@ export default function ConferenceDetailsPage() {
 										type='submit'
 										disabled={isSubmitting}
 									>
-										{isSubmitting ? 'Saving…' : 'Save changes'}
+										{isSubmitting && <Loader className='mr-2 size-4 animate-spin' />}
+										Save changes
 									</Button>
 								</div>
 							</form>

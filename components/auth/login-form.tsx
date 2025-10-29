@@ -86,6 +86,7 @@ export function LoginForm({ className, ...props }: ComponentProps<'div'>) {
 													<FormControl>
 														<Input
 															type={showPassword ? 'text' : 'password'}
+															placeholder='*******'
 															{...field}
 														/>
 													</FormControl>
@@ -112,16 +113,16 @@ export function LoginForm({ className, ...props }: ComponentProps<'div'>) {
 										{isSubmitting && <Loader className='mr-2 size-4 animate-spin' />}
 										Log in
 									</Button>
-									<FieldDescription className='flex flex-col items-center gap-1 text-center text-sm text-muted-foreground'>
+									<FieldDescription className='text-center text-sm text-muted-foreground'>
 										<span>
-											Don&apos;t have an account? <Link href='/signup'>Sign up</Link>
+											Don&apos;t have an account?{' '}
+											<Link
+												href='/signup'
+												className='underline'
+											>
+												Sign up
+											</Link>
 										</span>
-										<Link
-											href='/'
-											className='text-foreground underline-offset-4 hover:underline'
-										>
-											Back to landing page
-										</Link>
 									</FieldDescription>
 								</Field>
 							</FieldGroup>

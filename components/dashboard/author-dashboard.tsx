@@ -1,12 +1,13 @@
 'use client'
 
 import { DashboardCommunitySnapshotCard } from '@/components/dashboard/dashboard-community-snapshot-card'
+import { DashboardErrorState } from '@/components/dashboard/dashboard-error-state'
 import { DashboardLoadingPlaceholder } from '@/components/dashboard/dashboard-loading-placeholder'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useDashboardSummary } from '@/hooks/use-dashboard-summary'
 
 export function AuthorDashboard() {
-	const { general, roleStats, isLoading, error } = useDashboardSummary('author', {
+	const { general, roleStats, isLoading, error, reload } = useDashboardSummary('author', {
 		fallbackErrorMessage: 'Unable to load author dashboard. Please try again later.'
 	})
 
@@ -15,11 +16,21 @@ export function AuthorDashboard() {
 	}
 
 	if (error) {
-		return <p className='text-sm text-destructive'>{error}</p>
+		return (
+			<DashboardErrorState
+				message={error}
+				onRetry={() => void reload()}
+			/>
+		)
 	}
 
 	if (!general || !roleStats || roleStats.role !== 'author') {
-		return null
+		return (
+			<DashboardErrorState
+				message='Author insights are currently unavailable. Please try again.'
+				onRetry={() => void reload()}
+			/>
+		)
 	}
 
 	return (

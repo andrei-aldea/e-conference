@@ -2,7 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod'
 import { doc, writeBatch } from 'firebase/firestore'
-import { Edit } from 'lucide-react'
+import { Edit, Loader } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
@@ -20,6 +20,7 @@ import { type User, userSchema } from '@/lib/validation/schemas'
 export default function AccountPage() {
 	const { user, updateUser } = useAuth()
 	const [isEditing, setIsEditing] = useState(false)
+	const [isSubmitting, setIsSubmitting] = useState(false)
 
 	const form = useForm<User>({
 		resolver: zodResolver(userSchema),
@@ -42,6 +43,7 @@ export default function AccountPage() {
 			return
 		}
 
+		setIsSubmitting(true)
 		try {
 			const userDocRef = doc(db, 'users', user.uid)
 			const batch = writeBatch(db)
@@ -58,6 +60,8 @@ export default function AccountPage() {
 		} catch (error) {
 			console.error('Error updating profile: ', error)
 			toast.error('Failed to update profile. Please try again.')
+		} finally {
+			setIsSubmitting(false)
 		}
 	}
 
@@ -136,7 +140,13 @@ export default function AccountPage() {
 							/>
 							{isEditing ? (
 								<div className='flex gap-2'>
-									<Button type='submit'>Save Changes</Button>
+									<Button
+										type='submit'
+										disabled={isSubmitting}
+									>
+										{isSubmitting && <Loader className='mr-2 size-4 animate-spin' />}
+										Save Changes
+									</Button>
 									<Button
 										type='button'
 										variant='outline'
@@ -144,6 +154,7 @@ export default function AccountPage() {
 											setIsEditing(false)
 											form.reset(user)
 										}}
+										disabled={isSubmitting}
 									>
 										Cancel
 									</Button>

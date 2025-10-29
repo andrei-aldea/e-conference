@@ -2,6 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod'
 import { collection, getDocs, orderBy, query } from 'firebase/firestore'
+import { Loader } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
@@ -243,7 +244,8 @@ export default function SubmitPaperPage() {
 								type='submit'
 								disabled={isSubmitting || isLoadingConferences || conferences.length === 0 || !selectedFile}
 							>
-								{isSubmitting ? 'Submitting...' : 'Submit paper'}
+								{isSubmitting && <Loader className='mr-2 size-4 animate-spin' />}
+								Submit paper
 							</Button>
 						</form>
 					</Form>

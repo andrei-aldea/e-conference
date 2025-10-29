@@ -2,6 +2,8 @@
 
 import { useAuth } from '@/components/auth/auth-provider'
 import { AuthorDashboard } from '@/components/dashboard/author-dashboard'
+import { DashboardErrorState } from '@/components/dashboard/dashboard-error-state'
+import { DashboardLoadingPlaceholder } from '@/components/dashboard/dashboard-loading-placeholder'
 import { OrganizerDashboard } from '@/components/dashboard/organizer-dashboard'
 import { ReviewerDashboard } from '@/components/dashboard/reviewer-dashboard'
 import { PageDescription, PageTitle } from '@/components/layout/page-header'
@@ -15,10 +17,23 @@ const roleDisplayNames: Record<User['role'], string> = {
 }
 
 export default function DashboardPage() {
-	const { user } = useAuth()
+	const { user, isLoading: isAuthLoading } = useAuth()
 	const roleName = user ? roleDisplayNames[user.role] : ''
 
 	const renderRoleSpecificContent = () => {
+		if (isAuthLoading) {
+			return <DashboardLoadingPlaceholder />
+		}
+
+		if (!user) {
+			return (
+				<DashboardErrorState
+					message='We could not load your dashboard. Please log in again.'
+					onRetry={() => window.location.reload()}
+				/>
+			)
+		}
+
 		switch (user?.role) {
 			case 'organizer':
 				return <OrganizerDashboard />
@@ -27,9 +42,20 @@ export default function DashboardPage() {
 			case 'reviewer':
 				return <ReviewerDashboard />
 			default:
-				return <p>Loading your dashboard...</p>
+				return (
+					<DashboardErrorState
+						message='Your role could not be determined. Please refresh the page.'
+						onRetry={() => window.location.reload()}
+					/>
+				)
 		}
 	}
+
+	const cardDescription = isAuthLoading
+		? 'Loading your access...'
+		: user
+		? `Signed in role: ${roleName || 'Unknown'}.`
+		: 'Signed in role: unavailable.'
 
 	return (
 		<div>
@@ -38,8 +64,8 @@ export default function DashboardPage() {
 			<br />
 			<Card>
 				<CardHeader>
-					<CardTitle>Welcome, {user?.name ?? 'User'}!</CardTitle>
-					<CardDescription>You are logged in as an {roleName}.</CardDescription>
+					<CardTitle>Welcome, {user?.name ?? 'there'}!</CardTitle>
+					<CardDescription>{cardDescription}</CardDescription>
 				</CardHeader>
 				<CardContent>{renderRoleSpecificContent()}</CardContent>
 			</Card>

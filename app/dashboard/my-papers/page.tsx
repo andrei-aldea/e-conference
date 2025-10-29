@@ -1,5 +1,6 @@
 'use client'
 
+import { Loader } from 'lucide-react'
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { toast } from 'sonner'
 
@@ -298,7 +299,8 @@ export default function MyPapersPage() {
 												size='sm'
 												disabled={isSubmittingUpdate}
 											>
-												{isSubmittingUpdate ? 'Saving…' : 'Save changes'}
+												{isSubmittingUpdate && <Loader className='mr-2 size-4 animate-spin' />}
+												Save changes
 											</Button>
 											<Button
 												type='button'

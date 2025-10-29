@@ -4,7 +4,7 @@ import { useAuth } from '@/components/auth/auth-provider'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { format } from 'date-fns'
 import { addDoc, collection, Timestamp } from 'firebase/firestore'
-import { CalendarIcon } from 'lucide-react'
+import { CalendarIcon, Loader } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -199,6 +199,7 @@ export default function CreateConferencePage() {
 								type='submit'
 								disabled={isSubmitting}
 							>
+								{isSubmitting && <Loader className='mr-2 size-4 animate-spin' />}
 								Create Conference
 							</Button>
 						</form>

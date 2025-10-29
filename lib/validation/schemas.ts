@@ -1,12 +1,20 @@
 import { z } from 'zod'
 
+export const strongPasswordSchema = z
+	.string()
+	.min(8, { message: 'Password must be at least 8 characters long' })
+	.regex(/[a-z]/, { message: 'Password must include a lowercase letter' })
+	.regex(/[A-Z]/, { message: 'Password must include an uppercase letter' })
+	.regex(/\d/, { message: 'Password must include a number' })
+	.regex(/[^A-Za-z0-9]/, { message: 'Password must include a symbol' })
+
 export const signupSchema = z
 	.object({
 		name: z.string().min(1, { message: 'Full name is required' }),
 		email: z.string().email({ message: 'Please enter a valid email' }),
 		role: z.enum(['organizer', 'author', 'reviewer'], { message: 'Please select a role' }),
-		password: z.string().min(8, { message: 'Password must be at least 8 characters long' }),
-		confirmPassword: z.string()
+		password: strongPasswordSchema,
+		confirmPassword: z.string().min(1, { message: 'Please confirm your password' })
 	})
 	.refine((data) => data.password === data.confirmPassword, {
 		message: "Passwords don't match",

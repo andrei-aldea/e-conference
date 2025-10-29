@@ -1,6 +1,6 @@
 'use client'
 
-import { Mail, Phone } from 'lucide-react'
+import { Loader, Mail, Phone } from 'lucide-react'
 import Link from 'next/link'
 import { FormEvent, useState } from 'react'
 import { toast } from 'sonner'
@@ -50,37 +50,43 @@ const contactChannels = [
 
 export default function ContactPage() {
 	const [errors, setErrors] = useState<ContactFormErrors>({ ...EMPTY_ERRORS })
+	const [isSubmitting, setIsSubmitting] = useState(false)
 
 	const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
 		event.preventDefault()
 		const form = event.currentTarget
+		setIsSubmitting(true)
 
-		const formData = new FormData(form)
-		const payload: ContactFormValues = {
-			name: (formData.get('name') as string | null) ?? '',
-			email: (formData.get('email') as string | null) ?? '',
-			role: (formData.get('role') as string | null) ?? '',
-			message: (formData.get('message') as string | null) ?? ''
+		try {
+			const formData = new FormData(form)
+			const payload: ContactFormValues = {
+				name: (formData.get('name') as string | null) ?? '',
+				email: (formData.get('email') as string | null) ?? '',
+				role: (formData.get('role') as string | null) ?? '',
+				message: (formData.get('message') as string | null) ?? ''
+			}
+
+			const result = contactFormSchema.safeParse(payload)
+
+			if (!result.success) {
+				const nextErrors: ContactFormErrors = { ...EMPTY_ERRORS }
+				result.error.issues.forEach((issue) => {
+					const field = issue.path[0]
+					if (typeof field === 'string' && field in nextErrors) {
+						nextErrors[field as keyof typeof nextErrors] = issue.message
+					}
+				})
+				setErrors(nextErrors)
+				toast.error('Please review the highlighted fields and try again.')
+				return
+			}
+
+			setErrors({ ...EMPTY_ERRORS })
+			form.reset()
+			toast.success("Thanks for reaching out! We'll get back to you shortly.")
+		} finally {
+			setIsSubmitting(false)
 		}
-
-		const result = contactFormSchema.safeParse(payload)
-
-		if (!result.success) {
-			const nextErrors: ContactFormErrors = { ...EMPTY_ERRORS }
-			result.error.issues.forEach((issue) => {
-				const field = issue.path[0]
-				if (typeof field === 'string' && field in nextErrors) {
-					nextErrors[field as keyof typeof nextErrors] = issue.message
-				}
-			})
-			setErrors(nextErrors)
-			toast.error('Please review the highlighted fields and try again.')
-			return
-		}
-
-		setErrors({ ...EMPTY_ERRORS })
-		form.reset()
-		toast.success("Thanks for reaching out! We'll get back to you shortly.")
 	}
 
 	return (
@@ -156,7 +162,13 @@ export default function ContactPage() {
 								/>
 								{errors.message && <p className='text-xs text-destructive'>{errors.message}</p>}
 							</div>
-							<Button type='submit'>Send message</Button>
+							<Button
+								type='submit'
+								disabled={isSubmitting}
+							>
+								{isSubmitting && <Loader className='mr-2 size-4 animate-spin' />}
+								Send message
+							</Button>
 						</form>
 					</CardContent>
 				</Card>
