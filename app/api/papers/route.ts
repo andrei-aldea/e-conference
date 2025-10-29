@@ -438,7 +438,7 @@ export async function PATCH(request: NextRequest) {
 
 		if (statusPayload.success) {
 			if (role !== 'reviewer') {
-				throw new ApiError(403, 'Only reviewers can update paper statuses.')
+				throw new ApiError(403, 'Only reviewers can edit paper statuses.')
 			}
 
 			const { paperId, status } = statusPayload.data
@@ -545,7 +545,7 @@ export async function PATCH(request: NextRequest) {
 			return NextResponse.json({ error: 'Invalid update payload.' }, { status: 400 })
 		}
 
-		return handleApiRouteError(error, 'Failed to update paper:')
+		return handleApiRouteError(error, 'Failed to edit paper:')
 	}
 }
 
@@ -579,7 +579,7 @@ export async function PUT(request: NextRequest) {
 		const { firestore, uid, role } = await authenticateRequest()
 
 		if (role !== 'author') {
-			throw new ApiError(403, 'Only authors can update papers.')
+			throw new ApiError(403, 'Only authors can edit papers.')
 		}
 
 		const paperRef = firestore.collection(COLLECTIONS.PAPERS).doc(paperId)
@@ -710,7 +710,7 @@ export async function PUT(request: NextRequest) {
 			return NextResponse.json({ error: 'Invalid paper update payload.' }, { status: 400 })
 		}
 
-		return handleApiRouteError(error, 'Failed to update paper:')
+		return handleApiRouteError(error, 'Failed to edit paper:')
 	}
 }
 

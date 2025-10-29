@@ -108,7 +108,7 @@ export default function MyPapersPage() {
 		const hasNewFile = Boolean(editState.file)
 
 		if (!titleChanged && !hasNewFile) {
-			setUpdateError('Update the title or upload a new manuscript before saving.')
+			setUpdateError('Edit the title or upload a new manuscript before saving.')
 			return
 		}
 
@@ -130,24 +130,24 @@ export default function MyPapersPage() {
 				body: formData
 			})
 			if (!response.ok) {
-				let message = 'Failed to update paper.'
+				let message = 'Failed to edit paper.'
 				try {
 					const payload = (await response.json()) as { error?: string }
 					if (payload?.error) {
 						message = payload.error
 					}
 				} catch (parseError) {
-					console.error('Failed to parse paper update error response:', parseError)
+					console.error('Failed to parse paper edit error response:', parseError)
 				}
 				throw new Error(message)
 			}
 
-			toast.success('Paper updated successfully.')
+			toast.success('Paper edited successfully.')
 			setEditState(null)
 			await loadPapers({ silent: true })
 		} catch (submitError) {
-			console.error('Failed to update paper:', submitError)
-			const message = submitError instanceof Error ? submitError.message : 'Failed to update paper.'
+			console.error('Failed to edit paper:', submitError)
+			const message = submitError instanceof Error ? submitError.message : 'Failed to edit paper.'
 			setUpdateError(message)
 			toast.error(message)
 		} finally {
@@ -207,7 +207,7 @@ export default function MyPapersPage() {
 									onClick={() => (isEditing ? cancelEditing() : startEditingPaper(paper))}
 									disabled={isEditing && isSubmittingUpdate}
 								>
-									{isEditing ? 'Close editor' : 'Update Paper'}
+									{isEditing ? 'Close editor' : 'Edit Paper'}
 								</Button>
 							</CardHeader>
 							<CardContent className='space-y-4'>
