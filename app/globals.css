@@ -121,6 +121,139 @@
 	}
 }
 
+@layer utilities {
+	@keyframes float-soft {
+		0% {
+			opacity: 1;
+			transform: translate3d(0, 0, 0) scale(1);
+		}
+		50% {
+			opacity: 0.92;
+			transform: translate3d(0, -12px, 0) scale(1.015);
+		}
+		100% {
+			opacity: 1;
+			transform: translate3d(0, 0, 0) scale(1);
+		}
+	}
+
+	@keyframes blob-shift {
+		0% {
+			opacity: 0.35;
+			transform: translate3d(0, 0, 0) scale(1) rotate(0deg);
+			border-radius: 38% 62% 55% 45% / 50% 45% 55% 50%;
+		}
+		33% {
+			opacity: 0.42;
+			transform: translate3d(16px, -24px, 0) scale(1.08) rotate(6deg);
+			border-radius: 46% 54% 60% 40% / 42% 58% 42% 58%;
+		}
+		66% {
+			opacity: 0.4;
+			transform: translate3d(-18px, 18px, 0) scale(0.95) rotate(-4deg);
+			border-radius: 52% 48% 43% 57% / 58% 46% 54% 42%;
+		}
+		100% {
+			opacity: 0.35;
+			transform: translate3d(0, 0, 0) scale(1) rotate(0deg);
+			border-radius: 38% 62% 55% 45% / 50% 45% 55% 50%;
+		}
+	}
+
+	@keyframes aurora-glide {
+		0% {
+			opacity: 0.35;
+			background-position: 0% 50%;
+		}
+		50% {
+			opacity: 0.55;
+			background-position: 100% 50%;
+		}
+		100% {
+			opacity: 0.35;
+			background-position: 0% 50%;
+		}
+	}
+
+	@keyframes fade-up {
+		0% {
+			opacity: 0;
+			transform: translate3d(0, 24px, 0) scale(0.98);
+		}
+		60% {
+			opacity: 1;
+			transform: translate3d(0, -2px, 0) scale(1.01);
+		}
+		100% {
+			opacity: 1;
+			transform: translate3d(0, 0, 0) scale(1);
+		}
+	}
+
+	@keyframes pulse-border {
+		0%,
+		100% {
+			box-shadow: 0 0 0 0 oklch(0.704 0.04 256.788 / 0.05);
+		}
+		50% {
+			box-shadow: 0 20px 60px -25px oklch(0.704 0.04 256.788 / 0.25);
+		}
+	}
+
+	.animate-float-soft {
+		animation: float-soft 14s ease-in-out infinite;
+		will-change: transform;
+	}
+
+	.animate-blob-slow {
+		animation: blob-shift 24s ease-in-out infinite;
+		will-change: transform, border-radius;
+	}
+
+	.animate-blob-delay {
+		animation: blob-shift 28s ease-in-out infinite;
+		animation-delay: 3s;
+		will-change: transform, border-radius;
+	}
+
+	.animate-aurora {
+		animation: aurora-glide 18s ease-in-out infinite;
+		background-size: 200% 200%;
+	}
+
+	.animate-fade-up {
+		opacity: 1;
+		transform: none;
+		will-change: opacity, transform;
+	}
+
+	@media (prefers-reduced-motion: no-preference) {
+		.animate-fade-up {
+			animation: fade-up 0.8s cubic-bezier(0.215, 0.61, 0.355, 1) both;
+		}
+	}
+
+	.animate-pulse-border {
+		animation: pulse-border 6s ease-in-out infinite;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.animate-float-soft,
+	.animate-blob-slow,
+	.animate-blob-delay,
+	.animate-aurora,
+	.animate-fade-up,
+	.animate-pulse-border {
+		animation: none !important;
+	}
+
+	.animate-fade-up {
+		opacity: 1 !important;
+		transform: none !important;
+	}
+}
+
 h1 {
 	@apply text-4xl lg:text-5xl font-bold mb-6;
 }

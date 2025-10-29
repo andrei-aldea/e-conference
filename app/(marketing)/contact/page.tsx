@@ -90,17 +90,31 @@ export default function ContactPage() {
 	}
 
 	return (
-		<div className='bg-linear-to-b from-background via-background to-muted/40 py-20'>
+		<div className='relative overflow-hidden bg-linear-to-b from-background via-background to-muted/40 py-20'>
+			<div className='pointer-events-none absolute inset-0 -z-10 overflow-hidden'>
+				<div className='absolute inset-x-0 top-0 h-72 bg-[radial-gradient(circle_at_top,oklch(0.929_0.013_255.508/_0.32),transparent_65%)]' />
+				<div className='absolute -left-24 top-20 h-96 w-96 bg-[radial-gradient(circle,oklch(0.704_0.04_256.788/_0.22),transparent_60%)] blur-[140px] animate-blob-slow' />
+				<div className='absolute -bottom-28 -right-20 h-112 w-xl bg-[radial-gradient(circle,oklch(0.769_0.188_70.08/_0.28),transparent_65%)] blur-[150px] animate-blob-delay' />
+			</div>
 			<section className='mx-auto flex max-w-3xl flex-col items-center gap-6 px-4 text-center'>
-				<PageTitle className='text-balance text-4xl font-semibold tracking-tight text-foreground md:text-5xl'>
+				<PageTitle
+					className='text-balance text-4xl font-semibold tracking-tight text-foreground md:text-5xl animate-fade-up'
+					style={{ animationDelay: '0.05s' }}
+				>
 					Let&apos;s build your next conference together
 				</PageTitle>
-				<PageDescription className='text-balance text-base text-muted-foreground md:text-lg'>
+				<PageDescription
+					className='text-balance text-base text-muted-foreground md:text-lg animate-fade-up'
+					style={{ animationDelay: '0.12s' }}
+				>
 					Reach out for onboarding help, feature requests, or a walkthrough of how eConference aligns every role.
 				</PageDescription>
 			</section>
 			<section className='mx-auto mt-12 grid max-w-6xl gap-6 px-4 lg:grid-cols-[1.1fr_1fr]'>
-				<Card className='border border-border/60 bg-background/80 shadow-sm'>
+				<Card
+					className='border border-border/60 bg-background/80 shadow-sm animate-fade-up animate-pulse-border'
+					style={{ animationDelay: '0.18s' }}
+				>
 					<CardHeader className='space-y-3'>
 						<CardTitle className='text-2xl font-semibold text-foreground'>Message our team</CardTitle>
 						<CardDescription className='text-sm text-muted-foreground'>
@@ -172,7 +186,10 @@ export default function ContactPage() {
 						</form>
 					</CardContent>
 				</Card>
-				<Card className='border border-border/60 bg-background/80 shadow-sm'>
+				<Card
+					className='border border-border/60 bg-background/80 shadow-sm animate-fade-up'
+					style={{ animationDelay: '0.26s' }}
+				>
 					<CardHeader className='space-y-3'>
 						<CardTitle className='text-2xl font-semibold text-foreground'>Other ways to connect</CardTitle>
 						<CardDescription className='text-sm text-muted-foreground'>
@@ -181,10 +198,11 @@ export default function ContactPage() {
 					</CardHeader>
 					<CardContent>
 						<ul className='space-y-4'>
-							{contactChannels.map(({ icon: Icon, title, description, value, mailto }) => (
+							{contactChannels.map(({ icon: Icon, title, description, value, mailto }, index) => (
 								<li
 									key={title}
-									className='flex items-start gap-3 rounded-lg border border-border/40 bg-muted/40 p-4'
+									className='flex items-start gap-3 rounded-lg border border-border/40 bg-muted/40 p-4 animate-fade-up'
+									style={{ animationDelay: `${0.24 + index * 0.08}s` }}
 								>
 									<span className='mt-1 flex size-9 items-center justify-center rounded-full bg-primary/10 text-primary'>
 										<Icon className='size-4' />

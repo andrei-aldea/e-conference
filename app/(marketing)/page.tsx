@@ -86,8 +86,11 @@ export default function HomePage() {
 	return (
 		<div className='flex flex-1 flex-col bg-linear-to-b from-background via-background to-muted/40'>
 			<section className='relative overflow-hidden px-4 pb-24 pt-28 sm:pb-32 sm:pt-36'>
-				<div className='absolute inset-x-0 -top-40 -z-10 flex justify-center md:-top-48'>
-					<div className='h-104 w-160 rounded-full bg-primary/15 blur-3xl' />
+				<div className='absolute inset-0 -z-10 overflow-hidden'>
+					<div className='pointer-events-none absolute inset-x-0 top-0 h-64 bg-[radial-gradient(circle_at_top,oklch(0.929_0.013_255.508/_0.35),transparent_60%)]' />
+					<div className='absolute left-1/2 top-[20%] h-144 w-xl -translate-x-1/2 rounded-full bg-[radial-gradient(circle_at_center,oklch(0.208_0.042_265.755/_0.45),transparent_60%)] blur-[120px] animate-aurora' />
+					<div className='absolute -left-32 top-10 h-80 w-80 bg-[radial-gradient(circle,oklch(0.704_0.04_256.788/_0.25),transparent_65%)] blur-[140px] animate-blob-slow' />
+					<div className='absolute -bottom-24 -right-16 h-112 w-md bg-[radial-gradient(circle,oklch(0.769_0.188_70.08/_0.35),transparent_60%)] blur-[150px] animate-blob-delay' />
 				</div>
 				<div className='mx-auto flex max-w-6xl flex-col items-center gap-16 text-center lg:flex-row lg:items-start lg:text-left'>
 					<div className='flex-1 space-y-8'>
@@ -121,10 +124,11 @@ export default function HomePage() {
 							</Button>
 						</div>
 						<div className='grid w-full gap-4 sm:grid-cols-3 sm:text-left'>
-							{heroStats.map((stat) => (
+							{heroStats.map((stat, index) => (
 								<div
 									key={stat.label}
-									className='rounded-xl border border-border/60 bg-background/70 p-4 text-left shadow-sm backdrop-blur transition hover:-translate-y-1 hover:shadow-md'
+									className='rounded-xl border border-border/60 bg-background/70 p-4 text-left shadow-sm backdrop-blur transition hover:-translate-y-1 hover:shadow-md animate-fade-up'
+									style={{ animationDelay: `${0.25 + index * 0.1}s` }}
 								>
 									<p className='text-sm text-muted-foreground'>{stat.label}</p>
 									<p className='mt-2 text-2xl font-semibold'>{stat.value}</p>
@@ -132,8 +136,11 @@ export default function HomePage() {
 							))}
 						</div>
 					</div>
-					<div className='flex-1 w-full max-w-xl'>
-						<Card className='border border-border/60 bg-background/80 shadow-xl backdrop-blur-lg'>
+					<div
+						className='flex-1 w-full max-w-xl animate-fade-up'
+						style={{ animationDelay: '0.4s' }}
+					>
+						<Card className='border border-border/60 bg-background/80 shadow-xl backdrop-blur-lg animate-float-soft animate-pulse-border'>
 							<CardHeader className='space-y-2'>
 								<CardTitle className='text-foreground'>Live conference snapshot</CardTitle>
 								<CardDescription className='text-sm text-muted-foreground'>
@@ -192,10 +199,11 @@ export default function HomePage() {
 					</PageDescription>
 				</div>
 				<div className='mx-auto mt-12 grid max-w-6xl gap-6 sm:grid-cols-2 xl:grid-cols-3'>
-					{featureHighlights.map(({ title, description, icon: Icon }) => (
+					{featureHighlights.map(({ title, description, icon: Icon }, index) => (
 						<Card
 							key={title}
-							className='group relative overflow-hidden border border-border/60 bg-background/80 shadow-sm transition hover:-translate-y-1.5 hover:shadow-xl'
+							className='group relative overflow-hidden border border-border/60 bg-background/80 shadow-sm transition hover:-translate-y-1.5 hover:shadow-xl animate-fade-up'
+							style={{ animationDelay: `${0.15 * index}s` }}
 						>
 							<div className='absolute -right-10 top-10 h-32 w-32 rounded-full bg-primary/10 blur-2xl transition duration-500 group-hover:scale-110' />
 							<CardHeader className='relative space-y-4'>
@@ -212,10 +220,16 @@ export default function HomePage() {
 			<section className='bg-muted/30 px-4 py-20'>
 				<div className='mx-auto flex max-w-6xl flex-col gap-12 lg:flex-row lg:items-start'>
 					<div className='flex-1 space-y-6 text-center lg:text-left'>
-						<PageTitle className='text-balance text-3xl font-semibold tracking-tight text-foreground md:text-4xl'>
+						<PageTitle
+							className='text-balance text-3xl font-semibold tracking-tight text-foreground md:text-4xl animate-fade-up'
+							style={{ animationDelay: '0.1s' }}
+						>
 							A guided workflow from registration to decision
 						</PageTitle>
-						<PageDescription className='text-balance text-base text-muted-foreground md:text-lg'>
+						<PageDescription
+							className='text-balance text-base text-muted-foreground md:text-lg animate-fade-up'
+							style={{ animationDelay: '0.18s' }}
+						>
 							Each milestone is supported by tailored dashboards so organisers, authors, and reviewers stay aligned.
 						</PageDescription>
 					</div>
@@ -223,7 +237,8 @@ export default function HomePage() {
 						{workflowStages.map((stage, index) => (
 							<li
 								key={stage.title}
-								className='rounded-2xl border border-border/60 bg-background/80 p-5 shadow-sm backdrop-blur'
+								className='rounded-2xl border border-border/60 bg-background/80 p-5 shadow-sm backdrop-blur animate-fade-up'
+								style={{ animationDelay: `${0.15 * index + 0.2}s` }}
 							>
 								<div className='flex items-start gap-4'>
 									<span className='flex size-10 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary'>
