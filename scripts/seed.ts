@@ -173,6 +173,25 @@ async function purgeExistingData(auth: Auth, firestore: Firestore): Promise<void
 	} while (nextPageToken)
 }
 
+async function purgeStorageFiles(bucket: Bucket, prefix = 'papers/'): Promise<void> {
+	if (!bucket.name) {
+		console.warn('Skipping storage cleanup because no bucket name is configured.')
+		return
+	}
+
+	console.log(`Deleting existing storage files with prefix "${prefix}"...`)
+	try {
+		await bucket.deleteFiles({ prefix })
+	} catch (error: unknown) {
+		const typedError = error as { code?: number }
+		if (typedError?.code === 404) {
+			console.warn('No existing storage files found to delete.')
+			return
+		}
+		throw error
+	}
+}
+
 async function seedUsers(
 	auth: Auth,
 	firestore: Firestore,
@@ -341,6 +360,7 @@ async function main(): Promise<void> {
 	const manuscriptAsset = await loadSeedManuscriptAsset()
 
 	await purgeExistingData(auth, firestore)
+	await purgeStorageFiles(bucket)
 
 	console.log('Seeding organizers, reviewers, and authors...')
 	const organizerMap = await seedUsers(auth, firestore, seed.organizers, 'organizer')
