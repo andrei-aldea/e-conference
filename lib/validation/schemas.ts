@@ -51,17 +51,33 @@ export const paperFormSchema = z.object({
 
 export const reviewerDecisionSchema = z.enum(['pending', 'accepted', 'declined'])
 
+export const REVIEWER_FEEDBACK_MAX_LENGTH = 1000
+
+export const reviewerFeedbackSchema = z
+	.string()
+	.trim()
+	.max(REVIEWER_FEEDBACK_MAX_LENGTH, {
+		message: `Feedback must be ${REVIEWER_FEEDBACK_MAX_LENGTH} characters or less.`
+	})
+
 export const paperSchema = paperFormSchema.extend({
 	authorId: z.string().min(1, { message: 'Author is required.' }),
 	reviewers: z.array(z.string()),
 	reviewerStatuses: z.record(z.string(), reviewerDecisionSchema).optional(),
+	reviewerFeedback: z.record(z.string(), reviewerFeedbackSchema).optional(),
 	file: paperFileMetadataSchema.optional(),
 	fileUploadedAt: z.union([z.date(), z.string()]).optional()
 })
 
 export const reviewerStatusUpdateSchema = z.object({
 	paperId: z.string().min(1, { message: 'Paper identifier is required.' }),
-	status: reviewerDecisionSchema
+	status: reviewerDecisionSchema,
+	feedback: z
+		.string()
+		.max(REVIEWER_FEEDBACK_MAX_LENGTH, {
+			message: `Feedback must be ${REVIEWER_FEEDBACK_MAX_LENGTH} characters or less.`
+		})
+		.optional()
 })
 
 export const paperReviewerAssignmentSchema = z.object({

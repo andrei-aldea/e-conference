@@ -6,12 +6,17 @@ import { ZodError } from 'zod'
 
 import { getFirebaseAdminApp } from '@/lib/firebase/firebase-admin'
 import {
-	MANUSCRIPT_MAX_SIZE_BYTES,
-	MANUSCRIPT_MAX_SIZE_LABEL,
 	isAllowedManuscriptExtension,
-	isAllowedManuscriptMimeType
+	isAllowedManuscriptMimeType,
+	MANUSCRIPT_MAX_SIZE_BYTES,
+	MANUSCRIPT_MAX_SIZE_LABEL
 } from '@/lib/papers/constants'
-import { DEFAULT_REVIEWER_DECISION, extractReviewerStatuses } from '@/lib/reviewer/status'
+import {
+	DEFAULT_REVIEWER_DECISION,
+	extractReviewerFeedback,
+	extractReviewerStatuses,
+	REVIEWER_FEEDBACK_MAX_LENGTH
+} from '@/lib/reviewer/status'
 import { ApiError } from '@/lib/server/api-error'
 import { authenticateRequest } from '@/lib/server/auth'
 import { handleApiRouteError } from '@/lib/server/error-response'
@@ -126,13 +131,12 @@ export async function GET(request: NextRequest) {
 
 			const authorIds = new Set<string>()
 			const conferenceIds = new Set<string>()
-			const reviewerIds = new Set<string>()
 			const papers = snapshot.docs.map((doc) => {
 				const data = doc.data() as DocumentData
 				const authorId = typeof data.authorId === 'string' ? data.authorId : null
 				const conferenceId = typeof data.conferenceId === 'string' ? data.conferenceId : null
-				const reviewerAssignments = Array.isArray(data.reviewers) ? (data.reviewers as string[]) : []
 				const reviewerStatuses = extractReviewerStatuses(data.reviewerStatuses)
+				const reviewerFeedback = extractReviewerFeedback(data.reviewerFeedback)
 				const file = extractPaperFilePayload(data.file, data.fileUploadedAt)
 
 				if (authorId) {
@@ -141,25 +145,22 @@ export async function GET(request: NextRequest) {
 				if (conferenceId) {
 					conferenceIds.add(conferenceId)
 				}
-				reviewerAssignments.forEach((reviewerId) => reviewerIds.add(reviewerId))
 
 				return {
 					id: doc.id,
 					title: typeof data.title === 'string' ? (data.title as string) : 'Untitled paper',
 					authorId,
 					conferenceId,
-					reviewerIds: reviewerAssignments,
-					reviewerStatuses,
 					status: reviewerStatuses[uid] ?? DEFAULT_REVIEWER_DECISION,
+					feedback: reviewerFeedback[uid] ?? null,
 					createdAt: toIsoString(data.createdAt),
 					file
 				}
 			})
 
-			const [authorLookup, conferenceLookup, reviewerLookup] = await Promise.all([
+			const [authorLookup, conferenceLookup] = await Promise.all([
 				fetchDocumentsByIds(firestore, COLLECTIONS.USERS, authorIds),
-				fetchDocumentsByIds(firestore, COLLECTIONS.CONFERENCES, conferenceIds),
-				fetchDocumentsByIds(firestore, COLLECTIONS.USERS, reviewerIds)
+				fetchDocumentsByIds(firestore, COLLECTIONS.CONFERENCES, conferenceIds)
 			])
 
 			papers.sort((a, b) => {
@@ -190,14 +191,7 @@ export async function GET(request: NextRequest) {
 					  }
 					: { id: 'unknown', name: 'Conference' },
 				status: paper.status,
-				reviewers: paper.reviewerIds.map((reviewerId) => ({
-					id: reviewerId,
-					name:
-						typeof reviewerLookup[reviewerId]?.name === 'string'
-							? (reviewerLookup[reviewerId]?.name as string)
-							: 'Reviewer',
-					status: paper.reviewerStatuses[reviewerId] ?? DEFAULT_REVIEWER_DECISION
-				})),
+				feedback: paper.feedback,
 				createdAt: paper.createdAt,
 				file: paper.file
 			}))
@@ -228,6 +222,7 @@ export async function GET(request: NextRequest) {
 				title: typeof data.title === 'string' ? (data.title as string) : 'Untitled paper',
 				reviewers,
 				reviewerStatuses: extractReviewerStatuses(data.reviewerStatuses),
+				reviewerFeedback: extractReviewerFeedback(data.reviewerFeedback),
 				conferenceId,
 				createdAt: toIsoString(data.createdAt),
 				file: extractPaperFilePayload(data.file, data.fileUploadedAt)
@@ -264,7 +259,8 @@ export async function GET(request: NextRequest) {
 					typeof reviewerLookup[reviewerId]?.name === 'string'
 						? (reviewerLookup[reviewerId]?.name as string)
 						: 'Reviewer',
-				status: paper.reviewerStatuses[reviewerId] ?? DEFAULT_REVIEWER_DECISION
+				status: paper.reviewerStatuses[reviewerId] ?? DEFAULT_REVIEWER_DECISION,
+				feedback: paper.reviewerFeedback[reviewerId] ?? null
 			})),
 			createdAt: paper.createdAt,
 			file: paper.file
@@ -441,7 +437,7 @@ export async function PATCH(request: NextRequest) {
 				throw new ApiError(403, 'Only reviewers can edit paper statuses.')
 			}
 
-			const { paperId, status } = statusPayload.data
+			const { paperId, status, feedback } = statusPayload.data
 			const paperRef = firestore.collection(COLLECTIONS.PAPERS).doc(paperId)
 			const paperSnapshot = await paperRef.get()
 
@@ -456,13 +452,25 @@ export async function PATCH(request: NextRequest) {
 				throw new ApiError(403, 'You are not assigned to this paper.')
 			}
 
-			await paperRef.set(
-				{
-					reviewerStatuses: { [uid]: status },
-					updatedAt: FieldValue.serverTimestamp()
-				},
-				{ merge: true }
-			)
+			const sanitizedFeedback = typeof feedback === 'string' ? feedback.trim() : undefined
+			const updatePayload: Record<string, unknown> = {
+				[`reviewerStatuses.${uid}`]: status,
+				updatedAt: FieldValue.serverTimestamp()
+			}
+
+			if (sanitizedFeedback !== undefined) {
+				if (sanitizedFeedback.length === 0) {
+					updatePayload[`reviewerFeedback.${uid}`] = FieldValue.delete()
+				} else {
+					const normalizedFeedback =
+						sanitizedFeedback.length > REVIEWER_FEEDBACK_MAX_LENGTH
+							? sanitizedFeedback.slice(0, REVIEWER_FEEDBACK_MAX_LENGTH)
+							: sanitizedFeedback
+					updatePayload[`reviewerFeedback.${uid}`] = normalizedFeedback
+				}
+			}
+
+			await paperRef.update(updatePayload)
 
 			return NextResponse.json({ success: true })
 		}
@@ -492,6 +500,7 @@ export async function PATCH(request: NextRequest) {
 		const paperData = paperSnapshot.data() as DocumentData
 		const previousReviewerIds = Array.isArray(paperData.reviewers) ? (paperData.reviewers as string[]) : []
 		const existingStatuses = extractReviewerStatuses(paperData.reviewerStatuses)
+		const existingFeedback = extractReviewerFeedback(paperData.reviewerFeedback)
 
 		const reviewerDocs = await firestore.getAll(
 			...uniqueReviewerIds.map((reviewerId) => firestore.collection(COLLECTIONS.USERS).doc(reviewerId))
@@ -513,6 +522,14 @@ export async function PATCH(request: NextRequest) {
 			return acc
 		}, {})
 
+		const updatedFeedback = uniqueReviewerIds.reduce<Record<string, string>>((acc, reviewerId) => {
+			const feedbackValue = existingFeedback[reviewerId]
+			if (typeof feedbackValue === 'string' && feedbackValue.length > 0) {
+				acc[reviewerId] = feedbackValue
+			}
+			return acc
+		}, {})
+
 		const addedReviewerIds = uniqueReviewerIds.filter((reviewerId) => !previousReviewerIds.includes(reviewerId))
 		const removedReviewerIds = previousReviewerIds.filter((reviewerId) => !uniqueReviewerIds.includes(reviewerId))
 
@@ -522,6 +539,7 @@ export async function PATCH(request: NextRequest) {
 			{
 				reviewers: uniqueReviewerIds,
 				reviewerStatuses: updatedStatuses,
+				reviewerFeedback: updatedFeedback,
 				updatedAt: FieldValue.serverTimestamp()
 			},
 			{ merge: true }

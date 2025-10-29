@@ -28,7 +28,7 @@ interface PaperItem {
 	title: string
 	conferenceId: string | null
 	conference: { id: string; name: string } | null
-	reviewers: Array<{ id: string; name: string; status: ReviewerDecision }>
+	reviewers: Array<{ id: string; name: string; status: ReviewerDecision; feedback: string | null }>
 	createdAt?: string
 	file: PaperFileDetails | null
 }
@@ -244,20 +244,27 @@ export default function MyPapersPage() {
 								)}
 								<div>
 									<h2 className='text-sm font-medium text-muted-foreground'>Assigned reviewers</h2>
-									<ul className='mt-2 space-y-1'>
+									<ul className='mt-2 space-y-3'>
 										{paper.reviewers.map((reviewer) => (
 											<li
 												key={reviewer.id}
-												className='flex items-center justify-between gap-2 text-sm'
+												className='text-sm'
 											>
-												<span>{reviewer.name}</span>
-												<span
-													className={`rounded-full px-2 py-0.5 text-xs font-medium capitalize ${getReviewerStatusToneClass(
-														reviewer.status
-													)}`}
-												>
-													{getReviewerStatusLabel(reviewer.status)}
-												</span>
+												<div className='flex items-center justify-between gap-2'>
+													<span>{reviewer.name}</span>
+													<span
+														className={`rounded-full px-2 py-0.5 text-xs font-medium capitalize ${getReviewerStatusToneClass(
+															reviewer.status
+														)}`}
+													>
+														{getReviewerStatusLabel(reviewer.status)}
+													</span>
+												</div>
+												{reviewer.feedback ? (
+													<p className='mt-1 text-xs text-muted-foreground whitespace-pre-wrap'>{reviewer.feedback}</p>
+												) : (
+													<p className='mt-1 text-xs italic text-muted-foreground'>No feedback shared yet.</p>
+												)}
 											</li>
 										))}
 									</ul>

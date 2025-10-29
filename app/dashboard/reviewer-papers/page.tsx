@@ -8,8 +8,9 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Textarea } from '@/components/ui/textarea'
 import { formatFileSize } from '@/lib/papers/constants'
-import { getReviewerStatusLabel, getReviewerStatusToneClass, REVIEWER_DECISIONS } from '@/lib/reviewer/status'
+import { getReviewerStatusLabel, REVIEWER_DECISIONS, REVIEWER_FEEDBACK_MAX_LENGTH } from '@/lib/reviewer/status'
 import type { ReviewerDecision } from '@/lib/validation/schemas'
 
 const STATUS_OPTIONS: Array<{ value: ReviewerDecision; label: string }> = REVIEWER_DECISIONS.map((value) => ({
@@ -38,7 +39,7 @@ interface ReviewerAssignment {
 		name: string
 	}
 	status: ReviewerDecision
-	reviewers: Array<{ id: string; name: string; status: ReviewerDecision }>
+	feedback: string | null
 	file: PaperFileDetails | null
 }
 
@@ -51,6 +52,7 @@ export default function ReviewerPapersPage() {
 	const [updatingStatus, setUpdatingStatus] = useState<Record<string, boolean>>({})
 	const [editingPaperId, setEditingPaperId] = useState<string | null>(null)
 	const [draftStatuses, setDraftStatuses] = useState<Record<string, ReviewerDecision>>({})
+	const [draftFeedbacks, setDraftFeedbacks] = useState<Record<string, string>>({})
 
 	useEffect(() => {
 		async function loadAssignments() {
@@ -70,8 +72,8 @@ export default function ReviewerPapersPage() {
 				}
 				const payload = (await response.json()) as { papers: ReviewerAssignment[] }
 				setAssignments(payload.papers)
-			} catch (error) {
-				console.error('Failed to fetch reviewer assignments:', error)
+			} catch (loadError) {
+				console.error('Failed to fetch reviewer assignments:', loadError)
 				setError('Unable to load your assigned papers right now. Please try again later.')
 			} finally {
 				setIsLoading(false)
@@ -82,7 +84,7 @@ export default function ReviewerPapersPage() {
 	}, [user])
 
 	const handleStatusChange = useCallback(
-		async (paperId: string, status: ReviewerDecision) => {
+		async (paperId: string, status: ReviewerDecision, feedback: string) => {
 			if (!user || user.role !== 'reviewer') {
 				return false
 			}
@@ -94,22 +96,30 @@ export default function ReviewerPapersPage() {
 				const response = await fetch('/api/papers', {
 					method: 'PATCH',
 					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({ paperId, status })
+					body: JSON.stringify({ paperId, status, feedback })
 				})
 
 				if (!response.ok) {
-					throw new Error('Request failed')
+					let message = 'Failed to save your decision. Please try again.'
+					try {
+						const payload = (await response.json()) as { error?: string }
+						if (typeof payload?.error === 'string' && payload.error.length > 0) {
+							message = payload.error
+						}
+					} catch (parseError) {
+						console.error('Failed to parse reviewer status error response:', parseError)
+					}
+					throw new Error(message)
 				}
 
+				const normalizedFeedback = feedback.trim()
 				setAssignments((prev) =>
 					prev.map((assignment) =>
 						assignment.id === paperId
 							? {
 									...assignment,
 									status,
-									reviewers: assignment.reviewers.map((reviewer) =>
-										reviewer.id === user.uid ? { ...reviewer, status } : reviewer
-									)
+									feedback: normalizedFeedback.length > 0 ? normalizedFeedback : null
 							  }
 							: assignment
 					)
@@ -119,12 +129,18 @@ export default function ReviewerPapersPage() {
 					delete next[paperId]
 					return next
 				})
+				setDraftFeedbacks((prev) => {
+					const next = { ...prev }
+					delete next[paperId]
+					return next
+				})
 				return true
 			} catch (requestError) {
 				console.error('Failed to update reviewer status:', requestError)
 				setStatusErrors((prev) => ({
 					...prev,
-					[paperId]: 'Failed to save your decision. Please try again.'
+					[paperId]:
+						requestError instanceof Error ? requestError.message : 'Failed to save your decision. Please try again.'
 				}))
 				return false
 			} finally {
@@ -134,14 +150,23 @@ export default function ReviewerPapersPage() {
 		[user]
 	)
 
-	const handleStartEditing = useCallback((paperId: string, currentStatus: ReviewerDecision) => {
-		setEditingPaperId(paperId)
-		setDraftStatuses((prev) => ({ ...prev, [paperId]: currentStatus }))
-	}, [])
+	const handleStartEditing = useCallback(
+		(paperId: string, currentStatus: ReviewerDecision, currentFeedback: string | null) => {
+			setEditingPaperId(paperId)
+			setDraftStatuses((prev) => ({ ...prev, [paperId]: currentStatus }))
+			setDraftFeedbacks((prev) => ({ ...prev, [paperId]: currentFeedback ?? '' }))
+		},
+		[]
+	)
 
 	const handleCancelEditing = useCallback((paperId: string) => {
 		setEditingPaperId((prev) => (prev === paperId ? null : prev))
 		setDraftStatuses((prev) => {
+			const next = { ...prev }
+			delete next[paperId]
+			return next
+		})
+		setDraftFeedbacks((prev) => {
 			const next = { ...prev }
 			delete next[paperId]
 			return next
@@ -152,9 +177,13 @@ export default function ReviewerPapersPage() {
 		setDraftStatuses((prev) => ({ ...prev, [paperId]: status }))
 	}, [])
 
+	const handleDraftFeedbackChange = useCallback((paperId: string, feedback: string) => {
+		setDraftFeedbacks((prev) => ({ ...prev, [paperId]: feedback }))
+	}, [])
+
 	const handleSaveEditing = useCallback(
-		async (paperId: string, status: ReviewerDecision) => {
-			const success = await handleStatusChange(paperId, status)
+		async (paperId: string, status: ReviewerDecision, feedback: string) => {
+			const success = await handleStatusChange(paperId, status, feedback)
 			if (success) {
 				setEditingPaperId((prev) => (prev === paperId ? null : prev))
 			}
@@ -204,6 +233,7 @@ export default function ReviewerPapersPage() {
 					const isEditing = editingPaperId === assignment.id
 					const draftStatus = draftStatuses[assignment.id]
 					const currentStatus = isEditing ? draftStatus ?? assignment.status : assignment.status
+					const draftFeedback = draftFeedbacks[assignment.id] ?? ''
 					const isSaving = !!updatingStatus[assignment.id]
 					const statusError = statusErrors[assignment.id]
 
@@ -224,11 +254,11 @@ export default function ReviewerPapersPage() {
 								</CardDescription>
 							</CardHeader>
 							<CardContent className='space-y-4 text-sm text-muted-foreground'>
-								<div className='text-sm text-muted-foreground'>
+								<div>
 									<strong className='font-medium text-foreground'>Author:</strong> {assignment.author.name}
 								</div>
 								{assignment.file ? (
-									<div className='flex flex-wrap items-center gap-3 text-sm text-muted-foreground'>
+									<div className='flex flex-wrap items-center gap-3'>
 										<span className='font-medium text-foreground'>Manuscript:</span>
 										{assignment.file.downloadUrl ? (
 											<Button
@@ -255,7 +285,7 @@ export default function ReviewerPapersPage() {
 										)}
 									</div>
 								) : (
-									<p className='text-sm text-muted-foreground'>No manuscript available yet.</p>
+									<p>No manuscript available yet.</p>
 								)}
 								<div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
 									<div className='flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3'>
@@ -286,7 +316,7 @@ export default function ReviewerPapersPage() {
 												<Button
 													variant='default'
 													size='sm'
-													onClick={() => void handleSaveEditing(assignment.id, currentStatus)}
+													onClick={() => void handleSaveEditing(assignment.id, currentStatus, draftFeedback)}
 													disabled={isSaving}
 												>
 													{isSaving ? 'Saving...' : 'Save'}
@@ -304,7 +334,7 @@ export default function ReviewerPapersPage() {
 											<Button
 												variant='secondary'
 												size='sm'
-												onClick={() => handleStartEditing(assignment.id, assignment.status)}
+												onClick={() => handleStartEditing(assignment.id, assignment.status, assignment.feedback)}
 											>
 												Edit
 											</Button>
@@ -312,26 +342,31 @@ export default function ReviewerPapersPage() {
 									</div>
 								</div>
 								{statusError && <p className='text-xs text-destructive'>{statusError}</p>}
-								<div className='space-y-2'>
-									<strong className='font-medium text-foreground'>All reviewers:</strong>
-									<ul className='space-y-1 text-sm'>
-										{assignment.reviewers.map((reviewer) => (
-											<li
-												key={reviewer.id}
-												className='flex items-center justify-between gap-2'
-											>
-												<span>{reviewer.name}</span>
-												<span
-													className={`rounded-full px-2 py-0.5 text-xs font-medium capitalize ${getReviewerStatusToneClass(
-														reviewer.status
-													)}`}
-												>
-													{getReviewerStatusLabel(reviewer.status)}
-												</span>
-											</li>
-										))}
-									</ul>
-								</div>
+								{isEditing ? (
+									<div className='space-y-2'>
+										<span className='text-sm font-medium text-foreground'>Feedback for the author:</span>
+										<Textarea
+											value={draftFeedback}
+											onChange={(event) => handleDraftFeedbackChange(assignment.id, event.target.value)}
+											disabled={isSaving}
+											maxLength={REVIEWER_FEEDBACK_MAX_LENGTH}
+											className='min-h-[120px]'
+											placeholder='Share concise, constructive feedback for the author.'
+										/>
+										<p className='text-xs text-muted-foreground'>
+											{draftFeedback.length}/{REVIEWER_FEEDBACK_MAX_LENGTH} characters
+										</p>
+									</div>
+								) : (
+									<div className='space-y-1'>
+										<strong className='font-medium text-foreground'>Your feedback:</strong>
+										{assignment.feedback ? (
+											<p className='whitespace-pre-wrap text-sm text-muted-foreground'>{assignment.feedback}</p>
+										) : (
+											<p className='text-sm italic text-muted-foreground'>No feedback shared yet.</p>
+										)}
+									</div>
+								)}
 							</CardContent>
 						</Card>
 					)
@@ -345,12 +380,14 @@ export default function ReviewerPapersPage() {
 		assignments,
 		editingPaperId,
 		draftStatuses,
-		handleStartEditing,
-		handleCancelEditing,
+		draftFeedbacks,
 		handleDraftStatusChange,
+		handleDraftFeedbackChange,
 		handleSaveEditing,
 		updatingStatus,
-		statusErrors
+		statusErrors,
+		handleStartEditing,
+		handleCancelEditing
 	])
 
 	return (

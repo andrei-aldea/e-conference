@@ -68,22 +68,34 @@ service cloud.firestore {
                     && request.resource.data.title is string
                     && request.resource.data.conferenceId is string
                     && request.resource.data.reviewers is list
-                    && request.resource.data.reviewerStatuses is map;
+                    && request.resource.data.reviewerStatuses is map
+                    && (!request.resource.data.keys().hasAny(['reviewerFeedback'])
+                      || request.resource.data.reviewerFeedback is map);
       allow update: if isSignedIn()
                     && (
                       (isReviewer()
                         && request.auth.uid in resource.data.reviewers
                         && request.resource.data.keys().hasAll(['reviewerStatuses', 'updatedAt'])
-                        && request.resource.data.reviewerStatuses.diff(resource.data.reviewerStatuses).affectedKeys().hasOnly([request.auth.uid]))
+                        && request.resource.data.reviewerStatuses.diff(resource.data.reviewerStatuses).affectedKeys().hasOnly([request.auth.uid])
+                        && (!request.resource.data.keys().hasAny(['reviewerFeedback'])
+                          || (request.resource.data.reviewerFeedback is map
+                            && (
+                              resource.data.reviewerFeedback is map
+                                ? request.resource.data.reviewerFeedback.diff(resource.data.reviewerFeedback).affectedKeys().hasOnly([request.auth.uid])
+                                : request.resource.data.reviewerFeedback.keys().hasOnly([request.auth.uid])
+                            ))))
                       || (isOrganizer()
                         && request.resource.data.keys().hasAll(['reviewers', 'reviewerStatuses', 'updatedAt'])
-                        && request.resource.data.reviewers is list)
+                        && request.resource.data.reviewers is list
+                        && (!request.resource.data.keys().hasAny(['reviewerFeedback'])
+                          || request.resource.data.reviewerFeedback is map))
                       || (isAuthor()
                         && resource.data.authorId == request.auth.uid
                         && request.resource.data.authorId == resource.data.authorId
                         && request.resource.data.conferenceId == resource.data.conferenceId
                         && request.resource.data.reviewers == resource.data.reviewers
                         && request.resource.data.reviewerStatuses == resource.data.reviewerStatuses
+                        && request.resource.data.reviewerFeedback == resource.data.reviewerFeedback
                         && request.resource.data.createdAt == resource.data.createdAt
                         && request.resource.data.diff(resource.data).changedKeys().hasOnly(['title', 'file', 'fileUploadedAt', 'updatedAt'])
                         && (!request.resource.data.diff(resource.data).changedKeys().hasAny(['title']) || request.resource.data.title is string)
