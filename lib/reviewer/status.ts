@@ -72,3 +72,20 @@ export function extractReviewerFeedback(raw: unknown): Record<string, string> {
 	}
 	return result
 }
+
+export function summarizeReviewerDecisions(statuses: Iterable<ReviewerDecision>): ReviewerDecision {
+	const collected = Array.from(statuses)
+	if (collected.length === 0) {
+		return 'pending'
+	}
+	if (collected.some((status) => status === 'pending')) {
+		return 'pending'
+	}
+	if (collected.every((status) => status === 'accepted')) {
+		return 'accepted'
+	}
+	if (collected.every((status) => status === 'declined')) {
+		return 'declined'
+	}
+	return 'pending'
+}

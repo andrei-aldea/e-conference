@@ -11,8 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
-import { formatFileSize } from '@/lib/papers/constants'
-import { getReviewerStatusLabel, getReviewerStatusToneClass } from '@/lib/reviewer/status'
+import { getReviewerStatusLabel, getReviewerStatusToneClass, summarizeReviewerDecisions } from '@/lib/reviewer/status'
 import type { ReviewerDecision } from '@/lib/validation/schemas'
 
 interface PaperFileDetails {
@@ -108,7 +107,7 @@ export default function MyPapersPage() {
 		const hasNewFile = Boolean(editState.file)
 
 		if (!titleChanged && !hasNewFile) {
-			setUpdateError('Edit the title or upload a new manuscript before saving.')
+			setUpdateError('Edit the title or upload a new file before saving.')
 			return
 		}
 
@@ -190,6 +189,7 @@ export default function MyPapersPage() {
 			<div className='space-y-4'>
 				{papers.map((paper) => {
 					const isEditing = editState?.paperId === paper.id
+					const decision = summarizeReviewerDecisions(paper.reviewers.map((reviewer) => reviewer.status))
 
 					return (
 						<Card
@@ -197,9 +197,18 @@ export default function MyPapersPage() {
 							className='border'
 						>
 							<CardHeader className='flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between'>
-								<div>
-									<CardTitle>{paper.title}</CardTitle>
-									{!!paper.createdAt && <CardDescription>{new Date(paper.createdAt).toLocaleString()}</CardDescription>}
+								<div className='flex flex-col gap-2'>
+									<div className='flex flex-wrap items-center gap-2'>
+										<CardTitle>{paper.title}</CardTitle>
+										<span
+											className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${getReviewerStatusToneClass(
+												decision
+											)}`}
+										>
+											{getReviewerStatusLabel(decision)}
+										</span>
+									</div>
+									{paper.conference && <CardDescription> Conference: {paper.conference.name}</CardDescription>}
 								</div>
 								<Button
 									size='sm'
@@ -211,36 +220,30 @@ export default function MyPapersPage() {
 								</Button>
 							</CardHeader>
 							<CardContent className='space-y-4'>
-								{paper.conference && (
-									<div className='text-sm text-muted-foreground'>Conference: {paper.conference.name}</div>
-								)}
 								{paper.file ? (
-									<div className='flex flex-wrap items-center gap-3 text-sm text-muted-foreground'>
-										<span className='font-medium text-foreground'>Manuscript:</span>
+									<>
 										{paper.file.downloadUrl ? (
-											<Button
-												variant='outline'
-												size='sm'
-												asChild
-											>
-												<a
-													href={paper.file.downloadUrl}
-													target='_blank'
-													rel='noopener noreferrer'
-												>
-													Download PDF
-												</a>
-											</Button>
+											<div className='flex flex-wrap items-center gap-1'>
+												<span className='font-medium text-foreground'>File:</span>
+												{paper.file.downloadUrl ? (
+													<a
+														href={paper.file.downloadUrl}
+														target='_blank'
+														className='underline'
+														rel='noopener noreferrer'
+													>
+														View PDF
+													</a>
+												) : (
+													<span>No download link available.</span>
+												)}
+											</div>
 										) : (
 											<span>No download link available.</span>
 										)}
-										{typeof paper.file.size === 'number' && paper.file.size > 0 && (
-											<span>{formatFileSize(paper.file.size)}</span>
-										)}
-										{paper.file.uploadedAt && <span>Uploaded {new Date(paper.file.uploadedAt).toLocaleString()}</span>}
-									</div>
+									</>
 								) : (
-									<p className='text-sm text-muted-foreground'>No manuscript uploaded yet.</p>
+									<p className='text-sm text-muted-foreground'>No file uploaded yet.</p>
 								)}
 								<div>
 									<h2 className='text-sm font-medium text-muted-foreground'>Assigned reviewers</h2>
@@ -276,6 +279,17 @@ export default function MyPapersPage() {
 										className='space-y-4 rounded-md border p-4'
 									>
 										<div className='space-y-2'>
+											<span className='text-sm font-medium text-muted-foreground'>Current decision</span>
+											<span
+												className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${getReviewerStatusToneClass(
+													decision
+												)}`}
+											>
+												{getReviewerStatusLabel(decision)}
+											</span>
+											<p className='text-xs text-muted-foreground'>This reflects the latest reviewer decisions.</p>
+										</div>
+										<div className='space-y-2'>
 											<Label htmlFor={`paper-title-${paper.id}`}>Title</Label>
 											<Input
 												id={`paper-title-${paper.id}`}
@@ -287,7 +301,7 @@ export default function MyPapersPage() {
 											/>
 										</div>
 										<div className='space-y-2'>
-											<Label htmlFor={`paper-file-${paper.id}`}>Upload new manuscript (PDF)</Label>
+											<Label htmlFor={`paper-file-${paper.id}`}>Upload new file (PDF)</Label>
 											<Input
 												id={`paper-file-${paper.id}`}
 												type='file'

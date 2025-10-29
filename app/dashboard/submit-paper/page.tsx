@@ -10,7 +10,7 @@ import { toast } from 'sonner'
 import { useAuth } from '@/components/auth/auth-provider'
 import { PageDescription, PageTitle } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -18,7 +18,6 @@ import { db } from '@/lib/firebase/client'
 import {
 	MANUSCRIPT_MAX_SIZE_BYTES,
 	MANUSCRIPT_MAX_SIZE_LABEL,
-	formatFileSize,
 	isAllowedManuscriptExtension,
 	isAllowedManuscriptMimeType
 } from '@/lib/papers/constants'
@@ -152,15 +151,11 @@ export default function SubmitPaperPage() {
 
 	return (
 		<>
-			<PageTitle>Submit Paper</PageTitle>
-			<PageDescription>Provide your manuscript title. Two reviewers will be assigned automatically.</PageDescription>
+			<header className='space-y-1 mb-6'>
+				<PageTitle>Submit Paper</PageTitle>
+				<PageDescription>Provide your manuscript title. Two reviewers will be assigned automatically.</PageDescription>
+			</header>
 			<Card>
-				<CardHeader>
-					<CardTitle>Submit a paper</CardTitle>
-					<CardDescription>
-						Provide your manuscript title. Two reviewers will be assigned automatically.
-					</CardDescription>
-				</CardHeader>
 				<CardContent>
 					<Form {...form}>
 						<form
@@ -231,9 +226,7 @@ export default function SubmitPaperPage() {
 									}}
 								/>
 								{selectedFile ? (
-									<p className='text-xs text-muted-foreground'>
-										Selected file: {selectedFile.name} ({formatFileSize(selectedFile.size)})
-									</p>
+									<p className='text-xs text-muted-foreground'>Selected file: {selectedFile.name}</p>
 								) : (
 									<p className='text-xs text-muted-foreground'>No manuscript selected yet.</p>
 								)}

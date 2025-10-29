@@ -71,8 +71,10 @@ export default function AccountPage() {
 
 	return (
 		<>
-			<PageTitle>My Account</PageTitle>
-			<PageDescription>Manage your account details and preferences.</PageDescription>
+			<header className='space-y-1 mb-6'>
+				<PageTitle>My Account</PageTitle>
+				<PageDescription>Manage your account details and preferences.</PageDescription>
+			</header>
 			<Card>
 				<CardContent>
 					<Form {...form}>

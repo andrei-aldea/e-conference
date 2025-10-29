@@ -24,21 +24,3 @@ export function isAllowedManuscriptExtension(fileName: string | null | undefined
 		extension?.toLowerCase() as (typeof MANUSCRIPT_ALLOWED_EXTENSIONS)[number]
 	)
 }
-
-export function formatFileSize(bytes: number): string {
-	if (!Number.isFinite(bytes) || bytes < 0) {
-		return '0 B'
-	}
-	if (bytes === 0) {
-		return '0 B'
-	}
-	const units = ['B', 'KB', 'MB', 'GB']
-	let current = bytes
-	let unitIndex = 0
-	while (current >= 1024 && unitIndex < units.length - 1) {
-		current /= 1024
-		unitIndex += 1
-	}
-	const formatted = current >= 10 || unitIndex === 0 ? current.toFixed(0) : current.toFixed(1)
-	return `${formatted} ${units[unitIndex]}`
-}

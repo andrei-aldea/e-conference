@@ -6,11 +6,16 @@ import { useAuth } from '@/components/auth/auth-provider'
 import { PageDescription, PageTitle } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
-import { formatFileSize } from '@/lib/papers/constants'
-import { getReviewerStatusLabel, REVIEWER_DECISIONS, REVIEWER_FEEDBACK_MAX_LENGTH } from '@/lib/reviewer/status'
+import {
+	getReviewerStatusLabel,
+	getReviewerStatusToneClass,
+	REVIEWER_DECISIONS,
+	REVIEWER_FEEDBACK_MAX_LENGTH
+} from '@/lib/reviewer/status'
 import type { ReviewerDecision } from '@/lib/validation/schemas'
 
 const STATUS_OPTIONS: Array<{ value: ReviewerDecision; label: string }> = REVIEWER_DECISIONS.map((value) => ({
@@ -250,7 +255,6 @@ export default function ReviewerPapersPage() {
 								<CardTitle>{assignment.title}</CardTitle>
 								<CardDescription className='flex flex-col gap-1 text-xs sm:text-sm sm:flex-row sm:items-center sm:justify-between'>
 									<span>Conference: {assignment.conference.name}</span>
-									{assignment.createdAt && <span>Assigned {new Date(assignment.createdAt).toLocaleString()}</span>}
 								</CardDescription>
 							</CardHeader>
 							<CardContent className='space-y-4 text-sm text-muted-foreground'>
@@ -258,79 +262,114 @@ export default function ReviewerPapersPage() {
 									<strong className='font-medium text-foreground'>Author:</strong> {assignment.author.name}
 								</div>
 								{assignment.file ? (
-									<div className='flex flex-wrap items-center gap-3'>
-										<span className='font-medium text-foreground'>Manuscript:</span>
+									<div className='flex flex-wrap items-center gap-1'>
+										<span className='font-medium text-foreground'>File:</span>
 										{assignment.file.downloadUrl ? (
-											<Button
-												variant='outline'
-												size='sm'
-												asChild
+											<a
+												href={assignment.file.downloadUrl}
+												target='_blank'
+												className='underline'
+												rel='noopener noreferrer'
 											>
-												<a
-													href={assignment.file.downloadUrl}
-													target='_blank'
-													rel='noopener noreferrer'
-												>
-													Download PDF
-												</a>
-											</Button>
+												View PDF
+											</a>
 										) : (
 											<span>No download link available.</span>
 										)}
-										{typeof assignment.file.size === 'number' && assignment.file.size > 0 && (
-											<span>{formatFileSize(assignment.file.size)}</span>
-										)}
-										{assignment.file.uploadedAt && (
-											<span>Uploaded {new Date(assignment.file.uploadedAt).toLocaleString()}</span>
-										)}
 									</div>
 								) : (
-									<p>No manuscript available yet.</p>
+									<p>No file available yet.</p>
 								)}
-								<div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
-									<div className='flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3'>
-										<span className='text-sm font-medium text-foreground'>Your decision:</span>
-										<Select
-											value={currentStatus}
-											onValueChange={handleSelectChange}
-											disabled={!isEditing || isSaving}
-										>
-											<SelectTrigger size='sm'>
-												<SelectValue />
-											</SelectTrigger>
-											<SelectContent>
-												{STATUS_OPTIONS.map((option) => (
-													<SelectItem
-														key={option.value}
-														value={option.value}
-													>
-														{option.label}
-													</SelectItem>
-												))}
-											</SelectContent>
-										</Select>
-									</div>
-									<div className='flex items-center gap-2'>
-										{isEditing ? (
-											<>
-												<Button
-													variant='default'
+								{isEditing ? (
+									<form
+										onSubmit={(event) => {
+											event.preventDefault()
+											void handleSaveEditing(assignment.id, currentStatus, draftFeedback)
+										}}
+										className='space-y-4'
+									>
+										<div className='space-y-2'>
+											<Label htmlFor={`decision-${assignment.id}`}>Decision</Label>
+											<Select
+												value={currentStatus}
+												onValueChange={handleSelectChange}
+												disabled={isSaving}
+											>
+												<SelectTrigger
 													size='sm'
-													onClick={() => void handleSaveEditing(assignment.id, currentStatus, draftFeedback)}
-													disabled={isSaving}
+													id={`decision-${assignment.id}`}
 												>
-													{isSaving ? 'Saving...' : 'Save'}
-												</Button>
-												<Button
-													variant='outline'
-													size='sm'
-													onClick={() => handleCancelEditing(assignment.id)}
-													disabled={isSaving}
-												>
-													Cancel
-												</Button>
-											</>
-										) : (
+													<SelectValue />
+												</SelectTrigger>
+												<SelectContent>
+													{STATUS_OPTIONS.map((option) => (
+														<SelectItem
+															key={option.value}
+															value={option.value}
+														>
+															{option.label}
+														</SelectItem>
+													))}
+												</SelectContent>
+											</Select>
+										</div>
+										<div className='space-y-2'>
+											<Label htmlFor={`feedback-${assignment.id}`}>Feedback for the author</Label>
+											<Textarea
+												id={`feedback-${assignment.id}`}
+												value={draftFeedback}
+												onChange={(event) => handleDraftFeedbackChange(assignment.id, event.target.value)}
+												disabled={isSaving}
+												maxLength={REVIEWER_FEEDBACK_MAX_LENGTH}
+												className='min-h-[120px]'
+												placeholder='Share concise, constructive feedback for the author.'
+											/>
+											<p className='text-xs text-muted-foreground'>
+												{draftFeedback.length}/{REVIEWER_FEEDBACK_MAX_LENGTH} characters
+											</p>
+										</div>
+										<div className='flex flex-wrap items-center gap-2'>
+											<Button
+												type='submit'
+												variant='default'
+												size='sm'
+												disabled={isSaving}
+											>
+												{isSaving ? 'Saving...' : 'Save'}
+											</Button>
+											<Button
+												type='button'
+												variant='outline'
+												size='sm'
+												onClick={() => handleCancelEditing(assignment.id)}
+												disabled={isSaving}
+											>
+												Cancel
+											</Button>
+											{statusError && <p className='text-xs text-destructive'>{statusError}</p>}
+										</div>
+									</form>
+								) : (
+									<div className='space-y-3'>
+										<div className='flex flex-wrap items-center gap-2'>
+											<span className='text-sm font-medium text-foreground'>Decision:</span>
+											<span
+												className={`rounded-full px-2 py-0.5 text-xs font-medium capitalize ${getReviewerStatusToneClass(
+													currentStatus
+												)}`}
+											>
+												{getReviewerStatusLabel(currentStatus)}
+											</span>
+										</div>
+										<div className='flex flex-wrap items-center gap-2'>
+											<strong className='font-medium text-foreground'>Feedback:</strong>
+											{assignment.feedback ? (
+												<p className='text-sm text-muted-foreground'>{assignment.feedback}</p>
+											) : (
+												<p className='text-sm italic text-muted-foreground'>No feedback shared yet.</p>
+											)}
+										</div>
+										<div className='flex items-center gap-2'>
 											<Button
 												variant='secondary'
 												size='sm'
@@ -338,33 +377,7 @@ export default function ReviewerPapersPage() {
 											>
 												Edit
 											</Button>
-										)}
-									</div>
-								</div>
-								{statusError && <p className='text-xs text-destructive'>{statusError}</p>}
-								{isEditing ? (
-									<div className='space-y-2'>
-										<span className='text-sm font-medium text-foreground'>Feedback for the author:</span>
-										<Textarea
-											value={draftFeedback}
-											onChange={(event) => handleDraftFeedbackChange(assignment.id, event.target.value)}
-											disabled={isSaving}
-											maxLength={REVIEWER_FEEDBACK_MAX_LENGTH}
-											className='min-h-[120px]'
-											placeholder='Share concise, constructive feedback for the author.'
-										/>
-										<p className='text-xs text-muted-foreground'>
-											{draftFeedback.length}/{REVIEWER_FEEDBACK_MAX_LENGTH} characters
-										</p>
-									</div>
-								) : (
-									<div className='space-y-1'>
-										<strong className='font-medium text-foreground'>Your feedback:</strong>
-										{assignment.feedback ? (
-											<p className='whitespace-pre-wrap text-sm text-muted-foreground'>{assignment.feedback}</p>
-										) : (
-											<p className='text-sm italic text-muted-foreground'>No feedback shared yet.</p>
-										)}
+										</div>
 									</div>
 								)}
 							</CardContent>

@@ -8,7 +8,7 @@ import { useCollection } from 'react-firebase-hooks/firestore'
 
 import { PageDescription, PageTitle } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { db } from '@/lib/firebase/client'
 
@@ -83,13 +83,6 @@ export default function ConferencesPage() {
 									{conf.startDate && ' · '}
 									{formatConferenceDates(conf.startDate, conf.endDate)}
 								</span>
-								<Button
-									variant='outline'
-									size='sm'
-									asChild
-								>
-									<Link href={`/dashboard/conferences/${conf.id}`}>View details</Link>
-								</Button>
 							</CardDescription>
 						</CardHeader>
 						{conf.description && (
@@ -97,6 +90,15 @@ export default function ConferencesPage() {
 								<p className='text-sm text-muted-foreground line-clamp-2'>{conf.description}</p>
 							</CardContent>
 						)}
+						<CardFooter>
+							<Button
+								variant='outline'
+								size='sm'
+								asChild
+							>
+								<Link href={`/dashboard/conferences/${conf.id}`}>View details</Link>
+							</Button>
+						</CardFooter>
 					</Card>
 				))}
 			</div>

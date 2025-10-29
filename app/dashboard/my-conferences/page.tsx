@@ -13,7 +13,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Checkbox } from '@/components/ui/checkbox'
 import { Skeleton } from '@/components/ui/skeleton'
 import { db } from '@/lib/firebase/client'
-import { formatFileSize } from '@/lib/papers/constants'
 import { DEFAULT_REVIEWER_DECISION, getReviewerStatusLabel, getReviewerStatusToneClass } from '@/lib/reviewer/status'
 import type { ReviewerDecision } from '@/lib/validation/schemas'
 
@@ -336,7 +335,7 @@ export default function MyConferencesPage() {
 												</div>
 												{paper.file ? (
 													<div className='flex flex-wrap items-center gap-3 text-xs sm:text-sm text-muted-foreground'>
-														<span className='font-medium text-foreground'>Manuscript:</span>
+														<span className='font-medium text-foreground'>File:</span>
 														{paper.file.downloadUrl ? (
 															<Button
 																variant='outline'
@@ -354,15 +353,9 @@ export default function MyConferencesPage() {
 														) : (
 															<span>No download link available.</span>
 														)}
-														{typeof paper.file.size === 'number' && paper.file.size > 0 && (
-															<span>{formatFileSize(paper.file.size)}</span>
-														)}
-														{paper.file.uploadedAt && (
-															<span>Uploaded {new Date(paper.file.uploadedAt).toLocaleString()}</span>
-														)}
 													</div>
 												) : (
-													<p className='text-xs text-muted-foreground'>No manuscript uploaded yet.</p>
+													<p className='text-xs text-muted-foreground'>No file uploaded yet.</p>
 												)}
 												<div className='mt-2 space-y-2 text-sm text-muted-foreground'>
 													<strong className='font-medium text-foreground'>Reviewers:</strong>
