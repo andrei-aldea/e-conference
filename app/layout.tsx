@@ -1,6 +1,6 @@
 import { Suspense } from 'react'
 
-import { AuthProvider } from '@/components/auth/auth-provider'
+import { SessionProvider } from '@/components/providers/session-provider'
 import { ThemeProvider } from '@/components/theme/theme-provider'
 import { ModeToggle } from '@/components/theme/theme-toggle'
 import { Toaster } from '@/components/ui/sonner'
@@ -52,7 +52,7 @@ export default function RootLayout({
 			<head></head>
 			<body className={`${geistSans.variable} ${geistMono.variable}`}>
 				<Suspense fallback={null}>
-					<AuthProvider>
+					<SessionProvider>
 						<main>
 							<ThemeProvider
 								attribute='class'
@@ -67,7 +67,7 @@ export default function RootLayout({
 								<Toaster />
 							</ThemeProvider>
 						</main>
-					</AuthProvider>
+					</SessionProvider>
 				</Suspense>
 			</body>
 		</html>

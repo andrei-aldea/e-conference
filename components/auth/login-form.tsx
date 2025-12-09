@@ -4,7 +4,6 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useState, type ComponentProps } from 'react'
 import { useForm } from 'react-hook-form'
 
-import { useAuth } from '@/components/auth/auth-provider'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
@@ -13,7 +12,10 @@ import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { loginSchema, type LoginInput } from '@/lib/validation/schemas'
 import { Eye, EyeOff, Loader } from 'lucide-react'
+import { signIn } from 'next-auth/react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { toast } from 'sonner' // Assuming sonner is used based on package.json
 
 export function LoginForm({ className, ...props }: ComponentProps<'div'>) {
 	const form = useForm<LoginInput>({
@@ -26,14 +28,26 @@ export function LoginForm({ className, ...props }: ComponentProps<'div'>) {
 
 	const [isSubmitting, setIsSubmitting] = useState(false)
 	const [showPassword, setShowPassword] = useState(false)
-	const { login } = useAuth()
+	const router = useRouter() // Need to import useRouter. Add import to top.
 
 	async function onSubmit(data: LoginInput) {
 		setIsSubmitting(true)
 		try {
-			await login(data)
-		} catch {
-			// Error is already alerted in AuthProvider, just stop submitting
+			const result = await signIn('credentials', {
+				email: data.email,
+				password: data.password,
+				redirect: false
+			})
+
+			if (result?.error) {
+				toast.error('Invalid credentials') // Need toast or whatever UI used.
+				// Existing code had try/catch with comment about AuthProvider alerting.
+			} else {
+				router.push('/dashboard')
+				router.refresh()
+			}
+		} catch (error) {
+			console.error(error)
 		} finally {
 			setIsSubmitting(false)
 		}

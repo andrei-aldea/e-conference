@@ -1,9 +1,9 @@
 'use client'
 
-import { useAuth } from '@/components/auth/auth-provider'
+import { useSession } from 'next-auth/react'
+
 import { zodResolver } from '@hookform/resolvers/zod'
 import { format } from 'date-fns'
-import { addDoc, collection, Timestamp } from 'firebase/firestore'
 import { CalendarIcon, Loader } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -18,7 +18,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Textarea } from '@/components/ui/textarea'
-import { db } from '@/lib/firebase/client'
 import { cn } from '@/lib/utils'
 import { type ConferenceInput, conferenceSchema } from '@/lib/validation/schemas'
 
@@ -32,7 +31,8 @@ export default function CreateConferencePage() {
 		}
 	})
 
-	const { user } = useAuth()
+	const { data: session } = useSession()
+	const user = session?.user
 	const router = useRouter()
 	const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -44,20 +44,26 @@ export default function CreateConferencePage() {
 
 		setIsSubmitting(true)
 		try {
-			const conferenceData = {
-				...data,
-				startDate: Timestamp.fromDate(data.startDate),
-				endDate: Timestamp.fromDate(data.endDate),
-				organizerId: user.uid,
-				papers: []
+			const response = await fetch('/api/conferences', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					...data,
+					startDate: data.startDate.toISOString(),
+					endDate: data.endDate.toISOString()
+				})
+			})
+
+			if (!response.ok) {
+				const err = await response.json()
+				throw new Error(err.error || 'Failed to create conference')
 			}
-			const docRef = await addDoc(collection(db, 'conferences'), conferenceData)
-			console.log('Document written with ID: ', docRef.id)
+
 			toast.success('Conference created successfully!')
 			router.push('/dashboard/conferences') // Redirect to the conference list
-		} catch (e) {
+		} catch (e: unknown) {
 			console.error('Error adding document: ', e)
-			toast.error('There was an error creating the conference. Please try again.')
+			toast.error((e as Error).message || 'There was an error creating the conference. Please try again.')
 		} finally {
 			setIsSubmitting(false)
 		}

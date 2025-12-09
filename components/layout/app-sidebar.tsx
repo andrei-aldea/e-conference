@@ -1,6 +1,5 @@
 'use client'
 
-import { useAuth } from '@/components/auth/auth-provider'
 import {
 	Sidebar,
 	SidebarContent,
@@ -22,12 +21,14 @@ import {
 	User2,
 	Waypoints
 } from 'lucide-react'
+import { signOut, useSession } from 'next-auth/react'
 import Link from 'next/link'
 
 import Logo from './logo'
 
 export function AppSidebar() {
-	const { user, logout } = useAuth()
+	const { data: session } = useSession()
+	const user = session?.user
 
 	return (
 		<Sidebar>
@@ -118,7 +119,7 @@ export function AppSidebar() {
 							</SidebarMenuButton>
 						</SidebarMenuItem>
 					</Link>
-					<SidebarMenuItem onClick={logout}>
+					<SidebarMenuItem onClick={() => signOut()}>
 						<SidebarMenuButton>
 							<LogOut />
 							Log Out

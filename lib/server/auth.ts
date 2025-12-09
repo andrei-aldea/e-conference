@@ -1,10 +1,9 @@
-import { getAuth } from 'firebase-admin/auth'
-import { getFirestore, type DocumentData, type Firestore } from 'firebase-admin/firestore'
-import { cookies } from 'next/headers'
-
-import type { DashboardRole } from '@/lib/dashboard/summary'
-import { getFirebaseAdminApp } from '@/lib/firebase/firebase-admin'
+import { auth } from '@/lib/auth'
+import { prisma } from '@/lib/db'
 import { ApiError } from '@/lib/server/api-error'
+import type { PrismaClient, User } from '@prisma/client'
+
+export type DashboardRole = 'organizer' | 'author' | 'reviewer'
 
 const DASHBOARD_ROLES: ReadonlyArray<DashboardRole> = ['organizer', 'author', 'reviewer']
 
@@ -13,10 +12,10 @@ function isDashboardRole(value: unknown): value is DashboardRole {
 }
 
 export interface AuthenticatedRequest {
-	firestore: Firestore
+	prisma: PrismaClient
 	uid: string
 	role: DashboardRole
-	user: DocumentData
+	user: User
 }
 
 interface AuthenticateRequestOptions {
@@ -24,26 +23,21 @@ interface AuthenticateRequestOptions {
 }
 
 export async function authenticateRequest(options?: AuthenticateRequestOptions): Promise<AuthenticatedRequest> {
-	const cookieStore = await cookies()
-	const sessionCookie = cookieStore.get('session')?.value
+	const session = await auth()
 
-	if (!sessionCookie) {
+	if (!session?.user?.id) {
 		throw new ApiError(401, 'Authentication required.')
 	}
 
-	const app = getFirebaseAdminApp()
-	const auth = getAuth(app)
-	const decoded = await auth.verifySessionCookie(sessionCookie, true)
+	const user = await prisma.user.findUnique({
+		where: { id: session.user.id }
+	})
 
-	const firestore = getFirestore(app)
-	const userSnapshot = await firestore.collection('users').doc(decoded.uid).get()
-
-	if (!userSnapshot.exists) {
+	if (!user) {
 		throw new ApiError(404, 'User profile not found.')
 	}
 
-	const userData = userSnapshot.data() as DocumentData
-	const role = userData?.role
+	const role = user.role as DashboardRole
 
 	if (!isDashboardRole(role)) {
 		throw new ApiError(403, 'Unsupported role for this operation.')
@@ -54,9 +48,9 @@ export async function authenticateRequest(options?: AuthenticateRequestOptions):
 	}
 
 	return {
-		firestore,
-		uid: decoded.uid,
+		prisma,
+		uid: user.id,
 		role,
-		user: userData
+		user
 	}
 }

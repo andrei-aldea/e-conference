@@ -1,8 +1,8 @@
 'use client'
 
+import { useSession } from 'next-auth/react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
-import { useAuth } from '@/components/auth/auth-provider'
 import { PageDescription, PageTitle } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -49,7 +49,8 @@ interface ReviewerAssignment {
 }
 
 export default function ReviewerPapersPage() {
-	const { user } = useAuth()
+	const { data: session } = useSession()
+	const user = session?.user
 	const [assignments, setAssignments] = useState<ReviewerAssignment[]>([])
 	const [isLoading, setIsLoading] = useState(true)
 	const [error, setError] = useState<string | null>(null)

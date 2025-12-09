@@ -1,199 +1,70 @@
-import { FieldValue, Timestamp, type DocumentData, type Firestore } from 'firebase-admin/firestore'
-import { getStorage } from 'firebase-admin/storage'
-import { NextResponse, type NextRequest } from 'next/server'
-import { randomUUID } from 'node:crypto'
+import { del, put } from '@vercel/blob'
+import { NextRequest, NextResponse } from 'next/server'
 import { ZodError } from 'zod'
 
-import { getFirebaseAdminApp } from '@/lib/firebase/firebase-admin'
+import { prisma } from '@/lib/db'
 import {
 	isAllowedManuscriptExtension,
 	isAllowedManuscriptMimeType,
 	MANUSCRIPT_MAX_SIZE_BYTES,
 	MANUSCRIPT_MAX_SIZE_LABEL
 } from '@/lib/papers/constants'
-import {
-	DEFAULT_REVIEWER_DECISION,
-	extractReviewerFeedback,
-	extractReviewerStatuses,
-	REVIEWER_FEEDBACK_MAX_LENGTH
-} from '@/lib/reviewer/status'
+import { DEFAULT_REVIEWER_DECISION, REVIEWER_FEEDBACK_MAX_LENGTH } from '@/lib/reviewer/status'
 import { ApiError } from '@/lib/server/api-error'
 import { authenticateRequest } from '@/lib/server/auth'
 import { handleApiRouteError } from '@/lib/server/error-response'
-import { toIsoString } from '@/lib/server/utils'
 import {
 	paperAuthorUpdateSchema,
 	paperFormSchema,
 	paperReviewerAssignmentSchema,
-	reviewerStatusUpdateSchema,
-	type ReviewerDecision
+	reviewerStatusUpdateSchema
 } from '@/lib/validation/schemas'
-
-const COLLECTIONS = {
-	PAPERS: 'papers',
-	USERS: 'users',
-	CONFERENCES: 'conferences'
-} as const
-
-const DEFAULT_STORAGE_BUCKET =
-	process.env.FIREBASE_STORAGE_BUCKET ?? process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ?? null
-
-interface PaperFilePayload {
-	name: string
-	size: number | null
-	contentType: string | null
-	downloadUrl: string | null
-	uploadedAt: string | null
-}
-
-function buildDownloadUrl(
-	bucketName: string | null | undefined,
-	storagePath: string | null | undefined,
-	downloadToken: string | null | undefined
-): string | null {
-	if (!bucketName || !storagePath || !downloadToken) {
-		return null
-	}
-	const encodedPath = encodeURIComponent(storagePath)
-	return `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodedPath}?alt=media&token=${downloadToken}`
-}
-
-function deriveFileNames(file: File): { originalName: string; storageName: string } {
-	const rawName = typeof file.name === 'string' ? file.name.trim() : ''
-	const originalName = rawName.length > 0 ? rawName : 'manuscript.pdf'
-	const baseName = originalName.replace(/\.[^/.]+$/, '')
-	const normalizedBase = baseName
-		.replace(/[^a-zA-Z0-9_-]+/g, '-')
-		.replace(/-+/g, '-')
-		.replace(/^-+|-+$/g, '')
-		.toLowerCase()
-	const fallbackBase = normalizedBase.length > 0 ? normalizedBase : 'manuscript'
-	return {
-		originalName,
-		storageName: `${fallbackBase}.pdf`
-	}
-}
-
-function extractPaperFilePayload(raw: unknown, uploadedAtRaw: unknown): PaperFilePayload | null {
-	if (!raw || typeof raw !== 'object') {
-		return null
-	}
-	const data = raw as Record<string, unknown>
-	const storagePath = typeof data.storagePath === 'string' ? data.storagePath : null
-	const storageBucket = typeof data.storageBucket === 'string' ? data.storageBucket : DEFAULT_STORAGE_BUCKET
-	const downloadToken = typeof data.downloadToken === 'string' ? data.downloadToken : null
-	const size = typeof data.size === 'number' ? data.size : null
-	const contentType = typeof data.contentType === 'string' ? data.contentType : null
-	const nameCandidate =
-		typeof data.originalName === 'string' && data.originalName.trim().length > 0
-			? data.originalName.trim()
-			: typeof data.name === 'string'
-			? data.name
-			: 'manuscript.pdf'
-	return {
-		name: nameCandidate,
-		size,
-		contentType,
-		downloadUrl: buildDownloadUrl(storageBucket, storagePath, downloadToken),
-		uploadedAt: toIsoString(uploadedAtRaw)
-	}
-}
-
-async function fetchDocumentsByIds(
-	firestore: Firestore,
-	collection: string,
-	ids: Set<string>
-): Promise<Record<string, DocumentData>> {
-	if (ids.size === 0) {
-		return {}
-	}
-
-	const snapshots = await Promise.all([...ids].map((id) => firestore.collection(collection).doc(id).get()))
-	return snapshots.reduce<Record<string, DocumentData>>((acc, snapshot) => {
-		if (snapshot.exists) {
-			acc[snapshot.id] = snapshot.data() as DocumentData
-		}
-		return acc
-	}, {})
-}
 
 export async function GET(request: NextRequest) {
 	try {
 		const scope = request.nextUrl.searchParams.get('scope') ?? 'author'
-		const { firestore, uid, role } = await authenticateRequest()
+		const { uid, role } = await authenticateRequest()
 
 		if (scope === 'reviewer') {
 			if (role !== 'reviewer') {
 				throw new ApiError(403, 'Only reviewers can load assigned papers.')
 			}
 
-			const snapshot = await firestore.collection(COLLECTIONS.PAPERS).where('reviewers', 'array-contains', uid).get()
-
-			const authorIds = new Set<string>()
-			const conferenceIds = new Set<string>()
-			const papers = snapshot.docs.map((doc) => {
-				const data = doc.data() as DocumentData
-				const authorId = typeof data.authorId === 'string' ? data.authorId : null
-				const conferenceId = typeof data.conferenceId === 'string' ? data.conferenceId : null
-				const reviewerStatuses = extractReviewerStatuses(data.reviewerStatuses)
-				const reviewerFeedback = extractReviewerFeedback(data.reviewerFeedback)
-				const file = extractPaperFilePayload(data.file, data.fileUploadedAt)
-
-				if (authorId) {
-					authorIds.add(authorId)
-				}
-				if (conferenceId) {
-					conferenceIds.add(conferenceId)
-				}
-
-				return {
-					id: doc.id,
-					title: typeof data.title === 'string' ? (data.title as string) : 'Untitled paper',
-					authorId,
-					conferenceId,
-					status: reviewerStatuses[uid] ?? DEFAULT_REVIEWER_DECISION,
-					feedback: reviewerFeedback[uid] ?? null,
-					createdAt: toIsoString(data.createdAt),
-					file
+			// Find reviews assigned to this user
+			const reviews = await prisma.review.findMany({
+				where: { reviewerId: uid },
+				include: {
+					paper: {
+						include: {
+							author: true,
+							conference: true
+						}
+					}
+				},
+				orderBy: {
+					paper: { createdAt: 'desc' }
 				}
 			})
 
-			const [authorLookup, conferenceLookup] = await Promise.all([
-				fetchDocumentsByIds(firestore, COLLECTIONS.USERS, authorIds),
-				fetchDocumentsByIds(firestore, COLLECTIONS.CONFERENCES, conferenceIds)
-			])
-
-			papers.sort((a, b) => {
-				const aDate = a.createdAt ? new Date(a.createdAt).getTime() : 0
-				const bDate = b.createdAt ? new Date(b.createdAt).getTime() : 0
-				return bDate - aDate
-			})
-
-			const payload = papers.map((paper) => ({
-				id: paper.id,
-				title: paper.title,
-				author: paper.authorId
-					? {
-							id: paper.authorId,
-							name:
-								typeof authorLookup[paper.authorId]?.name === 'string'
-									? (authorLookup[paper.authorId]?.name as string)
-									: 'Author'
-					  }
-					: { id: 'unknown', name: 'Author' },
-				conference: paper.conferenceId
-					? {
-							id: paper.conferenceId,
-							name:
-								typeof conferenceLookup[paper.conferenceId]?.name === 'string'
-									? (conferenceLookup[paper.conferenceId]?.name as string)
-									: 'Conference'
-					  }
-					: { id: 'unknown', name: 'Conference' },
-				status: paper.status,
-				feedback: paper.feedback,
-				createdAt: paper.createdAt,
-				file: paper.file
+			const payload = reviews.map((review) => ({
+				id: review.paper.id,
+				title: review.paper.title,
+				author: {
+					id: review.paper.author.id,
+					name: review.paper.author.name ?? 'Author'
+				},
+				conference: {
+					id: review.paper.conference.id,
+					name: review.paper.conference.name
+				},
+				status: review.status ?? DEFAULT_REVIEWER_DECISION,
+				feedback: review.feedback,
+				createdAt: review.paper.createdAt.toISOString(),
+				file: {
+					name: 'manuscript.pdf',
+					downloadUrl: review.paper.fileUrl,
+					uploadedAt: review.paper.updatedAt.toISOString()
+				}
 			}))
 
 			return NextResponse.json({ papers: payload })
@@ -203,67 +74,39 @@ export async function GET(request: NextRequest) {
 			throw new ApiError(403, 'Only authors can view submitted papers.')
 		}
 
-		const snapshot = await firestore.collection(COLLECTIONS.PAPERS).where('authorId', '==', uid).get()
-
-		const reviewerIds = new Set<string>()
-		const conferenceIds = new Set<string>()
-		const papers = snapshot.docs.map((doc) => {
-			const data = doc.data() as DocumentData
-			const reviewers = Array.isArray(data.reviewers) ? (data.reviewers as string[]) : []
-			reviewers.forEach((reviewerId) => reviewerIds.add(reviewerId))
-
-			const conferenceId = typeof data.conferenceId === 'string' ? data.conferenceId : null
-			if (conferenceId) {
-				conferenceIds.add(conferenceId)
+		const papers = await prisma.paper.findMany({
+			where: { authorId: uid },
+			orderBy: { createdAt: 'desc' },
+			include: {
+				conference: true,
+				reviews: {
+					include: {
+						reviewer: true
+					}
+				}
 			}
-
-			return {
-				id: doc.id,
-				title: typeof data.title === 'string' ? (data.title as string) : 'Untitled paper',
-				reviewers,
-				reviewerStatuses: extractReviewerStatuses(data.reviewerStatuses),
-				reviewerFeedback: extractReviewerFeedback(data.reviewerFeedback),
-				conferenceId,
-				createdAt: toIsoString(data.createdAt),
-				file: extractPaperFilePayload(data.file, data.fileUploadedAt)
-			}
-		})
-
-		const [reviewerLookup, conferenceLookup] = await Promise.all([
-			fetchDocumentsByIds(firestore, COLLECTIONS.USERS, reviewerIds),
-			fetchDocumentsByIds(firestore, COLLECTIONS.CONFERENCES, conferenceIds)
-		])
-
-		papers.sort((a, b) => {
-			const aDate = a.createdAt ? new Date(a.createdAt).getTime() : 0
-			const bDate = b.createdAt ? new Date(b.createdAt).getTime() : 0
-			return bDate - aDate
 		})
 
 		const payload = papers.map((paper) => ({
 			id: paper.id,
 			title: paper.title,
 			conferenceId: paper.conferenceId,
-			conference: paper.conferenceId
-				? {
-						id: paper.conferenceId,
-						name:
-							typeof conferenceLookup[paper.conferenceId]?.name === 'string'
-								? (conferenceLookup[paper.conferenceId]?.name as string)
-								: 'Conference'
-				  }
-				: null,
-			reviewers: paper.reviewers.map((reviewerId) => ({
-				id: reviewerId,
-				name:
-					typeof reviewerLookup[reviewerId]?.name === 'string'
-						? (reviewerLookup[reviewerId]?.name as string)
-						: 'Reviewer',
-				status: paper.reviewerStatuses[reviewerId] ?? DEFAULT_REVIEWER_DECISION,
-				feedback: paper.reviewerFeedback[reviewerId] ?? null
+			conference: {
+				id: paper.conference.id,
+				name: paper.conference.name
+			},
+			reviewers: paper.reviews.map((review) => ({
+				id: review.reviewerId,
+				name: review.reviewer.name ?? 'Reviewer',
+				status: review.status ?? DEFAULT_REVIEWER_DECISION,
+				feedback: review.feedback ?? null
 			})),
-			createdAt: paper.createdAt,
-			file: paper.file
+			createdAt: paper.createdAt.toISOString(),
+			file: {
+				name: 'manuscript.pdf',
+				downloadUrl: paper.fileUrl,
+				uploadedAt: paper.updatedAt.toISOString()
+			}
 		}))
 
 		return NextResponse.json({ papers: payload })
@@ -309,106 +152,54 @@ export async function POST(request: NextRequest) {
 		}
 
 		const { title, conferenceId } = parsed.data
-		const { firestore, uid, role } = await authenticateRequest()
+		const { uid, role } = await authenticateRequest()
 
 		if (role !== 'author') {
 			throw new ApiError(403, 'Only authors can submit papers.')
 		}
 
-		const conferenceRef = firestore.collection(COLLECTIONS.CONFERENCES).doc(conferenceId)
-		const conferenceSnapshot = await conferenceRef.get()
-
-		if (!conferenceSnapshot.exists) {
+		const conference = await prisma.conference.findUnique({ where: { id: conferenceId } })
+		if (!conference) {
 			throw new ApiError(404, 'Selected conference does not exist.')
 		}
 
-		const reviewersSnapshot = await firestore.collection(COLLECTIONS.USERS).where('role', '==', 'reviewer').get()
-		const reviewerIds = reviewersSnapshot.docs.map((doc) => doc.id).filter((reviewerId) => reviewerId !== uid)
+		// Randomly assign 2 reviewers
+		// In a real app we might want more complex logic, but here we pick random
+		const reviewers = await prisma.user.findMany({ where: { role: 'reviewer' } })
 
+		const reviewerIds = reviewers.map((r) => r.id).filter((id) => id !== uid)
 		if (reviewerIds.length < 2) {
 			throw new ApiError(503, 'Not enough reviewers available. Please contact an organizer.')
 		}
 
-		const assignedReviewerIds = pickRandomSample(reviewerIds, 2)
-		const reviewerStatuses = assignedReviewerIds.reduce<Record<string, ReviewerDecision>>((acc, reviewerId) => {
-			acc[reviewerId] = DEFAULT_REVIEWER_DECISION
-			return acc
-		}, {})
+		// Simple shuffle
+		const shuffled = reviewerIds.sort(() => 0.5 - Math.random())
+		const assignedReviewerIds = shuffled.slice(0, 2)
 
-		const app = getFirebaseAdminApp()
-		const paperRef = firestore.collection(COLLECTIONS.PAPERS).doc()
-		const { originalName, storageName } = deriveFileNames(fileEntry)
-		const storagePath = `${COLLECTIONS.PAPERS}/${paperRef.id}/${storageName}`
-		const downloadToken = randomUUID()
-		const fileBuffer = Buffer.from(await fileEntry.arrayBuffer())
-		const contentType = mimeAllowed ? mimeType : 'application/pdf'
-		const bucket = getStorage(app).bucket()
-		const bucketName = bucket.name || DEFAULT_STORAGE_BUCKET
-
-		if (!bucketName) {
-			throw new ApiError(500, 'Storage bucket is not configured. Please contact an administrator.')
-		}
-
-		try {
-			await bucket.file(storagePath).save(fileBuffer, {
-				metadata: {
-					contentType,
-					metadata: {
-						firebaseStorageDownloadTokens: downloadToken,
-						originalName
-					}
-				}
-			})
-		} catch (uploadError) {
-			console.error('Failed to upload manuscript to storage:', uploadError)
-			const message =
-				uploadError &&
-				typeof uploadError === 'object' &&
-				'code' in uploadError &&
-				(uploadError as { code?: number }).code === 404
-					? `Storage bucket "${bucketName}" is not available. Please contact an administrator.`
-					: 'Failed to upload manuscript. Please try again.'
-			throw new ApiError(500, message)
-		}
-
-		const timestamp = Timestamp.now()
-
-		await paperRef.set({
-			title,
-			authorId: uid,
-			reviewers: assignedReviewerIds,
-			reviewerStatuses,
-			conferenceId,
-			createdAt: timestamp,
-			fileUploadedAt: timestamp,
-			file: {
-				name: storageName,
-				originalName,
-				size: fileEntry.size,
-				contentType,
-				storagePath,
-				storageBucket: bucketName,
-				downloadToken
-			}
+		// Upload to Blob
+		const blob = await put(fileEntry.name, fileEntry, {
+			access: 'public'
 		})
 
 		try {
-			const batch = firestore.batch()
-			batch.set(conferenceRef, { papers: FieldValue.arrayUnion(paperRef.id) }, { merge: true })
-			assignedReviewerIds.forEach((reviewerId) => {
-				const reviewerRef = firestore.collection(COLLECTIONS.USERS).doc(reviewerId)
-				batch.set(reviewerRef, { assignedPapers: FieldValue.arrayUnion(paperRef.id) }, { merge: true })
+			await prisma.paper.create({
+				data: {
+					title,
+					authorId: uid,
+					conferenceId,
+					fileUrl: blob.url,
+					reviews: {
+						create: assignedReviewerIds.map((reviewerId) => ({
+							reviewerId,
+							status: 'pending'
+						}))
+					}
+				}
 			})
-			await batch.commit()
-		} catch (commitError) {
-			await Promise.all([
-				paperRef.delete().catch((error) => console.error('Failed to clean up paper after commit failure:', error)),
-				bucket
-					.file(storagePath)
-					.delete({ ignoreNotFound: true })
-					.catch((error) => console.error('Failed to remove uploaded manuscript after commit failure:', error))
-			])
-			throw commitError
+		} catch (error) {
+			// Cleanup blob if DB fails
+			await del(blob.url)
+			throw error
 		}
 
 		return NextResponse.json({ success: true }, { status: 201 })
@@ -426,7 +217,7 @@ export async function PATCH(request: NextRequest) {
 		const rawPayload = await request.json()
 		const statusPayload = reviewerStatusUpdateSchema.safeParse(rawPayload)
 		const assignmentPayload = paperReviewerAssignmentSchema.safeParse(rawPayload)
-		const { firestore, uid, role } = await authenticateRequest()
+		const { uid, role } = await authenticateRequest()
 
 		if (!statusPayload.success && !assignmentPayload.success) {
 			throw new ApiError(400, 'Invalid update payload.')
@@ -438,49 +229,45 @@ export async function PATCH(request: NextRequest) {
 			}
 
 			const { paperId, status, feedback } = statusPayload.data
-			const paperRef = firestore.collection(COLLECTIONS.PAPERS).doc(paperId)
-			const paperSnapshot = await paperRef.get()
 
-			if (!paperSnapshot.exists) {
-				throw new ApiError(404, 'Paper not found.')
-			}
+			// Verify assignment
+			const review = await prisma.review.findFirst({
+				where: {
+					paperId,
+					reviewerId: uid
+				}
+			})
 
-			const paperData = paperSnapshot.data() as DocumentData
-			const assignedReviewers = Array.isArray(paperData.reviewers) ? (paperData.reviewers as string[]) : []
-
-			if (!assignedReviewers.includes(uid)) {
+			if (!review) {
 				throw new ApiError(403, 'You are not assigned to this paper.')
 			}
 
 			const sanitizedFeedback = typeof feedback === 'string' ? feedback.trim() : undefined
-			const updatePayload: Record<string, unknown> = {
-				[`reviewerStatuses.${uid}`]: status,
-				updatedAt: FieldValue.serverTimestamp()
-			}
+			const normalizedFeedback =
+				sanitizedFeedback && sanitizedFeedback.length > REVIEWER_FEEDBACK_MAX_LENGTH
+					? sanitizedFeedback.slice(0, REVIEWER_FEEDBACK_MAX_LENGTH)
+					: sanitizedFeedback
 
-			if (sanitizedFeedback !== undefined) {
-				if (sanitizedFeedback.length === 0) {
-					updatePayload[`reviewerFeedback.${uid}`] = FieldValue.delete()
-				} else {
-					const normalizedFeedback =
-						sanitizedFeedback.length > REVIEWER_FEEDBACK_MAX_LENGTH
-							? sanitizedFeedback.slice(0, REVIEWER_FEEDBACK_MAX_LENGTH)
-							: sanitizedFeedback
-					updatePayload[`reviewerFeedback.${uid}`] = normalizedFeedback
+			await prisma.review.updateMany({
+				where: {
+					paperId,
+					reviewerId: uid
+				},
+				data: {
+					status,
+					feedback: normalizedFeedback
 				}
-			}
-
-			await paperRef.update(updatePayload)
+			})
 
 			return NextResponse.json({ success: true })
 		}
 
-		if (!assignmentPayload.success) {
-			throw new ApiError(400, 'Invalid update payload.')
-		}
-
 		if (role !== 'organizer') {
 			throw new ApiError(403, 'Only organizers can update reviewer assignments.')
+		}
+
+		if (!assignmentPayload.success) {
+			throw new ApiError(400, 'Invalid update payload.')
 		}
 
 		const { paperId, reviewerIds } = assignmentPayload.data
@@ -490,72 +277,46 @@ export async function PATCH(request: NextRequest) {
 			throw new ApiError(400, 'At least one reviewer must be selected.')
 		}
 
-		const paperRef = firestore.collection(COLLECTIONS.PAPERS).doc(paperId)
-		const paperSnapshot = await paperRef.get()
-
-		if (!paperSnapshot.exists) {
+		const paper = await prisma.paper.findUnique({
+			where: { id: paperId },
+			include: { reviews: true }
+		})
+		if (!paper) {
 			throw new ApiError(404, 'Paper not found.')
 		}
 
-		const paperData = paperSnapshot.data() as DocumentData
-		const previousReviewerIds = Array.isArray(paperData.reviewers) ? (paperData.reviewers as string[]) : []
-		const existingStatuses = extractReviewerStatuses(paperData.reviewerStatuses)
-		const existingFeedback = extractReviewerFeedback(paperData.reviewerFeedback)
-
-		const reviewerDocs = await firestore.getAll(
-			...uniqueReviewerIds.map((reviewerId) => firestore.collection(COLLECTIONS.USERS).doc(reviewerId))
-		)
-
-		reviewerDocs.forEach((docSnapshot) => {
-			if (!docSnapshot.exists) {
-				throw new ApiError(400, 'One or more reviewers were not found.')
-			}
-
-			const reviewerData = docSnapshot.data()
-			if (reviewerData?.role !== 'reviewer') {
-				throw new ApiError(400, 'Invalid reviewer selection.')
+		const reviewers = await prisma.user.findMany({
+			where: {
+				id: { in: uniqueReviewerIds },
+				role: 'reviewer'
 			}
 		})
 
-		const updatedStatuses = uniqueReviewerIds.reduce<Record<string, ReviewerDecision>>((acc, reviewerId) => {
-			acc[reviewerId] = existingStatuses[reviewerId] ?? DEFAULT_REVIEWER_DECISION
-			return acc
-		}, {})
+		if (reviewers.length !== uniqueReviewerIds.length) {
+			throw new ApiError(400, 'One or more invalid reviewers verified.')
+		}
 
-		const updatedFeedback = uniqueReviewerIds.reduce<Record<string, string>>((acc, reviewerId) => {
-			const feedbackValue = existingFeedback[reviewerId]
-			if (typeof feedbackValue === 'string' && feedbackValue.length > 0) {
-				acc[reviewerId] = feedbackValue
+		await prisma.$transaction(async (tx) => {
+			await tx.review.deleteMany({
+				where: {
+					paperId,
+					reviewerId: { notIn: uniqueReviewerIds }
+				}
+			})
+
+			const existingReviewerIds = paper.reviews.map((r) => r.reviewerId)
+			const newReviewerIds = uniqueReviewerIds.filter((id) => !existingReviewerIds.includes(id))
+
+			if (newReviewerIds.length > 0) {
+				await tx.review.createMany({
+					data: newReviewerIds.map((reviewerId) => ({
+						paperId,
+						reviewerId,
+						status: 'pending'
+					}))
+				})
 			}
-			return acc
-		}, {})
-
-		const addedReviewerIds = uniqueReviewerIds.filter((reviewerId) => !previousReviewerIds.includes(reviewerId))
-		const removedReviewerIds = previousReviewerIds.filter((reviewerId) => !uniqueReviewerIds.includes(reviewerId))
-
-		const batch = firestore.batch()
-		batch.set(
-			paperRef,
-			{
-				reviewers: uniqueReviewerIds,
-				reviewerStatuses: updatedStatuses,
-				reviewerFeedback: updatedFeedback,
-				updatedAt: FieldValue.serverTimestamp()
-			},
-			{ merge: true }
-		)
-
-		addedReviewerIds.forEach((reviewerId) => {
-			const reviewerRef = firestore.collection(COLLECTIONS.USERS).doc(reviewerId)
-			batch.set(reviewerRef, { assignedPapers: FieldValue.arrayUnion(paperId) }, { merge: true })
 		})
-
-		removedReviewerIds.forEach((reviewerId) => {
-			const reviewerRef = firestore.collection(COLLECTIONS.USERS).doc(reviewerId)
-			batch.set(reviewerRef, { assignedPapers: FieldValue.arrayRemove(paperId) }, { merge: true })
-		})
-
-		await batch.commit()
 
 		return NextResponse.json({ success: true })
 	} catch (error) {
@@ -594,133 +355,53 @@ export async function PUT(request: NextRequest) {
 			throw new ApiError(400, 'Provide a new title or manuscript to update the paper.')
 		}
 
-		const { firestore, uid, role } = await authenticateRequest()
+		const { uid, role } = await authenticateRequest()
 
 		if (role !== 'author') {
 			throw new ApiError(403, 'Only authors can edit papers.')
 		}
 
-		const paperRef = firestore.collection(COLLECTIONS.PAPERS).doc(paperId)
-		const paperSnapshot = await paperRef.get()
-
-		if (!paperSnapshot.exists) {
+		const paper = await prisma.paper.findUnique({ where: { id: paperId } })
+		if (!paper) {
 			throw new ApiError(404, 'Paper not found.')
 		}
 
-		const paperData = paperSnapshot.data() as DocumentData
-
-		if (paperData.authorId !== uid) {
+		if (paper.authorId !== uid) {
 			throw new ApiError(403, 'You can only update your own papers.')
 		}
 
-		const existingFile =
-			typeof paperData.file === 'object' && paperData.file !== null ? (paperData.file as Record<string, unknown>) : null
-		const previousStoragePath =
-			existingFile && typeof existingFile.storagePath === 'string' ? existingFile.storagePath : null
-		const previousBucketName =
-			existingFile && typeof existingFile.storageBucket === 'string' ? existingFile.storageBucket : null
-
-		const updatePayload: Record<string, unknown> = {
-			updatedAt: FieldValue.serverTimestamp()
-		}
-
-		if (title) {
-			updatePayload.title = title
-		}
-
-		let newFileDescriptor: { storagePath: string; bucketName: string } | null = null
+		let newFileUrl: string | undefined
 
 		if (hasNewFile && fileEntry) {
 			if (fileEntry.size === 0) {
 				throw new ApiError(400, 'The uploaded manuscript is empty.')
 			}
 
-			const mimeType = fileEntry.type ?? ''
-			const mimeAllowed = isAllowedManuscriptMimeType(mimeType)
-			const extensionAllowed = isAllowedManuscriptExtension(fileEntry.name)
-
-			if (!mimeAllowed && !extensionAllowed) {
-				throw new ApiError(400, 'Only PDF manuscripts are supported at this time.')
-			}
-
 			if (fileEntry.size > MANUSCRIPT_MAX_SIZE_BYTES) {
 				throw new ApiError(413, `The manuscript exceeds the ${MANUSCRIPT_MAX_SIZE_LABEL} size limit.`)
 			}
 
-			const { originalName, storageName } = deriveFileNames(fileEntry)
-			const storagePath = `${COLLECTIONS.PAPERS}/${paperRef.id}/${Date.now()}-${storageName}`
-			const downloadToken = randomUUID()
-			const contentType = mimeAllowed ? mimeType : 'application/pdf'
-			const fileBuffer = Buffer.from(await fileEntry.arrayBuffer())
-			const app = getFirebaseAdminApp()
-			const storage = getStorage(app)
-			const bucket = storage.bucket()
-			const bucketName = bucket.name || DEFAULT_STORAGE_BUCKET
+			// Upload new file
+			const blob = await put(fileEntry.name, fileEntry, { access: 'public' })
+			newFileUrl = blob.url
 
-			if (!bucketName) {
-				throw new ApiError(500, 'Storage bucket is not configured. Please contact an administrator.')
-			}
-
-			try {
-				await bucket.file(storagePath).save(fileBuffer, {
-					metadata: {
-						contentType,
-						metadata: {
-							firebaseStorageDownloadTokens: downloadToken,
-							originalName
-						}
-					}
-				})
-			} catch (uploadError) {
-				console.error('Failed to upload manuscript to storage:', uploadError)
-				throw new ApiError(500, 'Failed to upload manuscript. Please try again.')
-			}
-
-			newFileDescriptor = { storagePath, bucketName }
-
-			updatePayload.file = {
-				name: storageName,
-				originalName,
-				size: fileEntry.size,
-				contentType,
-				storagePath,
-				storageBucket: bucketName,
-				downloadToken
-			}
-			updatePayload.fileUploadedAt = Timestamp.now()
-		}
-
-		try {
-			await paperRef.set(updatePayload, { merge: true })
-		} catch (commitError) {
-			if (newFileDescriptor) {
-				try {
-					const app = getFirebaseAdminApp()
-					await getStorage(app)
-						.bucket(newFileDescriptor.bucketName)
-						.file(newFileDescriptor.storagePath)
-						.delete({ ignoreNotFound: true })
-				} catch (cleanupError) {
-					console.error('Failed to clean up uploaded manuscript after commit failure:', cleanupError)
-				}
-			}
-			throw commitError
-		}
-
-		if (newFileDescriptor && previousStoragePath && previousStoragePath !== newFileDescriptor.storagePath) {
-			try {
-				const app = getFirebaseAdminApp()
-				const storage = getStorage(app)
-				const cleanupBucket = previousBucketName
-					? storage.bucket(previousBucketName)
-					: newFileDescriptor.bucketName
-					? storage.bucket(newFileDescriptor.bucketName)
-					: storage.bucket()
-				await cleanupBucket.file(previousStoragePath).delete({ ignoreNotFound: true })
-			} catch (cleanupError) {
-				console.error('Failed to remove previous manuscript from storage:', cleanupError)
+			// Delete old file
+			if (paper.fileUrl) {
+				// Fire and forget delete or await?
+				// await del(paper.fileUrl) // If fails, not critical
+				// better to not block response?
+				del(paper.fileUrl).catch(console.error)
 			}
 		}
+
+		await prisma.paper.update({
+			where: { id: paperId },
+			data: {
+				title: title ?? undefined,
+				fileUrl: newFileUrl ?? undefined,
+				updatedAt: new Date()
+			}
+		})
 
 		return NextResponse.json({ success: true })
 	} catch (error) {
@@ -730,13 +411,4 @@ export async function PUT(request: NextRequest) {
 
 		return handleApiRouteError(error, 'Failed to edit paper:')
 	}
-}
-
-function pickRandomSample<T>(items: T[], count: number): T[] {
-	const buffer = [...items]
-	for (let index = buffer.length - 1; index > 0; index -= 1) {
-		const swapIndex = Math.floor(Math.random() * (index + 1))
-		;[buffer[index], buffer[swapIndex]] = [buffer[swapIndex], buffer[index]]
-	}
-	return buffer.slice(0, count)
 }

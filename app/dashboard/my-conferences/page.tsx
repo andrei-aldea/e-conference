@@ -1,18 +1,16 @@
 'use client'
 
+import { useSession } from 'next-auth/react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
-import { deleteDoc, doc } from 'firebase/firestore'
 import Link from 'next/link'
 import { toast } from 'sonner'
 
-import { useAuth } from '@/components/auth/auth-provider'
 import { PageDescription, PageTitle } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Skeleton } from '@/components/ui/skeleton'
-import { db } from '@/lib/firebase/client'
 import { DEFAULT_REVIEWER_DECISION, getReviewerStatusLabel, getReviewerStatusToneClass } from '@/lib/reviewer/status'
 import type { ReviewerDecision } from '@/lib/validation/schemas'
 
@@ -54,44 +52,19 @@ interface ReviewerOption {
 }
 
 export default function MyConferencesPage() {
-	const { user } = useAuth()
+	const { data: session } = useSession()
+	const user = session?.user
 	const [conferences, setConferences] = useState<OrganizerConference[]>([])
 	const [reviewers, setReviewers] = useState<ReviewerOption[]>([])
 	const [isLoading, setIsLoading] = useState(true)
 	const [error, setError] = useState<string | null>(null)
-	const [deletingId, setDeletingId] = useState<string | null>(null)
 	const [expandedPaperId, setExpandedPaperId] = useState<string | null>(null)
 	const [savingPaperId, setSavingPaperId] = useState<string | null>(null)
 	const [selectionByPaper, setSelectionByPaper] = useState<Record<string, string[]>>({})
 
-	const handleDeleteConference = useCallback(
-		(conferenceId: string) => {
-			if (!user || user.role !== 'organizer') {
-				return
-			}
-
-			toast.error('Delete this conference?', {
-				description: 'This action cannot be undone.',
-				action: {
-					label: 'Delete',
-					onClick: async () => {
-						setDeletingId(conferenceId)
-						try {
-							await deleteDoc(doc(db, 'conferences', conferenceId))
-							setConferences((prev) => prev.filter((conf) => conf.id !== conferenceId))
-							toast.success('Conference deleted successfully.')
-						} catch (deleteError) {
-							console.error('Failed to delete conference:', deleteError)
-							toast.error('There was an error deleting the conference.')
-						} finally {
-							setDeletingId((current) => (current === conferenceId ? null : current))
-						}
-					}
-				}
-			})
-		},
-		[user]
-	)
+	const handleDeleteConference = useCallback(() => {
+		toast.info('Conference deletion is temporarily disabled during migration.')
+	}, [])
 
 	useEffect(() => {
 		async function loadConferences() {
@@ -304,10 +277,9 @@ export default function MyConferencesPage() {
 									<Button
 										variant='destructive'
 										size='sm'
-										onClick={() => handleDeleteConference(conference.id)}
-										disabled={deletingId === conference.id}
+										onClick={() => handleDeleteConference()}
 									>
-										{deletingId === conference.id ? 'Deleting...' : 'Delete'}
+										Delete
 									</Button>
 								</div>
 							</div>
@@ -407,7 +379,6 @@ export default function MyConferencesPage() {
 																		const statusForReviewer = paper.reviewers.find(
 																			(item) => item.id === reviewer.id
 																		)?.status
-
 																		return (
 																			<label
 																				key={reviewer.id}
@@ -478,7 +449,7 @@ export default function MyConferencesPage() {
 		isLoading,
 		error,
 		conferences,
-		deletingId,
+		// deletingId removed
 		handleDeleteConference,
 		expandedPaperId,
 		handleSaveAssignments,

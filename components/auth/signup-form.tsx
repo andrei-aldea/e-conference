@@ -4,17 +4,22 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useMemo, useState, type ComponentProps } from 'react'
 import { useForm } from 'react-hook-form'
 
-import { useAuth } from '@/components/auth/auth-provider'
+// import { useAuth } from '@/components/auth/auth-provider'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { registerUser } from '@/lib/actions/auth'
 import { cn } from '@/lib/utils'
 import { signupSchema, type SignupInput } from '@/lib/validation/schemas'
 import { Check, Circle, Eye, EyeOff, Loader } from 'lucide-react'
+import { signIn } from 'next-auth/react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
+// import { PasswordGuidance, evaluatePasswordStrength, getPasswordStrength, PASSWORD_REQUIREMENTS } from './password-guidance'
 
 export function SignupForm({ className, ...props }: ComponentProps<'div'>) {
 	const form = useForm<SignupInput>({
@@ -30,7 +35,7 @@ export function SignupForm({ className, ...props }: ComponentProps<'div'>) {
 	const [isSubmitting, setIsSubmitting] = useState(false)
 	const [showPassword, setShowPassword] = useState(false)
 	const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-	const { signup } = useAuth()
+	const router = useRouter()
 
 	const passwordValue = form.watch('password')
 	const passwordRequirementResults = useMemo(() => evaluatePasswordStrength(passwordValue), [passwordValue])
@@ -43,9 +48,28 @@ export function SignupForm({ className, ...props }: ComponentProps<'div'>) {
 	async function onSubmit(data: SignupInput) {
 		setIsSubmitting(true)
 		try {
-			await signup(data)
+			const result = await registerUser(data)
+			if (result.error) {
+				toast.error(result.error)
+				return
+			}
+
+			const signInResult = await signIn('credentials', {
+				email: data.email,
+				password: data.password,
+				redirect: false
+			})
+
+			if (signInResult?.error) {
+				toast.error('Account created, but failed to log in automatically.')
+				router.push('/login')
+			} else {
+				toast.success('Account created!')
+				router.push('/dashboard')
+				router.refresh()
+			}
 		} catch {
-			// Error is already alerted in AuthProvider, just stop submitting
+			toast.error('Something went wrong')
 		} finally {
 			setIsSubmitting(false)
 		}

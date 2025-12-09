@@ -50,7 +50,7 @@ const featureHighlights: FeatureHighlight[] = [
 	},
 	{
 		title: 'Secure access',
-		description: 'Firebase authentication and protected APIs keep conference data safe while enabling quick logins.',
+		description: 'Secure authentication and protected APIs keep conference data safe while enabling quick logins.',
 		icon: ShieldCheck
 	}
 ]
@@ -78,7 +78,7 @@ const workflowStages: WorkflowStage[] = [
 
 const heroStats: HeroStat[] = [
 	{ label: 'Roles supported', value: '3' },
-	{ label: 'Realtime sync', value: 'Firebase' },
+	{ label: 'Realtime sync', value: 'Live' },
 	{ label: 'Setup time', value: '< 5 min' }
 ]
 

@@ -1,24 +1,23 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
-import { doc, writeBatch } from 'firebase/firestore'
 import { Edit, Loader } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 
-import { useAuth } from '@/components/auth/auth-provider'
 import { PageDescription, PageTitle } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { db } from '@/lib/firebase/client'
 import { type User, userSchema } from '@/lib/validation/schemas'
+import { useSession } from 'next-auth/react'
 
 export default function AccountPage() {
-	const { user, updateUser } = useAuth()
+	const { data: session, update } = useSession()
+	const user = session?.user
 	const [isEditing, setIsEditing] = useState(false)
 	const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -33,7 +32,11 @@ export default function AccountPage() {
 
 	useEffect(() => {
 		if (user) {
-			form.reset(user)
+			form.reset({
+				name: user.name || '',
+				email: user.email || '',
+				role: (user.role as 'organizer' | 'author' | 'reviewer') || 'author'
+			})
 		}
 	}, [user, form])
 
@@ -45,16 +48,19 @@ export default function AccountPage() {
 
 		setIsSubmitting(true)
 		try {
-			const userDocRef = doc(db, 'users', user.uid)
-			const batch = writeBatch(db)
-			const updatedData = {
-				name: data.name,
-				role: data.role
-			}
-			batch.set(userDocRef, { ...user, ...updatedData })
-			await batch.commit()
+			const response = await fetch('/api/users', {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(data)
+			})
 
-			updateUser(updatedData)
+			if (!response.ok) {
+				throw new Error('Failed to update profile')
+			}
+
+			const updatedUser = await response.json()
+
+			await update({ user: updatedUser })
 			toast.success('Profile updated successfully!')
 			setIsEditing(false)
 		} catch (error) {
@@ -154,7 +160,13 @@ export default function AccountPage() {
 										variant='outline'
 										onClick={() => {
 											setIsEditing(false)
-											form.reset(user)
+											if (user) {
+												form.reset({
+													name: user.name || '',
+													email: user.email || '',
+													role: (user.role as 'organizer' | 'author' | 'reviewer') || 'author'
+												})
+											}
 										}}
 										disabled={isSubmitting}
 									>

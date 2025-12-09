@@ -1,20 +1,20 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
-import { collection, getDocs, orderBy, query } from 'firebase/firestore'
 import { Loader } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 
-import { useAuth } from '@/components/auth/auth-provider'
 import { PageDescription, PageTitle } from '@/components/layout/page-header'
+import { useSession } from 'next-auth/react'
+// And then line 30 (hook).
+// But here I'm replacing lines 9-10.
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { db } from '@/lib/firebase/client'
 import {
 	MANUSCRIPT_MAX_SIZE_BYTES,
 	MANUSCRIPT_MAX_SIZE_LABEL,
@@ -29,7 +29,8 @@ interface ConferenceOption {
 }
 
 export default function SubmitPaperPage() {
-	const { user } = useAuth()
+	const { data: session } = useSession()
+	const user = session?.user
 	const [isSubmitting, setIsSubmitting] = useState(false)
 	const [isLoadingConferences, setIsLoadingConferences] = useState(true)
 	const [conferences, setConferences] = useState<ConferenceOption[]>([])
@@ -49,13 +50,17 @@ export default function SubmitPaperPage() {
 		let isMounted = true
 		async function loadConferences() {
 			try {
-				const snapshot = await getDocs(query(collection(db, 'conferences'), orderBy('startDate', 'desc')))
+				const response = await fetch('/api/conferences')
+				if (!response.ok) throw new Error('Failed to load conferences')
+
+				const data = await response.json()
+
 				if (!isMounted) {
 					return
 				}
-				const options = snapshot.docs.map((doc) => ({
-					id: doc.id,
-					name: (doc.data().name as string) ?? 'Untitled conference'
+				const options = data.conferences.map((c: { id: string; name: string }) => ({
+					id: c.id,
+					name: c.name ?? 'Untitled conference'
 				}))
 				setConferences(options)
 				if (options.length === 0) {

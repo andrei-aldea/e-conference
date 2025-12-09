@@ -4,15 +4,12 @@ import { useEffect, useMemo, useState } from 'react'
 
 import { zodResolver } from '@hookform/resolvers/zod'
 import { format } from 'date-fns'
-import { doc, Timestamp, updateDoc } from 'firebase/firestore'
 import { CalendarIcon, Loader } from 'lucide-react'
 import Link from 'next/link'
 import { useParams, useSearchParams } from 'next/navigation'
-import { useDocument } from 'react-firebase-hooks/firestore'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 
-import { useAuth } from '@/components/auth/auth-provider'
 import { PageTitle } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
@@ -21,19 +18,18 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Textarea } from '@/components/ui/textarea'
-import { db } from '@/lib/firebase/client'
 import { cn } from '@/lib/utils'
 import { type Conference, type ConferenceInput, conferenceSchema } from '@/lib/validation/schemas'
-
-type FirestoreConference = Omit<Conference, 'startDate' | 'endDate'> & {
-	startDate: Timestamp
-	endDate: Timestamp
-}
+import { useSession } from 'next-auth/react'
 
 export default function ConferenceDetailsPage() {
-	const { user } = useAuth()
+	const { data: session } = useSession()
+	const user = session?.user
 	const [isEditing, setIsEditing] = useState(false)
 	const [isSubmitting, setIsSubmitting] = useState(false)
+	const [conference, setConference] = useState<Conference | null>(null)
+	const [loading, setLoading] = useState(true)
+	const [error, setError] = useState<string | null>(null)
 
 	const form = useForm<ConferenceInput>({
 		resolver: zodResolver(conferenceSchema)
@@ -42,23 +38,36 @@ export default function ConferenceDetailsPage() {
 	const params = useParams<{ conferenceId: string }>()
 	const conferenceId = params?.conferenceId
 	const searchParams = useSearchParams()
-	const conferenceRef = conferenceId ? doc(db, 'conferences', conferenceId) : null
-	const [snapshot, loading, error] = useDocument(conferenceRef)
 
-	const conference = useMemo(() => {
-		if (!snapshot || !snapshot.exists()) {
-			return null
+	// Fetch conference details
+	useEffect(() => {
+		if (!conferenceId) return
+
+		async function load() {
+			setLoading(true)
+			setError(null)
+			try {
+				const res = await fetch(`/api/conferences/${conferenceId}`)
+				if (!res.ok) {
+					if (res.status === 404) throw new Error('Conference not found')
+					throw new Error('Failed to load conference')
+				}
+				const data = await res.json()
+				// Convert dates
+				setConference({
+					...data,
+					startDate: new Date(data.startDate),
+					endDate: new Date(data.endDate)
+				})
+			} catch (err: unknown) {
+				console.error(err)
+				setError((err as Error).message || 'Failed to load details')
+			} finally {
+				setLoading(false)
+			}
 		}
-
-		const data = snapshot.data() as FirestoreConference
-
-		return {
-			...data,
-			id: snapshot.id,
-			startDate: data.startDate.toDate(),
-			endDate: data.endDate.toDate()
-		} satisfies Conference
-	}, [snapshot])
+		void load()
+	}, [conferenceId])
 
 	useEffect(() => {
 		if (!conference) {
@@ -79,7 +88,7 @@ export default function ConferenceDetailsPage() {
 			return false
 		}
 
-		return !conference.organizerId || conference.organizerId === user.uid
+		return !conference.organizerId || conference.organizerId === user.id
 	}, [conference, user])
 
 	const shouldAutoEdit = searchParams?.get('edit') === 'true'
@@ -101,7 +110,7 @@ export default function ConferenceDetailsPage() {
 	}
 
 	if (error) {
-		return <p>Error: {error.message}</p>
+		return <p>Error: {error}</p>
 	}
 
 	if (!conference) {
@@ -109,10 +118,6 @@ export default function ConferenceDetailsPage() {
 	}
 
 	async function onSubmit(values: ConferenceInput) {
-		if (!conferenceRef) {
-			return
-		}
-
 		if (!conference) {
 			toast.error('Conference details are not available yet.')
 			return
@@ -123,7 +128,7 @@ export default function ConferenceDetailsPage() {
 			return
 		}
 
-		if (conference.organizerId && conference.organizerId !== user.uid) {
+		if (conference.organizerId && conference.organizerId !== user.id) {
 			toast.error('You do not have permission to edit this conference.')
 			return
 		}
@@ -131,19 +136,34 @@ export default function ConferenceDetailsPage() {
 		setIsSubmitting(true)
 
 		try {
-			await updateDoc(conferenceRef, {
-				name: values.name,
-				description: values.description,
-				location: values.location,
-				startDate: Timestamp.fromDate(values.startDate),
-				endDate: Timestamp.fromDate(values.endDate)
+			const response = await fetch(`/api/conferences/${conferenceId}`, {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					...values,
+					startDate: values.startDate.toISOString(),
+					endDate: values.endDate.toISOString()
+				})
+			})
+
+			if (!response.ok) {
+				const err = await response.json()
+				throw new Error(err.error || 'Failed to update')
+			}
+
+			// Refresh local state
+			const updated = await response.json()
+			setConference({
+				...updated,
+				startDate: new Date(updated.startDate),
+				endDate: new Date(updated.endDate)
 			})
 
 			toast.success('Conference updated successfully!')
 			setIsEditing(false)
-		} catch (updateError) {
+		} catch (updateError: unknown) {
 			console.error('Error updating conference:', updateError)
-			toast.error('There was an error updating the conference. Please try again.')
+			toast.error((updateError as Error).message || 'There was an error updating the conference. Please try again.')
 		} finally {
 			setIsSubmitting(false)
 		}

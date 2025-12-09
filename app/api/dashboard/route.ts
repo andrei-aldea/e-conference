@@ -1,4 +1,3 @@
-import { type DocumentData, type Firestore, type Query as FirestoreQuery } from 'firebase-admin/firestore'
 import { NextResponse } from 'next/server'
 
 import type {
@@ -8,31 +7,17 @@ import type {
 	DashboardRoleStats,
 	DashboardSummaryResponse,
 	OrganizerDashboardStats,
-	ReviewerDashboardStats,
-	ReviewerStatusTally
+	ReviewerDashboardStats
 } from '@/lib/dashboard/summary'
-import { DEFAULT_REVIEWER_DECISION, extractReviewerStatuses } from '@/lib/reviewer/status'
-import { ApiError } from '@/lib/server/api-error'
+import { prisma } from '@/lib/db'
 import { authenticateRequest } from '@/lib/server/auth'
 import { handleApiRouteError } from '@/lib/server/error-response'
-import { chunkArray, toIsoString } from '@/lib/server/utils'
-
-const COLLECTIONS = {
-	USERS: 'users',
-	CONFERENCES: 'conferences',
-	PAPERS: 'papers'
-} as const
-
-interface PaperRecord {
-	id: string
-	data: DocumentData
-}
 
 export async function GET() {
 	try {
-		const { firestore, uid, role } = await authenticateRequest()
+		const { uid, role } = await authenticateRequest()
 
-		const [general, roleStats] = await Promise.all([getGeneralStats(firestore), getRoleStats(firestore, uid, role)])
+		const [general, roleStats] = await Promise.all([getGeneralStats(), getRoleStats(uid, role)])
 
 		const payload: DashboardSummaryResponse = {
 			general,
@@ -45,13 +30,13 @@ export async function GET() {
 	}
 }
 
-async function getGeneralStats(firestore: Firestore): Promise<DashboardGeneralStats> {
+async function getGeneralStats(): Promise<DashboardGeneralStats> {
 	const [totalConferences, totalPapers, totalReviewers, totalAuthors, totalOrganizers] = await Promise.all([
-		countQuery(firestore.collection(COLLECTIONS.CONFERENCES)),
-		countQuery(firestore.collection(COLLECTIONS.PAPERS)),
-		countQuery(firestore.collection(COLLECTIONS.USERS).where('role', '==', 'reviewer')),
-		countQuery(firestore.collection(COLLECTIONS.USERS).where('role', '==', 'author')),
-		countQuery(firestore.collection(COLLECTIONS.USERS).where('role', '==', 'organizer'))
+		prisma.conference.count(),
+		prisma.paper.count(),
+		prisma.user.count({ where: { role: 'reviewer' } }),
+		prisma.user.count({ where: { role: 'author' } }),
+		prisma.user.count({ where: { role: 'organizer' } })
 	])
 
 	return {
@@ -64,216 +49,157 @@ async function getGeneralStats(firestore: Firestore): Promise<DashboardGeneralSt
 	}
 }
 
-async function getRoleStats(firestore: Firestore, uid: string, role: DashboardRole): Promise<DashboardRoleStats> {
+async function getRoleStats(uid: string, role: DashboardRole): Promise<DashboardRoleStats> {
 	switch (role) {
 		case 'organizer':
-			return getOrganizerStats(firestore, uid)
+			return getOrganizerStats(uid)
 		case 'author':
-			return getAuthorStats(firestore, uid)
+			return getAuthorStats(uid)
 		case 'reviewer':
-			return getReviewerStats(firestore, uid)
+			return getReviewerStats(uid)
 		default:
-			throw new ApiError(403, 'Unsupported role for dashboard summary.')
+			// Should not be reachable if authenticateRequest checks role properly, but safe fallback
+			throw new Error('Unsupported role')
 	}
 }
 
-async function getOrganizerStats(firestore: Firestore, uid: string): Promise<OrganizerDashboardStats> {
-	const conferencesSnapshot = await firestore.collection(COLLECTIONS.CONFERENCES).where('organizerId', '==', uid).get()
-
-	const conferenceIds = conferencesSnapshot.docs.map((doc) => doc.id)
-	const conferenceCount = conferencesSnapshot.size
-
-	let latestConferenceName: string | null = null
-	let latestConferenceStart: string | null = null
-
-	conferencesSnapshot.forEach((doc) => {
-		const data = doc.data() as DocumentData
-		const start = toIsoString(data.startDate)
-		if (!start) {
-			return
-		}
-
-		if (!latestConferenceStart || start > latestConferenceStart) {
-			latestConferenceStart = start
-			latestConferenceName = typeof data.name === 'string' ? data.name : 'Conference'
+async function getOrganizerStats(uid: string): Promise<OrganizerDashboardStats> {
+	// Organizer's conferences
+	const conferences = await prisma.conference.findMany({
+		where: { organizerId: uid },
+		orderBy: { startDate: 'desc' },
+		include: {
+			papers: {
+				include: {
+					reviews: true,
+					author: true
+				}
+			}
 		}
 	})
 
-	const papers = await fetchPapersByConferenceIds(firestore, conferenceIds)
-	const paperCount = papers.length
+	const conferenceCount = conferences.length
+	const latestConference = conferences[0]
 
+	let paperCount = 0
+	let latestPaper: { title: string; createdAt: Date } | null = null
 	const reviewerIds = new Set<string>()
 	const authorIds = new Set<string>()
-	const statusTally = createStatusTally()
-	let latestPaperTitle: string | null = null
-	let latestPaperCreatedAt: string | null = null
 
-	for (const paper of papers) {
-		const data = paper.data
-		const createdAt = toIsoString(data.createdAt)
-		const reviewers = Array.isArray(data.reviewers) ? (data.reviewers as string[]) : []
-		const statuses = extractReviewerStatuses(data.reviewerStatuses)
+	let pending = 0
+	let accepted = 0
+	let declined = 0
 
-		if (typeof data.authorId === 'string') {
-			authorIds.add(data.authorId)
+	for (const conf of conferences) {
+		paperCount += conf.papers.length
+		for (const paper of conf.papers) {
+			authorIds.add(paper.authorId)
+
+			if (!latestPaper || paper.createdAt > latestPaper.createdAt) {
+				latestPaper = paper
+			}
+
+			for (const review of paper.reviews) {
+				reviewerIds.add(review.reviewerId)
+				if (review.status === 'accepted') accepted++
+				else if (review.status === 'declined') declined++
+				else pending++ // default or 'pending'
+			}
 		}
-
-		if (createdAt && (!latestPaperCreatedAt || createdAt > latestPaperCreatedAt)) {
-			latestPaperCreatedAt = createdAt
-			latestPaperTitle = typeof data.title === 'string' ? data.title : 'Untitled paper'
-		}
-
-		reviewers.forEach((reviewerId) => {
-			reviewerIds.add(reviewerId)
-			const status = statuses[reviewerId] ?? DEFAULT_REVIEWER_DECISION
-			statusTally[status] += 1
-		})
 	}
-
-	const totalReviewAssignments = statusTally.pending + statusTally.accepted + statusTally.declined
 
 	return {
 		role: 'organizer',
 		conferenceCount,
 		paperCount,
-		totalReviewAssignments,
-		pendingDecisions: statusTally.pending,
-		acceptedDecisions: statusTally.accepted,
-		declinedDecisions: statusTally.declined,
+		totalReviewAssignments: pending + accepted + declined,
+		pendingDecisions: pending,
+		acceptedDecisions: accepted,
+		declinedDecisions: declined,
 		uniqueReviewerCount: reviewerIds.size,
 		uniqueAuthorCount: authorIds.size,
-		latestConferenceName,
-		latestConferenceStart,
-		latestPaperTitle,
-		latestPaperCreatedAt
+		latestConferenceName: latestConference?.name ?? null,
+		latestConferenceStart: latestConference?.startDate?.toISOString() ?? null,
+		latestPaperTitle: latestPaper?.title ?? null,
+		latestPaperCreatedAt: latestPaper?.createdAt.toISOString() ?? null
 	}
 }
 
-async function getAuthorStats(firestore: Firestore, uid: string): Promise<AuthorDashboardStats> {
-	const papersSnapshot = await firestore.collection(COLLECTIONS.PAPERS).where('authorId', '==', uid).get()
-
-	const conferenceIds = new Set<string>()
-	const reviewerIds = new Set<string>()
-	const statusTally = createStatusTally()
-	let latestPaperTitle: string | null = null
-	let latestPaperCreatedAt: string | null = null
-
-	papersSnapshot.forEach((doc) => {
-		const data = doc.data() as DocumentData
-		const createdAt = toIsoString(data.createdAt)
-		const reviewers = Array.isArray(data.reviewers) ? (data.reviewers as string[]) : []
-		const statuses = extractReviewerStatuses(data.reviewerStatuses)
-
-		if (createdAt && (!latestPaperCreatedAt || createdAt > latestPaperCreatedAt)) {
-			latestPaperCreatedAt = createdAt
-			latestPaperTitle = typeof data.title === 'string' ? data.title : 'Untitled paper'
-		}
-
-		reviewers.forEach((reviewerId) => {
-			reviewerIds.add(reviewerId)
-			const status = statuses[reviewerId] ?? DEFAULT_REVIEWER_DECISION
-			statusTally[status] += 1
-		})
-
-		const conferenceId = typeof data.conferenceId === 'string' ? data.conferenceId : null
-		if (conferenceId) {
-			conferenceIds.add(conferenceId)
+async function getAuthorStats(uid: string): Promise<AuthorDashboardStats> {
+	const papers = await prisma.paper.findMany({
+		where: { authorId: uid },
+		orderBy: { createdAt: 'desc' },
+		include: {
+			reviews: true
 		}
 	})
 
-	const paperCount = papersSnapshot.size
-	const totalReviewerAssignments = statusTally.pending + statusTally.accepted + statusTally.declined
+	const conferenceIds = new Set<string>(papers.map((p) => p.conferenceId))
+	const reviewerIds = new Set<string>()
+
+	let pending = 0
+	let accepted = 0
+	let declined = 0
+
+	for (const paper of papers) {
+		for (const review of paper.reviews) {
+			reviewerIds.add(review.reviewerId)
+			if (review.status === 'accepted') accepted++
+			else if (review.status === 'declined') declined++
+			else pending++
+		}
+	}
 
 	return {
 		role: 'author',
-		paperCount,
+		paperCount: papers.length,
 		conferenceParticipationCount: conferenceIds.size,
 		uniqueReviewerCount: reviewerIds.size,
-		totalReviewerAssignments,
-		pendingReviews: statusTally.pending,
-		acceptedReviews: statusTally.accepted,
-		declinedReviews: statusTally.declined,
-		latestPaperTitle,
-		latestPaperCreatedAt
+		totalReviewerAssignments: pending + accepted + declined,
+		pendingReviews: pending,
+		acceptedReviews: accepted,
+		declinedReviews: declined,
+		latestPaperTitle: papers[0]?.title ?? null,
+		latestPaperCreatedAt: papers[0]?.createdAt.toISOString() ?? null
 	}
 }
 
-async function getReviewerStats(firestore: Firestore, uid: string): Promise<ReviewerDashboardStats> {
-	const papersSnapshot = await firestore.collection(COLLECTIONS.PAPERS).where('reviewers', 'array-contains', uid).get()
-
-	const statusTally = createStatusTally()
-	const conferenceIds = new Set<string>()
-	const authorIds = new Set<string>()
-	let latestAssignedPaperTitle: string | null = null
-	let latestAssignedPaperAt: string | null = null
-
-	papersSnapshot.forEach((doc) => {
-		const data = doc.data() as DocumentData
-		const statuses = extractReviewerStatuses(data.reviewerStatuses)
-		const reviewerStatus = statuses[uid] ?? DEFAULT_REVIEWER_DECISION
-		statusTally[reviewerStatus] += 1
-
-		const createdAt = toIsoString(data.createdAt)
-		if (createdAt && (!latestAssignedPaperAt || createdAt > latestAssignedPaperAt)) {
-			latestAssignedPaperAt = createdAt
-			latestAssignedPaperTitle = typeof data.title === 'string' ? data.title : 'Untitled paper'
-		}
-
-		const conferenceId = typeof data.conferenceId === 'string' ? data.conferenceId : null
-		if (conferenceId) {
-			conferenceIds.add(conferenceId)
-		}
-
-		const authorId = typeof data.authorId === 'string' ? data.authorId : null
-		if (authorId) {
-			authorIds.add(authorId)
+async function getReviewerStats(uid: string): Promise<ReviewerDashboardStats> {
+	const reviews = await prisma.review.findMany({
+		where: { reviewerId: uid },
+		include: {
+			paper: true
 		}
 	})
 
-	const assignedPaperCount = papersSnapshot.size
-	const completedReviews = statusTally.accepted + statusTally.declined
+	const papers = reviews.map((r) => r.paper).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+
+	let pending = 0
+	let accepted = 0
+	let declined = 0
+
+	const conferenceIds = new Set<string>()
+	const authorIds = new Set<string>()
+
+	for (const review of reviews) {
+		if (review.status === 'accepted') accepted++
+		else if (review.status === 'declined') declined++
+		else pending++
+
+		conferenceIds.add(review.paper.conferenceId)
+		authorIds.add(review.paper.authorId)
+	}
 
 	return {
 		role: 'reviewer',
-		assignedPaperCount,
-		pendingReviews: statusTally.pending,
-		acceptedDecisions: statusTally.accepted,
-		declinedDecisions: statusTally.declined,
-		completedReviews,
+		assignedPaperCount: reviews.length,
+		pendingReviews: pending,
+		acceptedDecisions: accepted,
+		declinedDecisions: declined,
+		completedReviews: accepted + declined,
 		conferencesCovered: conferenceIds.size,
 		distinctAuthors: authorIds.size,
-		latestAssignedPaperTitle,
-		latestAssignedPaperAt
-	}
-}
-
-async function countQuery(query: FirestoreQuery<DocumentData>): Promise<number> {
-	const snapshot = await query.count().get()
-	return snapshot.data().count
-}
-
-async function fetchPapersByConferenceIds(firestore: Firestore, conferenceIds: string[]): Promise<PaperRecord[]> {
-	if (conferenceIds.length === 0) {
-		return []
-	}
-
-	const results: PaperRecord[] = []
-	const chunks = chunkArray(conferenceIds, 10)
-
-	for (const chunk of chunks) {
-		const snapshot = await firestore.collection(COLLECTIONS.PAPERS).where('conferenceId', 'in', chunk).get()
-		snapshot.forEach((doc) => {
-			results.push({ id: doc.id, data: doc.data() as DocumentData })
-		})
-	}
-
-	return results
-}
-
-function createStatusTally(): ReviewerStatusTally {
-	return {
-		pending: 0,
-		accepted: 0,
-		declined: 0
+		latestAssignedPaperTitle: papers[0]?.title ?? null,
+		latestAssignedPaperAt: papers[0]?.createdAt.toISOString() ?? null
 	}
 }

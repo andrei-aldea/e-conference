@@ -1,10 +1,10 @@
 'use client'
 
 import { Loader } from 'lucide-react'
+import { useSession } from 'next-auth/react'
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { toast } from 'sonner'
 
-import { useAuth } from '@/components/auth/auth-provider'
 import { PageDescription, PageTitle } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -40,7 +40,8 @@ interface PaperEditState {
 }
 
 export default function MyPapersPage() {
-	const { user } = useAuth()
+	const { data: session } = useSession()
+	const user = session?.user
 	const [papers, setPapers] = useState<PaperItem[]>([])
 	const [isLoading, setIsLoading] = useState(true)
 	const [error, setError] = useState<string | null>(null)

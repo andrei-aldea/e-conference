@@ -1,0 +1,74 @@
+// User (Managed by NextAuth + Custom Roles)
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+
+  password      String?
+  role          String    @default("author") // "organizer" | "author" | "reviewer"
+  
+  // Relations
+  organizedConferences Conference[]
+  papers              Paper[]
+  reviews             Review[]
+ 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Conferences
+model Conference {
+  id          String   @id @default(uuid())
+  organizerId String
+  organizer   User     @relation(fields: [organizerId], references: [id])
+  name        String
+  location    String
+  description String
+  startDate   DateTime
+  endDate     DateTime
+  papers      Paper[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Papers
+model Paper {
+  id           String   @id @default(uuid())
+  conferenceId String
+  conference   Conference @relation(fields: [conferenceId], references: [id])
+  authorId     String
+  author       User     @relation(fields: [authorId], references: [id])
+  title        String
+  fileUrl      String   // Vercel Blob URL
+  status       String   @default("submitted") // "submitted", "under_review", "accepted", "rejected"
+  reviews      Review[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Paper Reviews
+model Review {
+  id         String   @id @default(uuid())
+  paperId    String
+  paper      Paper    @relation(fields: [paperId], references: [id])
+  reviewerId String
+  reviewer   User     @relation(fields: [reviewerId], references: [id])
+  status     String?  // 'approved', 'rejected', 'pending'
+  feedback   String?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([paperId, reviewerId])
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}

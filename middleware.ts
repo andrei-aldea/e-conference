@@ -1,28 +1,19 @@
-import type { NextRequest } from 'next/server'
-import { NextResponse } from 'next/server'
+import { authConfig } from '@/lib/auth.config'
+import NextAuth from 'next-auth'
 
-import { isPublicPath } from '@/lib/paths'
+const { auth } = NextAuth(authConfig)
 
-export function middleware(request: NextRequest) {
-	const session = request.cookies.get('session')?.value
-	const { pathname } = request.nextUrl
+export default auth((req) => {
+	const isLoggedIn = !!req.auth
+	const isOnDashboard = req.nextUrl.pathname.startsWith('/dashboard')
 
-	const isPublic = isPublicPath(pathname)
-
-	if (session && isPublic) {
-		return NextResponse.redirect(new URL('/dashboard', request.url))
+	if (isOnDashboard && !isLoggedIn) {
+		return Response.redirect(new URL('/login', req.nextUrl))
 	}
 
-	if (!session && !isPublic) {
-		const loginUrl = new URL('/login', request.url)
-		// Store the page they were trying to access
-		loginUrl.searchParams.set('redirect', pathname)
-		return NextResponse.redirect(loginUrl)
-	}
-
-	return NextResponse.next()
-}
+	return
+})
 
 export const config = {
-	matcher: ['/((?!api|_next/static|_next/image|.*\\.png$).*)']
+	matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)']
 }
