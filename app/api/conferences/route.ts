@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
 				select: { id: true, name: true }
 			})
 
-			const reviewerLookup = reviewers.reduce((acc, r) => {
+			const reviewerLookup = reviewers.reduce((acc: Record<string, string>, r) => {
 				acc[r.id] = r.name ?? 'Reviewer'
 				return acc
 			}, {} as Record<string, string>)
