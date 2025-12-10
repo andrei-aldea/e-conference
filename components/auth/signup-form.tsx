@@ -82,112 +82,110 @@ export function SignupForm() {
 	}
 
 	return (
-		<div className='flex min-h-screen items-center justify-center bg-muted/30 p-4'>
-			<Card className='w-full max-w-md'>
-				<CardHeader className='space-y-1 text-center'>
-					<CardTitle className='text-2xl font-bold'>Create an account</CardTitle>
-					<CardDescription>Enter your details to get started</CardDescription>
-				</CardHeader>
-				<CardContent>
-					<form
-						onSubmit={form.handleSubmit(onSubmit)}
-						className='space-y-4'
-					>
-						<div className='grid gap-4 sm:grid-cols-2'>
-							<div className='space-y-2'>
-								<Label htmlFor='name'>Full Name</Label>
-								<Input
-									id='name'
-									placeholder='John Doe'
-									{...form.register('name')}
-								/>
-								{form.formState.errors.name && (
-									<p className='text-sm text-destructive'>{form.formState.errors.name.message}</p>
-								)}
-							</div>
-
-							<div className='space-y-2'>
-								<Label htmlFor='username'>Username</Label>
-								<Input
-									id='username'
-									placeholder='johndoe'
-									{...form.register('username')}
-								/>
-								{form.formState.errors.username && (
-									<p className='text-sm text-destructive'>{form.formState.errors.username.message}</p>
-								)}
-							</div>
-						</div>
-
+		<Card>
+			<CardHeader className='text-center pb-4'>
+				<CardTitle className='text-2xl font-bold'>Create an account</CardTitle>
+				<CardDescription className='mt-2'>Enter your details to get started</CardDescription>
+			</CardHeader>
+			<CardContent>
+				<form
+					onSubmit={form.handleSubmit(onSubmit)}
+					className='space-y-4'
+				>
+					<div className='grid gap-4 sm:grid-cols-2'>
 						<div className='space-y-2'>
-							<Label htmlFor='role'>Role</Label>
-							<Select
-								onValueChange={(value) => form.setValue('role', value as SignupInput['role'])}
-								defaultValue='author'
-							>
-								<SelectTrigger>
-									<SelectValue placeholder='Select a role' />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectItem value='organizer'>Organizer</SelectItem>
-									<SelectItem value='author'>Author</SelectItem>
-									<SelectItem value='reviewer'>Reviewer</SelectItem>
-								</SelectContent>
-							</Select>
-							{form.formState.errors.role && (
-								<p className='text-sm text-destructive'>{form.formState.errors.role.message}</p>
+							<Label htmlFor='name'>Full Name</Label>
+							<Input
+								id='name'
+								placeholder='Enter your name'
+								{...form.register('name')}
+							/>
+							{form.formState.errors.name && (
+								<p className='text-sm text-destructive'>{form.formState.errors.name.message}</p>
 							)}
 						</div>
 
-						<div className='grid gap-4 sm:grid-cols-2'>
-							<div className='space-y-2'>
-								<Label htmlFor='password'>Password</Label>
-								<Input
-									id='password'
-									type='password'
-									placeholder='••••••••'
-									{...form.register('password')}
-								/>
-								{form.formState.errors.password && (
-									<p className='text-sm text-destructive'>{form.formState.errors.password.message}</p>
-								)}
-							</div>
+						<div className='space-y-2'>
+							<Label htmlFor='username'>Username</Label>
+							<Input
+								id='username'
+								placeholder='Enter username'
+								{...form.register('username')}
+							/>
+							{form.formState.errors.username && (
+								<p className='text-sm text-destructive'>{form.formState.errors.username.message}</p>
+							)}
+						</div>
+					</div>
 
-							<div className='space-y-2'>
-								<Label htmlFor='confirmPassword'>Confirm Password</Label>
-								<Input
-									id='confirmPassword'
-									type='password'
-									placeholder='••••••••'
-									{...form.register('confirmPassword')}
-								/>
-								{form.formState.errors.confirmPassword && (
-									<p className='text-sm text-destructive'>{form.formState.errors.confirmPassword.message}</p>
-								)}
-							</div>
+					<div className='space-y-2'>
+						<Label htmlFor='role'>Role</Label>
+						<Select
+							onValueChange={(value) => form.setValue('role', value as SignupInput['role'])}
+							defaultValue='author'
+						>
+							<SelectTrigger>
+								<SelectValue placeholder='Select a role' />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value='organizer'>Organizer</SelectItem>
+								<SelectItem value='author'>Author</SelectItem>
+								<SelectItem value='reviewer'>Reviewer</SelectItem>
+							</SelectContent>
+						</Select>
+						{form.formState.errors.role && (
+							<p className='text-sm text-destructive'>{form.formState.errors.role.message}</p>
+						)}
+					</div>
+
+					<div className='grid gap-4 sm:grid-cols-2'>
+						<div className='space-y-2'>
+							<Label htmlFor='password'>Password</Label>
+							<Input
+								id='password'
+								type='password'
+								placeholder='••••••••'
+								{...form.register('password')}
+							/>
+							{form.formState.errors.password && (
+								<p className='text-sm text-destructive'>{form.formState.errors.password.message}</p>
+							)}
 						</div>
 
-						<Button
-							type='submit'
-							className='w-full'
-							disabled={isSubmitting}
-						>
-							{isSubmitting && <Loader className='mr-2 h-4 w-4 animate-spin' />}
-							Create account
-						</Button>
-					</form>
+						<div className='space-y-2'>
+							<Label htmlFor='confirmPassword'>Confirm Password</Label>
+							<Input
+								id='confirmPassword'
+								type='password'
+								placeholder='••••••••'
+								{...form.register('confirmPassword')}
+							/>
+							{form.formState.errors.confirmPassword && (
+								<p className='text-sm text-destructive'>{form.formState.errors.confirmPassword.message}</p>
+							)}
+						</div>
+					</div>
 
-					<p className='mt-4 text-center text-sm text-muted-foreground'>
-						Already have an account?{' '}
-						<Link
-							href='/login'
-							className='font-medium text-primary hover:underline'
-						>
-							Sign in
-						</Link>
-					</p>
-				</CardContent>
-			</Card>
-		</div>
+					<Button
+						type='submit'
+						className='w-full'
+						disabled={isSubmitting}
+					>
+						{isSubmitting && <Loader className='mr-2 h-4 w-4 animate-spin' />}
+						Create account
+					</Button>
+				</form>
+
+				<p className='mt-4 text-center text-sm text-muted-foreground'>
+					Already have an account?{' '}
+					<Link
+						href='/login'
+						className='font-medium text-primary hover:underline'
+					>
+						Sign in
+					</Link>
+				</p>
+			</CardContent>
+		</Card>
 	)
 }

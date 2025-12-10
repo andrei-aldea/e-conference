@@ -13,9 +13,9 @@ const REVIEWER_DECISION_LABELS: Record<ReviewerDecision, string> = {
 }
 
 const REVIEWER_DECISION_TONE_CLASSES: Record<ReviewerDecision, string> = {
-	pending: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300',
-	accepted: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300',
-	declined: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300'
+	pending: 'bg-primary/10 text-primary',
+	accepted: 'bg-primary text-primary-foreground',
+	declined: 'bg-destructive/10 text-destructive'
 }
 
 export { REVIEWER_FEEDBACK_MAX_LENGTH }

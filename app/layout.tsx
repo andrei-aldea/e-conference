@@ -2,7 +2,6 @@ import { Suspense } from 'react'
 
 import { SessionProvider } from '@/components/providers/session-provider'
 import { ThemeProvider } from '@/components/theme/theme-provider'
-import { ModeToggle } from '@/components/theme/theme-toggle'
 import { Toaster } from '@/components/ui/sonner'
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
@@ -74,13 +73,9 @@ export default function RootLayout({
 						<main>
 							<ThemeProvider
 								attribute='class'
-								defaultTheme='system'
-								enableSystem
+								defaultTheme='dark'
 								disableTransitionOnChange
 							>
-								<div className='fixed right-5 top-5 z-50'>
-									<ModeToggle />
-								</div>
 								{children}
 								<Toaster />
 							</ThemeProvider>

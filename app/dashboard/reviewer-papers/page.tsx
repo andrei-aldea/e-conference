@@ -1,13 +1,15 @@
 'use client'
 
+import { ExternalLink, FileText, Loader, Pencil, User, Waypoints } from 'lucide-react'
 import { useSession } from 'next-auth/react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import { toast } from 'sonner'
 
-import { PageDescription, PageTitle } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import {
@@ -35,17 +37,17 @@ interface ReviewerAssignment {
 	id: string
 	title: string
 	createdAt: string | null
-	author: {
-		id: string
-		name: string
-	}
-	conference: {
-		id: string
-		name: string
-	}
+	author: { id: string; name: string }
+	conference: { id: string; name: string }
 	status: ReviewerDecision
 	feedback: string | null
 	file: PaperFileDetails | null
+}
+
+interface EditState {
+	paperId: string
+	status: ReviewerDecision
+	feedback: string
 }
 
 export default function ReviewerPapersPage() {
@@ -54,11 +56,9 @@ export default function ReviewerPapersPage() {
 	const [assignments, setAssignments] = useState<ReviewerAssignment[]>([])
 	const [isLoading, setIsLoading] = useState(true)
 	const [error, setError] = useState<string | null>(null)
-	const [statusErrors, setStatusErrors] = useState<Record<string, string | null>>({})
-	const [updatingStatus, setUpdatingStatus] = useState<Record<string, boolean>>({})
-	const [editingPaperId, setEditingPaperId] = useState<string | null>(null)
-	const [draftStatuses, setDraftStatuses] = useState<Record<string, ReviewerDecision>>({})
-	const [draftFeedbacks, setDraftFeedbacks] = useState<Record<string, string>>({})
+	const [editState, setEditState] = useState<EditState | null>(null)
+	const [isSaving, setIsSaving] = useState(false)
+	const [saveError, setSaveError] = useState<string | null>(null)
 
 	useEffect(() => {
 		async function loadAssignments() {
@@ -73,9 +73,7 @@ export default function ReviewerPapersPage() {
 
 			try {
 				const response = await fetch('/api/papers?scope=reviewer')
-				if (!response.ok) {
-					throw new Error('Unable to load assigned papers.')
-				}
+				if (!response.ok) throw new Error('Unable to load assigned papers.')
 				const payload = (await response.json()) as { papers: ReviewerAssignment[] }
 				setAssignments(payload.papers)
 			} catch (loadError) {
@@ -89,328 +87,284 @@ export default function ReviewerPapersPage() {
 		void loadAssignments()
 	}, [user])
 
-	const handleStatusChange = useCallback(
-		async (paperId: string, status: ReviewerDecision, feedback: string) => {
-			if (!user || user.role !== 'reviewer') {
-				return false
+	const startEditing = useCallback((assignment: ReviewerAssignment) => {
+		setEditState({
+			paperId: assignment.id,
+			status: assignment.status,
+			feedback: assignment.feedback ?? ''
+		})
+		setSaveError(null)
+	}, [])
+
+	const closeDialog = useCallback(() => {
+		setEditState(null)
+		setSaveError(null)
+	}, [])
+
+	const handleSave = useCallback(async () => {
+		if (!editState || !user || user.role !== 'reviewer') return
+
+		setIsSaving(true)
+		setSaveError(null)
+
+		try {
+			const response = await fetch('/api/papers', {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					paperId: editState.paperId,
+					status: editState.status,
+					feedback: editState.feedback
+				})
+			})
+
+			if (!response.ok) {
+				const payload = await response.json().catch(() => ({}))
+				throw new Error(payload?.error || 'Failed to save review')
 			}
 
-			setUpdatingStatus((prev) => ({ ...prev, [paperId]: true }))
-			setStatusErrors((prev) => ({ ...prev, [paperId]: null }))
-
-			try {
-				const response = await fetch('/api/papers', {
-					method: 'PATCH',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({ paperId, status, feedback })
-				})
-
-				if (!response.ok) {
-					let message = 'Failed to save your decision. Please try again.'
-					try {
-						const payload = (await response.json()) as { error?: string }
-						if (typeof payload?.error === 'string' && payload.error.length > 0) {
-							message = payload.error
-						}
-					} catch (parseError) {
-						console.error('Failed to parse reviewer status error response:', parseError)
-					}
-					throw new Error(message)
-				}
-
-				const normalizedFeedback = feedback.trim()
-				setAssignments((prev) =>
-					prev.map((assignment) =>
-						assignment.id === paperId
-							? {
-									...assignment,
-									status,
-									feedback: normalizedFeedback.length > 0 ? normalizedFeedback : null
-							  }
-							: assignment
-					)
+			setAssignments((prev) =>
+				prev.map((a) =>
+					a.id === editState.paperId
+						? { ...a, status: editState.status, feedback: editState.feedback.trim() || null }
+						: a
 				)
-				setDraftStatuses((prev) => {
-					const next = { ...prev }
-					delete next[paperId]
-					return next
-				})
-				setDraftFeedbacks((prev) => {
-					const next = { ...prev }
-					delete next[paperId]
-					return next
-				})
-				return true
-			} catch (requestError) {
-				console.error('Failed to update reviewer status:', requestError)
-				setStatusErrors((prev) => ({
-					...prev,
-					[paperId]:
-						requestError instanceof Error ? requestError.message : 'Failed to save your decision. Please try again.'
-				}))
-				return false
-			} finally {
-				setUpdatingStatus((prev) => ({ ...prev, [paperId]: false }))
-			}
-		},
-		[user]
-	)
+			)
 
-	const handleStartEditing = useCallback(
-		(paperId: string, currentStatus: ReviewerDecision, currentFeedback: string | null) => {
-			setEditingPaperId(paperId)
-			setDraftStatuses((prev) => ({ ...prev, [paperId]: currentStatus }))
-			setDraftFeedbacks((prev) => ({ ...prev, [paperId]: currentFeedback ?? '' }))
-		},
-		[]
-	)
-
-	const handleCancelEditing = useCallback((paperId: string) => {
-		setEditingPaperId((prev) => (prev === paperId ? null : prev))
-		setDraftStatuses((prev) => {
-			const next = { ...prev }
-			delete next[paperId]
-			return next
-		})
-		setDraftFeedbacks((prev) => {
-			const next = { ...prev }
-			delete next[paperId]
-			return next
-		})
-	}, [])
-
-	const handleDraftStatusChange = useCallback((paperId: string, status: ReviewerDecision) => {
-		setDraftStatuses((prev) => ({ ...prev, [paperId]: status }))
-	}, [])
-
-	const handleDraftFeedbackChange = useCallback((paperId: string, feedback: string) => {
-		setDraftFeedbacks((prev) => ({ ...prev, [paperId]: feedback }))
-	}, [])
-
-	const handleSaveEditing = useCallback(
-		async (paperId: string, status: ReviewerDecision, feedback: string) => {
-			const success = await handleStatusChange(paperId, status, feedback)
-			if (success) {
-				setEditingPaperId((prev) => (prev === paperId ? null : prev))
-			}
-		},
-		[handleStatusChange]
-	)
-
-	const content = useMemo(() => {
-		if (!user) {
-			return <p>You must be logged in to view your assigned papers.</p>
+			toast.success('Review saved successfully')
+			closeDialog()
+		} catch (err) {
+			const message = err instanceof Error ? err.message : 'Failed to save review'
+			setSaveError(message)
+			toast.error(message)
+		} finally {
+			setIsSaving(false)
 		}
+	}, [editState, user, closeDialog])
 
-		if (user.role !== 'reviewer') {
-			return <p>Only reviewers can view assigned papers.</p>
-		}
+	if (!user) {
+		return (
+			<div className='flex flex-col items-center justify-center py-16 text-center'>
+				<Waypoints className='h-12 w-12 text-muted-foreground mb-4' />
+				<h2 className='text-xl font-semibold'>Sign in required</h2>
+				<p className='text-muted-foreground mt-2'>You must be logged in to view assigned papers.</p>
+			</div>
+		)
+	}
 
-		if (isLoading) {
-			return (
-				<div className='space-y-4'>
-					{Array.from({ length: 3 }).map((_, index) => (
-						<Card key={index}>
-							<CardHeader className='space-y-2'>
-								<Skeleton className='h-5 w-48' />
+	if (user.role !== 'reviewer') {
+		return (
+			<div className='flex flex-col items-center justify-center py-16 text-center'>
+				<Waypoints className='h-12 w-12 text-muted-foreground mb-4' />
+				<h2 className='text-xl font-semibold'>Reviewers Only</h2>
+				<p className='text-muted-foreground mt-2'>Only reviewers can view assigned papers.</p>
+			</div>
+		)
+	}
+
+	return (
+		<div className='space-y-6'>
+			<div className='flex items-center justify-between'>
+				<div>
+					<h1 className='text-2xl font-bold tracking-tight'>Assigned Papers</h1>
+					<p className='text-muted-foreground'>Review papers assigned to you and provide feedback.</p>
+				</div>
+			</div>
+
+			{isLoading ? (
+				<div className='grid gap-6'>
+					{[1, 2, 3].map((i) => (
+						<Card key={i}>
+							<CardHeader>
+								<Skeleton className='h-6 w-48' />
 								<Skeleton className='h-4 w-32' />
 							</CardHeader>
-							<CardContent className='space-y-2'>
+							<CardContent>
 								<Skeleton className='h-4 w-full' />
-								<Skeleton className='h-4 w-3/4' />
 							</CardContent>
 						</Card>
 					))}
 				</div>
-			)
-		}
+			) : error ? (
+				<Card className='border-destructive/50'>
+					<CardContent className='py-8 text-center'>
+						<p className='text-destructive'>{error}</p>
+					</CardContent>
+				</Card>
+			) : assignments.length === 0 ? (
+				<Card>
+					<CardContent className='flex flex-col items-center py-16 text-center'>
+						<Waypoints className='h-12 w-12 text-muted-foreground mb-4' />
+						<h3 className='text-lg font-medium'>No papers assigned</h3>
+						<p className='text-muted-foreground mt-2'>You haven&apos;t been assigned any papers to review yet.</p>
+					</CardContent>
+				</Card>
+			) : (
+				<div className='grid gap-6'>
+					{assignments.map((assignment) => (
+						<Card
+							key={assignment.id}
+							className='overflow-hidden'
+						>
+							<div className='flex items-stretch'>
+								{/* Status Indicator Bar */}
+								<div
+									className={`w-1.5 ${
+										assignment.status === 'accepted'
+											? 'bg-primary'
+											: assignment.status === 'declined'
+											? 'bg-destructive'
+											: 'bg-muted-foreground'
+									}`}
+								/>
 
-		if (error) {
-			return <p className='text-sm text-destructive'>{error}</p>
-		}
-
-		if (assignments.length === 0) {
-			return <p>You have not been assigned any papers yet.</p>
-		}
-
-		return (
-			<div className='space-y-4'>
-				{assignments.map((assignment) => {
-					const isEditing = editingPaperId === assignment.id
-					const draftStatus = draftStatuses[assignment.id]
-					const currentStatus = isEditing ? draftStatus ?? assignment.status : assignment.status
-					const draftFeedback = draftFeedbacks[assignment.id] ?? ''
-					const isSaving = !!updatingStatus[assignment.id]
-					const statusError = statusErrors[assignment.id]
-
-					const handleSelectChange = (value: string) => {
-						if (!isEditing) {
-							return
-						}
-						handleDraftStatusChange(assignment.id, value as ReviewerDecision)
-					}
-
-					return (
-						<Card key={assignment.id}>
-							<CardHeader>
-								<CardTitle>{assignment.title}</CardTitle>
-								<CardDescription className='flex flex-col gap-1 text-xs sm:text-sm sm:flex-row sm:items-center sm:justify-between'>
-									<span>Conference: {assignment.conference.name}</span>
-								</CardDescription>
-							</CardHeader>
-							<CardContent className='space-y-4 text-sm text-muted-foreground'>
-								<div>
-									<strong className='font-medium text-foreground'>Author:</strong> {assignment.author.name}
-								</div>
-								{assignment.file ? (
-									<div className='flex flex-wrap items-center gap-1'>
-										<span className='font-medium text-foreground'>File:</span>
-										{assignment.file.downloadUrl ? (
-											<a
-												href={assignment.file.downloadUrl}
-												target='_blank'
-												className='underline'
-												rel='noopener noreferrer'
-											>
-												View PDF
-											</a>
-										) : (
-											<span>No download link available.</span>
-										)}
-									</div>
-								) : (
-									<p>No file available yet.</p>
-								)}
-								{isEditing ? (
-									<form
-										onSubmit={(event) => {
-											event.preventDefault()
-											void handleSaveEditing(assignment.id, currentStatus, draftFeedback)
-										}}
-										className='space-y-4'
-									>
-										<div className='space-y-2'>
-											<Label htmlFor={`decision-${assignment.id}`}>Decision</Label>
-											<Select
-												value={currentStatus}
-												onValueChange={handleSelectChange}
-												disabled={isSaving}
-											>
-												<SelectTrigger
-													size='sm'
-													id={`decision-${assignment.id}`}
+								<div className='flex-1'>
+									<CardHeader className='pb-4'>
+										<div className='flex items-start justify-between gap-4'>
+											<div className='space-y-2'>
+												<CardTitle className='text-xl'>{assignment.title}</CardTitle>
+												<CardDescription className='text-sm'>{assignment.conference.name}</CardDescription>
+											</div>
+											<div className='flex items-center gap-3'>
+												<span
+													className={`inline-flex items-center rounded-md px-3 py-1.5 text-sm font-semibold ${getReviewerStatusToneClass(
+														assignment.status
+													)}`}
 												>
-													<SelectValue />
-												</SelectTrigger>
-												<SelectContent>
-													{STATUS_OPTIONS.map((option) => (
-														<SelectItem
-															key={option.value}
-															value={option.value}
-														>
-															{option.label}
-														</SelectItem>
-													))}
-												</SelectContent>
-											</Select>
+													{getReviewerStatusLabel(assignment.status)}
+												</span>
+												<Button
+													size='sm'
+													variant='outline'
+													onClick={() => startEditing(assignment)}
+												>
+													<Pencil className='h-4 w-4 mr-1.5' />
+													Review
+												</Button>
+											</div>
 										</div>
-										<div className='space-y-2'>
-											<Label htmlFor={`feedback-${assignment.id}`}>Feedback for the author</Label>
-											<Textarea
-												id={`feedback-${assignment.id}`}
-												value={draftFeedback}
-												onChange={(event) => handleDraftFeedbackChange(assignment.id, event.target.value)}
-												disabled={isSaving}
-												maxLength={REVIEWER_FEEDBACK_MAX_LENGTH}
-												className='min-h-[120px]'
-												placeholder='Share concise, constructive feedback for the author.'
-											/>
-											<p className='text-xs text-muted-foreground'>
-												{draftFeedback.length}/{REVIEWER_FEEDBACK_MAX_LENGTH} characters
-											</p>
-										</div>
-										<div className='flex flex-wrap items-center gap-2'>
-											<Button
-												type='submit'
-												variant='default'
-												size='sm'
-												disabled={isSaving}
-											>
-												{isSaving ? 'Saving...' : 'Save'}
-											</Button>
-											<Button
-												type='button'
-												variant='outline'
-												size='sm'
-												onClick={() => handleCancelEditing(assignment.id)}
-												disabled={isSaving}
-											>
-												Cancel
-											</Button>
-											{statusError && <p className='text-xs text-destructive'>{statusError}</p>}
-										</div>
-									</form>
-								) : (
-									<div className='space-y-3'>
-										<div className='flex flex-wrap items-center gap-2'>
-											<span className='text-sm font-medium text-foreground'>Decision:</span>
-											<span
-												className={`rounded-full px-2 py-0.5 text-xs font-medium capitalize ${getReviewerStatusToneClass(
-													currentStatus
-												)}`}
-											>
-												{getReviewerStatusLabel(currentStatus)}
-											</span>
-										</div>
-										<div className='flex flex-wrap items-center gap-2'>
-											<strong className='font-medium text-foreground'>Feedback:</strong>
-											{assignment.feedback ? (
-												<p className='text-sm text-muted-foreground'>{assignment.feedback}</p>
-											) : (
-												<p className='text-sm italic text-muted-foreground'>No feedback shared yet.</p>
+									</CardHeader>
+
+									<CardContent className='pt-0 pb-6'>
+										{/* Actions Row */}
+										<div className='flex items-center gap-4 mb-6'>
+											<div className='inline-flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-sm font-medium'>
+												<User className='h-4 w-4' />
+												{assignment.author.name}
+											</div>
+											{assignment.file?.downloadUrl && (
+												<a
+													href={assignment.file.downloadUrl}
+													target='_blank'
+													rel='noopener noreferrer'
+													className='inline-flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-sm font-medium hover:bg-muted/80 transition-colors'
+												>
+													<FileText className='h-4 w-4' />
+													View PDF
+													<ExternalLink className='h-3 w-3' />
+												</a>
 											)}
 										</div>
-										<div className='flex items-center gap-2'>
-											<Button
-												variant='secondary'
-												size='sm'
-												onClick={() => handleStartEditing(assignment.id, assignment.status, assignment.feedback)}
-											>
-												Edit
-											</Button>
-										</div>
-									</div>
-								)}
-							</CardContent>
-						</Card>
-					)
-				})}
-			</div>
-		)
-	}, [
-		user,
-		isLoading,
-		error,
-		assignments,
-		editingPaperId,
-		draftStatuses,
-		draftFeedbacks,
-		handleDraftStatusChange,
-		handleDraftFeedbackChange,
-		handleSaveEditing,
-		updatingStatus,
-		statusErrors,
-		handleStartEditing,
-		handleCancelEditing
-	])
 
-	return (
-		<div className='space-y-6'>
-			<header className='space-y-1'>
-				<PageTitle>Assigned Papers</PageTitle>
-				<PageDescription>Keep track of the papers you are expected to review.</PageDescription>
-			</header>
-			{content}
+										{/* Feedback Section */}
+										<div className='rounded-lg border bg-card'>
+											<div className='flex items-center gap-2 px-4 py-3 border-b bg-muted/30'>
+												<span className='text-sm font-medium'>Your Feedback</span>
+											</div>
+											<div className='px-4 py-4'>
+												{assignment.feedback ? (
+													<p className='text-sm text-muted-foreground'>{assignment.feedback}</p>
+												) : (
+													<p className='text-sm text-muted-foreground italic'>No feedback submitted yet.</p>
+												)}
+											</div>
+										</div>
+									</CardContent>
+								</div>
+							</div>
+						</Card>
+					))}
+				</div>
+			)}
+
+			{/* Review Dialog */}
+			<Sheet
+				open={editState !== null}
+				onOpenChange={(open) => !open && closeDialog()}
+			>
+				<SheetContent>
+					<SheetHeader>
+						<SheetTitle>Submit Review</SheetTitle>
+						<SheetDescription>Provide your decision and feedback for this paper.</SheetDescription>
+					</SheetHeader>
+
+					{editState && (
+						<div className='flex-1 flex flex-col'>
+							<div className='flex-1 space-y-6 px-4 py-6'>
+								<div className='space-y-2'>
+									<Label htmlFor='review-status'>Decision</Label>
+									<Select
+										value={editState.status}
+										onValueChange={(value) =>
+											setEditState((s) => (s ? { ...s, status: value as ReviewerDecision } : s))
+										}
+									>
+										<SelectTrigger id='review-status'>
+											<SelectValue />
+										</SelectTrigger>
+										<SelectContent>
+											{STATUS_OPTIONS.map((option) => (
+												<SelectItem
+													key={option.value}
+													value={option.value}
+												>
+													{option.label}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+								</div>
+
+								<div className='space-y-2'>
+									<Label htmlFor='review-feedback'>Feedback</Label>
+									<Textarea
+										id='review-feedback'
+										value={editState.feedback}
+										onChange={(e) => setEditState((s) => (s ? { ...s, feedback: e.target.value } : s))}
+										maxLength={REVIEWER_FEEDBACK_MAX_LENGTH}
+										rows={6}
+										placeholder='Share constructive feedback for the author'
+									/>
+									<p className='text-xs text-muted-foreground'>
+										{editState.feedback.length}/{REVIEWER_FEEDBACK_MAX_LENGTH} characters
+									</p>
+								</div>
+
+								{saveError && <p className='text-sm text-destructive'>{saveError}</p>}
+							</div>
+
+							<SheetFooter>
+								<Button
+									type='button'
+									variant='outline'
+									onClick={closeDialog}
+									disabled={isSaving}
+								>
+									Cancel
+								</Button>
+								<Button
+									type='button'
+									onClick={handleSave}
+									disabled={isSaving}
+								>
+									{isSaving && <Loader className='mr-2 h-4 w-4 animate-spin' />}
+									Save Review
+								</Button>
+							</SheetFooter>
+						</div>
+					)}
+				</SheetContent>
+			</Sheet>
 		</div>
 	)
 }

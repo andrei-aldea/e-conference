@@ -54,64 +54,62 @@ export function LoginForm() {
 	}
 
 	return (
-		<div className='flex min-h-screen items-center justify-center bg-muted/30 p-4'>
-			<Card className='w-full max-w-sm'>
-				<CardHeader className='space-y-1 text-center'>
-					<CardTitle className='text-2xl font-bold'>Welcome back</CardTitle>
-					<CardDescription>Sign in to your account</CardDescription>
-				</CardHeader>
-				<CardContent>
-					<form
-						onSubmit={form.handleSubmit(onSubmit)}
-						className='space-y-4'
+		<Card>
+			<CardHeader className='text-center pb-4'>
+				<CardTitle className='text-2xl font-bold'>Welcome back</CardTitle>
+				<CardDescription className='mt-2'>Sign in to your account</CardDescription>
+			</CardHeader>
+			<CardContent>
+				<form
+					onSubmit={form.handleSubmit(onSubmit)}
+					className='space-y-4'
+				>
+					<div className='space-y-2'>
+						<Label htmlFor='username'>Username</Label>
+						<Input
+							id='username'
+							type='text'
+							placeholder='Enter username'
+							{...form.register('username')}
+						/>
+						{form.formState.errors.username && (
+							<p className='text-sm text-destructive'>{form.formState.errors.username.message}</p>
+						)}
+					</div>
+
+					<div className='space-y-2'>
+						<Label htmlFor='password'>Password</Label>
+						<Input
+							id='password'
+							type='password'
+							placeholder='••••••••'
+							{...form.register('password')}
+						/>
+						{form.formState.errors.password && (
+							<p className='text-sm text-destructive'>{form.formState.errors.password.message}</p>
+						)}
+					</div>
+
+					<Button
+						type='submit'
+						className='w-full'
+						disabled={isSubmitting}
 					>
-						<div className='space-y-2'>
-							<Label htmlFor='username'>Username</Label>
-							<Input
-								id='username'
-								type='text'
-								placeholder='johndoe'
-								{...form.register('username')}
-							/>
-							{form.formState.errors.username && (
-								<p className='text-sm text-destructive'>{form.formState.errors.username.message}</p>
-							)}
-						</div>
+						{isSubmitting && <Loader className='mr-2 h-4 w-4 animate-spin' />}
+						Sign in
+					</Button>
+				</form>
 
-						<div className='space-y-2'>
-							<Label htmlFor='password'>Password</Label>
-							<Input
-								id='password'
-								type='password'
-								placeholder='••••••••'
-								{...form.register('password')}
-							/>
-							{form.formState.errors.password && (
-								<p className='text-sm text-destructive'>{form.formState.errors.password.message}</p>
-							)}
-						</div>
-
-						<Button
-							type='submit'
-							className='w-full'
-							disabled={isSubmitting}
-						>
-							{isSubmitting && <Loader className='mr-2 h-4 w-4 animate-spin' />}
-							Sign in
-						</Button>
-					</form>
-
-					<p className='mt-4 text-center text-sm text-muted-foreground'>
-						Don&apos;t have an account?{' '}
-						<Link
-							href='/signup'
-							className='font-medium text-primary hover:underline'
-						>
-							Sign up
-						</Link>
-					</p>
-				</CardContent>
-			</Card>
-		</div>
+				<p className='mt-4 text-center text-sm text-muted-foreground'>
+					Don&apos;t have an account?{' '}
+					<Link
+						href='/signup'
+						className='font-medium text-primary hover:underline'
+					>
+						Sign up
+					</Link>
+				</p>
+			</CardContent>
+		</Card>
 	)
 }

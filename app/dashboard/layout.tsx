@@ -6,8 +6,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 		<SidebarProvider>
 			<AppSidebar />
 			<SidebarInset>
-				<header className='flex h-14 items-center border-b px-6'>
-					<SidebarTrigger />
+				<header className='flex h-12 items-center'>
+					<SidebarTrigger className='text-primary hover:bg-primary/10 hover:text-primary' />
 				</header>
 				<main className='flex-1 p-6 lg:p-8'>{children}</main>
 			</SidebarInset>

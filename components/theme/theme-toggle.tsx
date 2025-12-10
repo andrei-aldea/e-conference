@@ -1,31 +1,43 @@
 'use client'
 
 import { Moon, Sun } from 'lucide-react'
+import { motion } from 'motion/react'
 import { useTheme } from 'next-themes'
+import { useSyncExternalStore } from 'react'
 
-import { Button } from '@/components/ui/button'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+// Hydration-safe mounted check
+const emptySubscribe = () => () => {}
+const getSnapshot = () => true
+const getServerSnapshot = () => false
+
+function useMounted() {
+	return useSyncExternalStore(emptySubscribe, getSnapshot, getServerSnapshot)
+}
 
 export function ModeToggle() {
-	const { setTheme } = useTheme()
+	const { theme, setTheme } = useTheme()
+	const mounted = useMounted()
+
+	if (!mounted) {
+		return <div className='h-8 w-14 rounded-full bg-muted' />
+	}
+
+	const isDark = theme === 'dark'
 
 	return (
-		<DropdownMenu>
-			<DropdownMenuTrigger asChild>
-				<Button
-					variant='outline'
-					size='icon'
-				>
-					<Sun className='h-[1.2rem] w-[1.2rem] scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90' />
-					<Moon className='absolute h-[1.2rem] w-[1.2rem] scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0' />
-					<span className='sr-only'>Toggle theme</span>
-				</Button>
-			</DropdownMenuTrigger>
-			<DropdownMenuContent align='end'>
-				<DropdownMenuItem onClick={() => setTheme('light')}>Light</DropdownMenuItem>
-				<DropdownMenuItem onClick={() => setTheme('dark')}>Dark</DropdownMenuItem>
-				<DropdownMenuItem onClick={() => setTheme('system')}>System</DropdownMenuItem>
-			</DropdownMenuContent>
-		</DropdownMenu>
+		<button
+			onClick={() => setTheme(isDark ? 'light' : 'dark')}
+			className='relative flex h-8 w-14 items-center rounded-full bg-muted p-1 transition-colors hover:bg-muted/80'
+			aria-label={`Switch to ${isDark ? 'light' : 'dark'} mode`}
+		>
+			<motion.div
+				className='absolute flex h-6 w-6 items-center justify-center rounded-full bg-background shadow-sm'
+				animate={{ x: isDark ? 24 : 0 }}
+				transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+			>
+				{isDark ? <Moon className='h-3.5 w-3.5 text-primary' /> : <Sun className='h-3.5 w-3.5 text-primary' />}
+			</motion.div>
+			<span className='sr-only'>Toggle theme</span>
+		</button>
 	)
 }
