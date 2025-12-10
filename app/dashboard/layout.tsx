@@ -6,11 +6,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 		<SidebarProvider>
 			<AppSidebar />
 			<SidebarInset>
-				<header className='flex items-center p-5'>
-					<SidebarTrigger className='ml-0 mt-0 shrink-0' />
+				<header className='flex h-14 items-center border-b px-6'>
+					<SidebarTrigger />
 				</header>
-				<div className='flex-1 px-4'>{children}</div>
-				<br />
+				<main className='flex-1 p-6 lg:p-8'>{children}</main>
 			</SidebarInset>
 		</SidebarProvider>
 	)

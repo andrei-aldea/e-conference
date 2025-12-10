@@ -1,32 +1,31 @@
+import { cn } from '@/lib/utils'
 import * as React from 'react'
 
-import { cn } from '@/lib/utils'
+export function PageHeader({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+	return (
+		<div
+			className={cn('mb-8', className)}
+			{...props}
+		>
+			{children}
+		</div>
+	)
+}
 
-const defaultTitleClass = 'text-2xl font-semibold tracking-tight'
-const defaultDescriptionClass = 'text-sm text-muted-foreground'
-
-export type PageTitleProps = React.HTMLAttributes<HTMLHeadingElement>
-
-export const PageTitle = React.forwardRef<HTMLHeadingElement, PageTitleProps>(({ className, ...props }, ref) => (
-	<h1
-		ref={ref}
-		className={cn(defaultTitleClass, className)}
-		{...props}
-	/>
-))
-
-PageTitle.displayName = 'PageTitle'
-
-export type PageDescriptionProps = React.HTMLAttributes<HTMLParagraphElement>
-
-export const PageDescription = React.forwardRef<HTMLParagraphElement, PageDescriptionProps>(
-	({ className, ...props }, ref) => (
-		<p
-			ref={ref}
-			className={cn(defaultDescriptionClass, className)}
+export function PageTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
+	return (
+		<h1
+			className={cn('text-2xl font-semibold tracking-tight', className)}
 			{...props}
 		/>
 	)
-)
+}
 
-PageDescription.displayName = 'PageDescription'
+export function PageDescription({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) {
+	return (
+		<p
+			className={cn('mt-1 text-muted-foreground', className)}
+			{...props}
+		/>
+	)
+}

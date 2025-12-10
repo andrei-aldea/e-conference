@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from 'react'
 
-import { PageDescription, PageTitle } from '@/components/layout/page-header'
+import { PageDescription, PageHeader, PageTitle } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Calendar, MapPin } from 'lucide-react'
 import Link from 'next/link'
 
 interface ConferenceItem {
@@ -24,15 +25,12 @@ export default function ConferencesPage() {
 
 	useEffect(() => {
 		async function load() {
-			setLoading(true)
-			setError(null)
 			try {
 				const res = await fetch('/api/conferences')
-				if (!res.ok) throw new Error('Failed to load conferences')
+				if (!res.ok) throw new Error('Failed to load')
 				const data = await res.json()
 				setConferences(data.conferences)
-			} catch (err) {
-				console.error(err)
+			} catch {
 				setError('Failed to load conferences.')
 			} finally {
 				setLoading(false)
@@ -41,78 +39,71 @@ export default function ConferencesPage() {
 		load()
 	}, [])
 
-	if (loading) {
-		return (
-			<div className='space-y-4'>
-				<header className='space-y-1'>
-					<PageTitle>Conferences</PageTitle>
-					<PageDescription>Browse all upcoming conferences and view their details.</PageDescription>
-				</header>
-				{Array.from({ length: 3 }).map((_, index) => (
-					<Card key={index}>
-						<CardHeader className='space-y-2'>
-							<Skeleton className='h-5 w-48' />
-							<Skeleton className='h-4 w-32' />
-						</CardHeader>
-						<CardContent className='space-y-2'>
-							<Skeleton className='h-4 w-full' />
-							<Skeleton className='h-4 w-24' />
-						</CardContent>
-					</Card>
-				))}
-			</div>
-		)
-	}
-
-	if (error) {
-		return (
-			<div className='space-y-6'>
-				<header className='space-y-1'>
-					<PageTitle>Conferences</PageTitle>
-					<PageDescription>Browse all upcoming conferences and view their details.</PageDescription>
-				</header>
-				<p className='text-sm text-destructive'>{error}</p>
-			</div>
-		)
-	}
-
 	return (
-		<div className='space-y-6'>
-			<header className='space-y-1'>
+		<div>
+			<PageHeader>
 				<PageTitle>Conferences</PageTitle>
-				<PageDescription>Browse all upcoming conferences and view their details.</PageDescription>
-			</header>
+				<PageDescription>Browse all conferences and their details.</PageDescription>
+			</PageHeader>
 
-			{conferences.length === 0 ? (
-				<p>No conferences have been created yet.</p>
-			) : (
-				<div className='space-y-4'>
-					{conferences.map((conf) => (
-						<Card key={conf.id}>
+			{loading && (
+				<div className='grid gap-4 md:grid-cols-2 lg:grid-cols-3'>
+					{[1, 2, 3].map((i) => (
+						<Card key={i}>
 							<CardHeader>
-								<CardTitle>{conf.name}</CardTitle>
-								<CardDescription className='flex flex-col gap-1 text-xs sm:text-sm sm:flex-row sm:items-center sm:justify-between'>
-									<span>
-										{conf.location}
-										{conf.startDate && ' · '}
-										{formatConferenceDates(conf.startDate, conf.endDate)}
-									</span>
-								</CardDescription>
+								<Skeleton className='h-5 w-3/4' />
 							</CardHeader>
-							{conf.description && (
-								<CardContent>
-									<p className='text-sm text-muted-foreground line-clamp-2'>{conf.description}</p>
-								</CardContent>
-							)}
-							<CardFooter>
+							<CardContent className='space-y-2'>
+								<Skeleton className='h-4 w-full' />
+								<Skeleton className='h-4 w-1/2' />
+							</CardContent>
+						</Card>
+					))}
+				</div>
+			)}
+
+			{error && <p className='text-destructive'>{error}</p>}
+
+			{!loading && !error && conferences.length === 0 && (
+				<p className='text-muted-foreground'>No conferences available.</p>
+			)}
+
+			{!loading && !error && conferences.length > 0 && (
+				<div className='grid gap-4 md:grid-cols-2 lg:grid-cols-3'>
+					{conferences.map((conf) => (
+						<Card
+							key={conf.id}
+							className='flex flex-col'
+						>
+							<CardHeader>
+								<CardTitle className='text-lg'>{conf.name}</CardTitle>
+							</CardHeader>
+							<CardContent className='flex-1 space-y-3'>
+								{conf.location && (
+									<div className='flex items-center gap-2 text-sm text-muted-foreground'>
+										<MapPin className='h-4 w-4' />
+										{conf.location}
+									</div>
+								)}
+								{conf.startDate && (
+									<div className='flex items-center gap-2 text-sm text-muted-foreground'>
+										<Calendar className='h-4 w-4' />
+										{formatDate(conf.startDate)}
+										{conf.endDate && ` - ${formatDate(conf.endDate)}`}
+									</div>
+								)}
+								{conf.description && <p className='text-sm text-muted-foreground line-clamp-2'>{conf.description}</p>}
+							</CardContent>
+							<div className='p-6 pt-0'>
 								<Button
 									variant='outline'
 									size='sm'
 									asChild
+									className='w-full'
 								>
 									<Link href={`/dashboard/conferences/${conf.id}`}>View details</Link>
 								</Button>
-							</CardFooter>
+							</div>
 						</Card>
 					))}
 				</div>
@@ -121,26 +112,10 @@ export default function ConferencesPage() {
 	)
 }
 
-function formatConferenceDates(startDate: string | null, endDate: string | null) {
-	if (!startDate) {
-		return 'Dates to be announced'
-	}
-
-	const startObj = new Date(startDate)
-	const endObj = endDate ? new Date(endDate) : null
-
-	const formatter = new Intl.DateTimeFormat('en-US', {
+function formatDate(dateString: string) {
+	return new Date(dateString).toLocaleDateString('en-US', {
 		month: 'short',
 		day: 'numeric',
 		year: 'numeric'
 	})
-
-	const start = formatter.format(startObj)
-
-	if (!endObj) {
-		return start
-	}
-
-	const end = formatter.format(endObj)
-	return start === end ? start : `${start} - ${end}`
 }

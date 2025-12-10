@@ -1,34 +1,28 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useState, type ComponentProps } from 'react'
-import { useForm } from 'react-hook-form'
-
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
-import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
-import { cn } from '@/lib/utils'
-import { loginSchema, type LoginInput } from '@/lib/validation/schemas'
-import { Eye, EyeOff, Loader } from 'lucide-react'
+import { Loader } from 'lucide-react'
 import { signIn } from 'next-auth/react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { toast } from 'sonner' // Assuming sonner is used based on package.json
+import { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
 
-export function LoginForm({ className, ...props }: ComponentProps<'div'>) {
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { loginSchema, type LoginInput } from '@/lib/validation/schemas'
+
+export function LoginForm() {
 	const form = useForm<LoginInput>({
 		resolver: zodResolver(loginSchema),
-		defaultValues: {
-			email: '',
-			password: ''
-		}
+		defaultValues: { email: '', password: '' }
 	})
 
 	const [isSubmitting, setIsSubmitting] = useState(false)
-	const [showPassword, setShowPassword] = useState(false)
-	const router = useRouter() // Need to import useRouter. Add import to top.
+	const router = useRouter()
 
 	async function onSubmit(data: LoginInput) {
 		setIsSubmitting(true)
@@ -40,108 +34,75 @@ export function LoginForm({ className, ...props }: ComponentProps<'div'>) {
 			})
 
 			if (result?.error) {
-				toast.error('Invalid credentials') // Need toast or whatever UI used.
-				// Existing code had try/catch with comment about AuthProvider alerting.
+				toast.error('Invalid email or password')
 			} else {
 				router.push('/dashboard')
 				router.refresh()
 			}
-		} catch (error) {
-			console.error(error)
+		} catch {
+			toast.error('Something went wrong')
 		} finally {
 			setIsSubmitting(false)
 		}
 	}
 
 	return (
-		<div
-			className={cn('flex flex-col gap-6', className)}
-			{...props}
-		>
-			<Card>
-				<CardHeader className='text-center'>
-					<CardTitle className='text-xl'>Log in to your account</CardTitle>
-					<CardDescription>Enter your email and password below to log in.</CardDescription>
+		<div className='flex min-h-screen items-center justify-center bg-muted/30 p-4'>
+			<Card className='w-full max-w-sm'>
+				<CardHeader className='space-y-1 text-center'>
+					<CardTitle className='text-2xl font-bold'>Welcome back</CardTitle>
+					<CardDescription>Sign in to your account</CardDescription>
 				</CardHeader>
 				<CardContent>
-					<Form {...form}>
-						<form
-							onSubmit={form.handleSubmit(onSubmit)}
-							className='space-y-4'
+					<form
+						onSubmit={form.handleSubmit(onSubmit)}
+						className='space-y-4'
+					>
+						<div className='space-y-2'>
+							<Label htmlFor='email'>Email</Label>
+							<Input
+								id='email'
+								type='email'
+								placeholder='you@example.com'
+								{...form.register('email')}
+							/>
+							{form.formState.errors.email && (
+								<p className='text-sm text-destructive'>{form.formState.errors.email.message}</p>
+							)}
+						</div>
+
+						<div className='space-y-2'>
+							<Label htmlFor='password'>Password</Label>
+							<Input
+								id='password'
+								type='password'
+								placeholder='••••••••'
+								{...form.register('password')}
+							/>
+							{form.formState.errors.password && (
+								<p className='text-sm text-destructive'>{form.formState.errors.password.message}</p>
+							)}
+						</div>
+
+						<Button
+							type='submit'
+							className='w-full'
+							disabled={isSubmitting}
 						>
-							<FieldGroup>
-								<FormField
-									control={form.control}
-									name='email'
-									render={({ field }) => (
-										<FormItem>
-											<Field>
-												<FieldLabel>Email</FieldLabel>
-												<FormControl>
-													<Input
-														type='email'
-														placeholder='m@example.com'
-														{...field}
-													/>
-												</FormControl>
-												<FormMessage />
-											</Field>
-										</FormItem>
-									)}
-								/>
-								<FormField
-									control={form.control}
-									name='password'
-									render={({ field }) => (
-										<FormItem>
-											<Field>
-												<FieldLabel>Password</FieldLabel>
-												<div className='relative'>
-													<FormControl>
-														<Input
-															type={showPassword ? 'text' : 'password'}
-															placeholder='*******'
-															{...field}
-														/>
-													</FormControl>
-													<Button
-														type='button'
-														variant='ghost'
-														size='icon-sm'
-														className='absolute right-1 top-1/2 -translate-y-1/2'
-														onClick={() => setShowPassword(!showPassword)}
-													>
-														{showPassword ? <EyeOff /> : <Eye />}
-													</Button>
-												</div>
-												<FormMessage />
-											</Field>
-										</FormItem>
-									)}
-								/>
-								<Field>
-									<Button
-										type='submit'
-										disabled={isSubmitting}
-									>
-										{isSubmitting && <Loader className='mr-2 size-4 animate-spin' />}
-										Log in
-									</Button>
-									<FieldDescription className='text-center text-sm text-muted-foreground'>
-										<span>
-											Don&apos;t have an account?{' '}
-											<Link
-												href='/signup'
-												className='underline'
-											>
-												Sign up
-											</Link>
-										</span>
-									</FieldDescription>
-								</Field>
-							</FieldGroup>
-						</form>
-					</Form>
+							{isSubmitting && <Loader className='mr-2 h-4 w-4 animate-spin' />}
+							Sign in
+						</Button>
+					</form>
+
+					<p className='mt-4 text-center text-sm text-muted-foreground'>
+						Don&apos;t have an account?{' '}
+						<Link
+							href='/signup'
+							className='font-medium text-primary hover:underline'
+						>
+							Sign up
+						</Link>
+					</p>
 				</CardContent>
 			</Card>
 		</div>

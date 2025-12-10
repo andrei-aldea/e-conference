@@ -1,16 +1,6 @@
 'use client'
 
 import {
-	Sidebar,
-	SidebarContent,
-	SidebarFooter,
-	SidebarGroup,
-	SidebarHeader,
-	SidebarMenu,
-	SidebarMenuButton,
-	SidebarMenuItem
-} from '@/components/ui/sidebar'
-import {
 	ClipboardList,
 	FilePlus,
 	FileText,
@@ -23,106 +13,101 @@ import {
 } from 'lucide-react'
 import { signOut, useSession } from 'next-auth/react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+
+import {
+	Sidebar,
+	SidebarContent,
+	SidebarFooter,
+	SidebarGroup,
+	SidebarHeader,
+	SidebarMenu,
+	SidebarMenuButton,
+	SidebarMenuItem
+} from '@/components/ui/sidebar'
 
 import Logo from './logo'
 
+const navigation = {
+	common: [
+		{ name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+		{ name: 'All Conferences', href: '/dashboard/conferences', icon: List }
+	],
+	author: [
+		{ name: 'My Papers', href: '/dashboard/my-papers', icon: FileText },
+		{ name: 'Submit Paper', href: '/dashboard/submit-paper', icon: FilePlus }
+	],
+	organizer: [
+		{ name: 'My Conferences', href: '/dashboard/my-conferences', icon: ClipboardList },
+		{ name: 'New Conference', href: '/dashboard/conferences/new', icon: PlusCircle }
+	],
+	reviewer: [{ name: 'Assigned Papers', href: '/dashboard/reviewer-papers', icon: Waypoints }]
+}
+
 export function AppSidebar() {
 	const { data: session } = useSession()
-	const user = session?.user
+	const pathname = usePathname()
+	const role = session?.user?.role as keyof typeof navigation | undefined
+
+	const roleLinks = role && navigation[role] ? navigation[role] : []
 
 	return (
 		<Sidebar>
-			<SidebarHeader>
+			<SidebarHeader className='p-4'>
 				<Logo />
 			</SidebarHeader>
-			<hr />
-			<SidebarContent>
+
+			<SidebarContent className='px-2'>
 				<SidebarGroup>
 					<SidebarMenu>
-						<Link href='/dashboard'>
-							<SidebarMenuItem>
-								<SidebarMenuButton>
-									<LayoutDashboard />
-									Dashboard
+						{navigation.common.map((item) => (
+							<SidebarMenuItem key={item.href}>
+								<SidebarMenuButton
+									asChild
+									isActive={pathname === item.href}
+								>
+									<Link href={item.href}>
+										<item.icon className='h-4 w-4' />
+										{item.name}
+									</Link>
 								</SidebarMenuButton>
 							</SidebarMenuItem>
-						</Link>
-						<Link href='/dashboard/conferences'>
-							<SidebarMenuItem>
-								<SidebarMenuButton>
-									<List />
-									All Conferences
-								</SidebarMenuButton>
-							</SidebarMenuItem>
-						</Link>
-						{user?.role === 'author' && (
-							<Link href='/dashboard/my-papers'>
-								<SidebarMenuItem>
-									<SidebarMenuButton>
-										<FileText />
-										My Papers
-									</SidebarMenuButton>
-								</SidebarMenuItem>
-							</Link>
-						)}
-						{user?.role === 'author' && (
-							<Link href='/dashboard/submit-paper'>
-								<SidebarMenuItem>
-									<SidebarMenuButton>
-										<FilePlus />
-										Submit Paper
-									</SidebarMenuButton>
-								</SidebarMenuItem>
-							</Link>
-						)}
+						))}
 
-						{user?.role === 'organizer' && (
-							<Link href='/dashboard/my-conferences'>
-								<SidebarMenuItem>
-									<SidebarMenuButton>
-										<ClipboardList />
-										My Conferences
-									</SidebarMenuButton>
-								</SidebarMenuItem>
-							</Link>
-						)}
-						{user?.role === 'organizer' && (
-							<Link href='/dashboard/conferences/new'>
-								<SidebarMenuItem>
-									<SidebarMenuButton>
-										<PlusCircle />
-										New Conference
-									</SidebarMenuButton>
-								</SidebarMenuItem>
-							</Link>
-						)}
-						{user?.role === 'reviewer' && (
-							<Link href='/dashboard/reviewer-papers'>
-								<SidebarMenuItem>
-									<SidebarMenuButton>
-										<Waypoints />
-										Assigned Papers
-									</SidebarMenuButton>
-								</SidebarMenuItem>
-							</Link>
-						)}
+						{roleLinks.map((item) => (
+							<SidebarMenuItem key={item.href}>
+								<SidebarMenuButton
+									asChild
+									isActive={pathname === item.href}
+								>
+									<Link href={item.href}>
+										<item.icon className='h-4 w-4' />
+										{item.name}
+									</Link>
+								</SidebarMenuButton>
+							</SidebarMenuItem>
+						))}
 					</SidebarMenu>
 				</SidebarGroup>
 			</SidebarContent>
-			<SidebarFooter>
+
+			<SidebarFooter className='p-2'>
 				<SidebarMenu>
-					<Link href='/dashboard/account'>
-						<SidebarMenuItem>
-							<SidebarMenuButton>
-								<User2 />
+					<SidebarMenuItem>
+						<SidebarMenuButton
+							asChild
+							isActive={pathname === '/dashboard/account'}
+						>
+							<Link href='/dashboard/account'>
+								<User2 className='h-4 w-4' />
 								Account
-							</SidebarMenuButton>
-						</SidebarMenuItem>
-					</Link>
-					<SidebarMenuItem onClick={() => signOut()}>
-						<SidebarMenuButton>
-							<LogOut />
-							Log Out
+							</Link>
+						</SidebarMenuButton>
+					</SidebarMenuItem>
+					<SidebarMenuItem>
+						<SidebarMenuButton onClick={() => signOut({ callbackUrl: '/login' })}>
+							<LogOut className='h-4 w-4' />
+							Log out
 						</SidebarMenuButton>
 					</SidebarMenuItem>
 				</SidebarMenu>

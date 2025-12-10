@@ -1,26 +1,19 @@
 'use client'
 
+import { Calendar, ChevronDown, ChevronRight, Download, MapPin, MoreHorizontal, Users } from 'lucide-react'
 import { useSession } from 'next-auth/react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
-
 import Link from 'next/link'
+import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
-import { PageDescription, PageTitle } from '@/components/layout/page-header'
+import { PageDescription, PageHeader, PageTitle } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Skeleton } from '@/components/ui/skeleton'
-import { DEFAULT_REVIEWER_DECISION, getReviewerStatusLabel, getReviewerStatusToneClass } from '@/lib/reviewer/status'
+import { DEFAULT_REVIEWER_DECISION, getReviewerStatusLabel } from '@/lib/reviewer/status'
 import type { ReviewerDecision } from '@/lib/validation/schemas'
-
-interface PaperFileDetails {
-	name: string
-	size: number | null
-	contentType: string | null
-	downloadUrl: string | null
-	uploadedAt: string | null
-}
 
 interface ReviewerSummary {
 	id: string
@@ -33,7 +26,7 @@ interface ConferencePaper {
 	title: string
 	createdAt: string | null
 	reviewers: ReviewerSummary[]
-	file: PaperFileDetails | null
+	file: { downloadUrl: string | null } | null
 }
 
 interface OrganizerConference {
@@ -58,437 +51,364 @@ export default function MyConferencesPage() {
 	const [reviewers, setReviewers] = useState<ReviewerOption[]>([])
 	const [isLoading, setIsLoading] = useState(true)
 	const [error, setError] = useState<string | null>(null)
-	const [expandedPaperId, setExpandedPaperId] = useState<string | null>(null)
-	const [savingPaperId, setSavingPaperId] = useState<string | null>(null)
-	const [selectionByPaper, setSelectionByPaper] = useState<Record<string, string[]>>({})
-
-	const handleDeleteConference = useCallback(() => {
-		toast.info('Conference deletion is temporarily disabled during migration.')
-	}, [])
+	const [expandedConference, setExpandedConference] = useState<string | null>(null)
+	const [assigningPaper, setAssigningPaper] = useState<string | null>(null)
+	const [selectedReviewers, setSelectedReviewers] = useState<Record<string, string[]>>({})
+	const [saving, setSaving] = useState(false)
 
 	useEffect(() => {
-		async function loadConferences() {
+		async function load() {
 			if (!user || user.role !== 'organizer') {
-				setConferences([])
-				setReviewers([])
-				setSelectionByPaper({})
 				setIsLoading(false)
 				return
 			}
 
-			setIsLoading(true)
-			setError(null)
-
 			try {
-				const response = await fetch('/api/conferences?scope=organizer')
-				if (!response.ok) {
-					throw new Error('Unable to load conferences.')
-				}
-
-				const payload = (await response.json()) as {
-					conferences: Array<OrganizerConference & { papers?: ConferencePaper[] | null }>
-					reviewers?: ReviewerOption[]
-				}
-
-				const normalizedConferences: OrganizerConference[] = payload.conferences.map((conference) => ({
-					...conference,
-					papers: Array.isArray(conference.papers) ? conference.papers : []
+				const res = await fetch('/api/conferences?scope=organizer')
+				if (!res.ok) throw new Error('Failed to load')
+				const data = await res.json()
+				const confs = data.conferences.map((c: OrganizerConference) => ({
+					...c,
+					papers: c.papers || []
 				}))
+				setConferences(confs)
+				setReviewers(data.reviewers || [])
 
-				setConferences(normalizedConferences)
-				setReviewers(payload.reviewers ?? [])
-				setSelectionByPaper(() => {
-					const map: Record<string, string[]> = {}
-					for (const conference of normalizedConferences) {
-						for (const paper of conference.papers) {
-							map[paper.id] = paper.reviewers.map((reviewer) => reviewer.id)
-						}
+				// Initialize selected reviewers from existing assignments
+				const selections: Record<string, string[]> = {}
+				for (const conf of confs) {
+					for (const paper of conf.papers) {
+						selections[paper.id] = paper.reviewers.map((r: ReviewerSummary) => r.id)
 					}
-					return map
-				})
-			} catch (loadError) {
-				console.error('Failed to load organizer conferences:', loadError)
-				setError('Unable to load your conferences right now. Please try again later.')
+				}
+				setSelectedReviewers(selections)
+			} catch {
+				setError('Failed to load conferences')
 			} finally {
 				setIsLoading(false)
 			}
 		}
-
-		void loadConferences()
+		load()
 	}, [user])
 
-	const handleTogglePaper = useCallback((paperId: string) => {
-		setExpandedPaperId((current) => (current === paperId ? null : paperId))
-	}, [])
-
-	const handleToggleReviewer = useCallback((paperId: string, reviewerId: string) => {
-		setSelectionByPaper((current) => {
-			const existing = current[paperId] ?? []
-			const next = new Set(existing)
-			if (next.has(reviewerId)) {
-				next.delete(reviewerId)
-			} else {
-				next.add(reviewerId)
-			}
-			return {
-				...current,
-				[paperId]: Array.from(next)
-			}
+	const toggleReviewer = useCallback((paperId: string, reviewerId: string) => {
+		setSelectedReviewers((prev) => {
+			const current = prev[paperId] || []
+			const updated = current.includes(reviewerId)
+				? current.filter((id) => id !== reviewerId)
+				: [...current, reviewerId]
+			return { ...prev, [paperId]: updated }
 		})
 	}, [])
 
-	const handleResetSelection = useCallback((paperId: string, baseline: string[]) => {
-		setSelectionByPaper((current) => ({
-			...current,
-			[paperId]: baseline
-		}))
-	}, [])
-
-	const handleSaveAssignments = useCallback(
+	const saveAssignments = useCallback(
 		async (paper: ConferencePaper) => {
-			const selectedReviewerIds = selectionByPaper[paper.id] ?? []
-			if (selectedReviewerIds.length === 0) {
-				toast.error('Select at least one reviewer before saving.')
+			const ids = selectedReviewers[paper.id] || []
+			if (ids.length === 0) {
+				toast.error('Select at least one reviewer')
 				return
 			}
 
-			setSavingPaperId(paper.id)
-			const previousReviewerIds = paper.reviewers.map((reviewer) => reviewer.id)
-
+			setSaving(true)
 			try {
-				const response = await fetch('/api/papers', {
+				const res = await fetch('/api/papers', {
 					method: 'PATCH',
-					headers: {
-						'Content-Type': 'application/json'
-					},
-					body: JSON.stringify({ paperId: paper.id, reviewerIds: selectedReviewerIds })
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ paperId: paper.id, reviewerIds: ids })
 				})
+				if (!res.ok) throw new Error()
 
-				if (!response.ok) {
-					throw new Error('Request failed')
-				}
-
-				setConferences((current) =>
-					current.map((conference) => {
-						const containsPaper = conference.papers.some((entry) => entry.id === paper.id)
-						if (!containsPaper) {
-							return conference
-						}
-
-						return {
-							...conference,
-							papers: conference.papers.map((entry) => {
-								if (entry.id !== paper.id) {
-									return entry
-								}
-
-								const nextReviewers = selectedReviewerIds.map((reviewerId) => {
-									const existingReviewer = entry.reviewers.find((item) => item.id === reviewerId)
-									if (existingReviewer) {
-										return existingReviewer
-									}
-
-									const fallbackName = reviewers.find((option) => option.id === reviewerId)?.name ?? 'Reviewer'
-									return {
-										id: reviewerId,
-										name: fallbackName,
-										status: DEFAULT_REVIEWER_DECISION
-									}
+				// Update local state
+				setConferences((prev) =>
+					prev.map((conf) => ({
+						...conf,
+						papers: conf.papers.map((p) => {
+							if (p.id !== paper.id) return p
+							return {
+								...p,
+								reviewers: ids.map((id) => {
+									const existing = p.reviewers.find((r) => r.id === id)
+									if (existing) return existing
+									const reviewer = reviewers.find((r) => r.id === id)
+									return { id, name: reviewer?.name || 'Reviewer', status: DEFAULT_REVIEWER_DECISION }
 								})
-
-								return {
-									...entry,
-									reviewers: nextReviewers
-								}
-							})
-						}
-					})
+							}
+						})
+					}))
 				)
 
-				toast.success('Reviewer assignments updated successfully.')
-			} catch (assignmentError) {
-				console.error('Failed to update reviewer assignments:', assignmentError)
-				toast.error('Unable to update reviewers. Please try again.')
-				handleResetSelection(paper.id, previousReviewerIds)
+				toast.success('Reviewers updated')
+				setAssigningPaper(null)
+			} catch {
+				toast.error('Failed to save')
 			} finally {
-				setSavingPaperId(null)
+				setSaving(false)
 			}
 		},
-		[handleResetSelection, reviewers, selectionByPaper]
+		[selectedReviewers, reviewers]
 	)
 
-	const content = useMemo(() => {
-		if (!user) {
-			return <p>You must be logged in to view your conferences.</p>
-		}
+	if (!user) {
+		return (
+			<div>
+				<PageHeader>
+					<PageTitle>My Conferences</PageTitle>
+				</PageHeader>
+				<p className='text-muted-foreground'>Please log in to view your conferences.</p>
+			</div>
+		)
+	}
 
-		if (user.role !== 'organizer') {
-			return <p>Only organizers can view created conferences.</p>
-		}
+	if (user.role !== 'organizer') {
+		return (
+			<div>
+				<PageHeader>
+					<PageTitle>My Conferences</PageTitle>
+				</PageHeader>
+				<p className='text-muted-foreground'>Only organizers can view this page.</p>
+			</div>
+		)
+	}
 
-		if (isLoading) {
-			return (
+	return (
+		<div>
+			<PageHeader>
+				<div className='flex items-center justify-between'>
+					<div>
+						<PageTitle>My Conferences</PageTitle>
+						<PageDescription>Manage your conferences and paper assignments.</PageDescription>
+					</div>
+					<Button asChild>
+						<Link href='/dashboard/conferences/new'>New Conference</Link>
+					</Button>
+				</div>
+			</PageHeader>
+
+			{isLoading && (
 				<div className='space-y-4'>
-					{Array.from({ length: 2 }).map((_, index) => (
-						<Card key={index}>
-							<CardHeader className='space-y-2'>
-								<Skeleton className='h-5 w-48' />
-								<Skeleton className='h-4 w-32' />
+					{[1, 2].map((i) => (
+						<Card key={i}>
+							<CardHeader>
+								<Skeleton className='h-6 w-48' />
 							</CardHeader>
-							<CardContent className='space-y-2'>
+							<CardContent>
 								<Skeleton className='h-4 w-full' />
-								<Skeleton className='h-4 w-2/3' />
 							</CardContent>
 						</Card>
 					))}
 				</div>
-			)
-		}
+			)}
 
-		if (error) {
-			return <p className='text-sm text-destructive'>{error}</p>
-		}
+			{error && <p className='text-destructive'>{error}</p>}
 
-		if (conferences.length === 0) {
-			return <p>You have not created any conferences yet.</p>
-		}
+			{!isLoading && !error && conferences.length === 0 && (
+				<Card>
+					<CardContent className='py-8 text-center'>
+						<p className='text-muted-foreground'>You haven&apos;t created any conferences yet.</p>
+						<Button
+							asChild
+							className='mt-4'
+						>
+							<Link href='/dashboard/conferences/new'>Create your first conference</Link>
+						</Button>
+					</CardContent>
+				</Card>
+			)}
 
-		return (
-			<div className='space-y-4'>
-				{conferences.map((conference) => (
-					<Card key={conference.id}>
-						<CardHeader className='space-y-4'>
-							<div className='flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between'>
-								<div className='space-y-1'>
-									<CardTitle>{conference.name}</CardTitle>
-									<CardDescription className='space-y-1 text-sm text-muted-foreground'>
-										{conference.location && <span>{conference.location}</span>}
-										{formatConferenceDates(conference.startDate, conference.endDate)}
-									</CardDescription>
-								</div>
-								<div className='flex gap-2'>
-									<Button
-										variant='outline'
-										size='sm'
-										asChild
-									>
-										<Link href={`/dashboard/conferences/${conference.id}?edit=true`}>Edit</Link>
-									</Button>
-									<Button
-										variant='destructive'
-										size='sm'
-										onClick={() => handleDeleteConference()}
-									>
-										Delete
-									</Button>
-								</div>
-							</div>
-						</CardHeader>
-						<CardContent className='space-y-4'>
-							{conference.description && <p className='text-sm text-muted-foreground'>{conference.description}</p>}
-							<div>
-								<h2 className='text-sm font-medium text-muted-foreground'>Submitted papers</h2>
-								{conference.papers.length === 0 ? (
-									<p className='mt-2 text-sm'>No papers have been submitted to this conference yet.</p>
-								) : (
-									<ul className='mt-3 space-y-3'>
-										{conference.papers.map((paper) => (
-											<li
-												key={paper.id}
-												className='rounded-lg border p-3'
-											>
-												<div className='flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between'>
-													<span className='font-medium'>{paper.title}</span>
-													{paper.createdAt && (
-														<span className='text-xs text-muted-foreground'>
-															Submitted {new Date(paper.createdAt).toLocaleString()}
-														</span>
-													)}
-												</div>
-												{paper.file ? (
-													<div className='flex flex-wrap items-center gap-3 text-xs sm:text-sm text-muted-foreground'>
-														<span className='font-medium text-foreground'>File:</span>
-														{paper.file.downloadUrl ? (
-															<Button
-																variant='outline'
-																size='sm'
-																asChild
-															>
-																<a
-																	href={paper.file.downloadUrl}
-																	target='_blank'
-																	rel='noopener noreferrer'
-																>
-																	Download PDF
-																</a>
-															</Button>
-														) : (
-															<span>No download link available.</span>
-														)}
-													</div>
-												) : (
-													<p className='text-xs text-muted-foreground'>No file uploaded yet.</p>
+			{!isLoading && !error && conferences.length > 0 && (
+				<div className='space-y-4'>
+					{conferences.map((conf) => (
+						<Card key={conf.id}>
+							<CardHeader
+								className='cursor-pointer'
+								onClick={() => setExpandedConference(expandedConference === conf.id ? null : conf.id)}
+							>
+								<div className='flex items-center justify-between'>
+									<div className='flex items-center gap-3'>
+										{expandedConference === conf.id ? (
+											<ChevronDown className='h-5 w-5 text-muted-foreground' />
+										) : (
+											<ChevronRight className='h-5 w-5 text-muted-foreground' />
+										)}
+										<div>
+											<CardTitle className='text-lg'>{conf.name}</CardTitle>
+											<div className='mt-1 flex items-center gap-4 text-sm text-muted-foreground'>
+												{conf.location && (
+													<span className='flex items-center gap-1'>
+														<MapPin className='h-3 w-3' />
+														{conf.location}
+													</span>
 												)}
-												<div className='mt-2 space-y-2 text-sm text-muted-foreground'>
-													<strong className='font-medium text-foreground'>Reviewers:</strong>
-													{paper.reviewers.length > 0 ? (
-														<ul className='space-y-1'>
-															{paper.reviewers.map((reviewer) => (
-																<li
-																	key={reviewer.id}
-																	className='flex items-center justify-between gap-2'
-																>
-																	<span>{reviewer.name}</span>
-																	<span
-																		className={`rounded-full px-2 py-0.5 text-xs font-medium capitalize ${getReviewerStatusToneClass(
-																			reviewer.status
-																		)}`}
-																	>
-																		{getReviewerStatusLabel(reviewer.status)}
-																	</span>
-																</li>
-															))}
-														</ul>
-													) : (
-														<p className='text-sm'>Not assigned yet</p>
-													)}
-												</div>
-												<div className='mt-3 flex flex-col gap-3'>
-													<Button
-														variant='secondary'
-														size='sm'
-														onClick={() => handleTogglePaper(paper.id)}
-													>
-														{expandedPaperId === paper.id ? 'Hide reviewer selection' : 'Manage reviewers'}
-													</Button>
-													{expandedPaperId === paper.id && (
-														<div className='rounded-lg border p-3'>
-															<div className='flex items-center justify-between text-sm font-medium'>
-																<span>Select reviewers</span>
-																<span className='text-xs text-muted-foreground'>
-																	{selectionByPaper[paper.id]?.length ?? 0} selected
-																</span>
-															</div>
-															<div className='mt-3 max-h-52 space-y-2 overflow-y-auto pr-1'>
-																{reviewers.length === 0 ? (
-																	<p className='text-sm text-muted-foreground'>No reviewers available.</p>
+												{conf.startDate && (
+													<span className='flex items-center gap-1'>
+														<Calendar className='h-3 w-3' />
+														{formatDate(conf.startDate)}
+													</span>
+												)}
+												<span className='flex items-center gap-1'>
+													<Users className='h-3 w-3' />
+													{conf.papers.length} papers
+												</span>
+											</div>
+										</div>
+									</div>
+									<DropdownMenu>
+										<DropdownMenuTrigger
+											asChild
+											onClick={(e) => e.stopPropagation()}
+										>
+											<Button
+												variant='ghost'
+												size='icon'
+											>
+												<MoreHorizontal className='h-4 w-4' />
+											</Button>
+										</DropdownMenuTrigger>
+										<DropdownMenuContent align='end'>
+											<DropdownMenuItem asChild>
+												<Link href={`/dashboard/conferences/${conf.id}?edit=true`}>Edit</Link>
+											</DropdownMenuItem>
+											<DropdownMenuItem onClick={() => toast.info('Deletion disabled')}>Delete</DropdownMenuItem>
+										</DropdownMenuContent>
+									</DropdownMenu>
+								</div>
+							</CardHeader>
+
+							{expandedConference === conf.id && (
+								<CardContent>
+									{conf.papers.length === 0 ? (
+										<p className='text-sm text-muted-foreground'>No papers submitted yet.</p>
+									) : (
+										<div className='overflow-x-auto'>
+											<table className='w-full text-sm'>
+												<thead>
+													<tr className='border-b text-left'>
+														<th className='pb-2 font-medium'>Paper</th>
+														<th className='pb-2 font-medium'>Submitted</th>
+														<th className='pb-2 font-medium'>Reviewers</th>
+														<th className='pb-2 font-medium'>Actions</th>
+													</tr>
+												</thead>
+												<tbody>
+													{conf.papers.map((paper) => (
+														<tr
+															key={paper.id}
+															className='border-b last:border-0'
+														>
+															<td className='py-3 pr-4'>
+																<span className='font-medium'>{paper.title}</span>
+															</td>
+															<td className='py-3 pr-4 text-muted-foreground'>
+																{paper.createdAt ? formatDate(paper.createdAt) : '-'}
+															</td>
+															<td className='py-3 pr-4'>
+																{paper.reviewers.length === 0 ? (
+																	<span className='text-muted-foreground'>None assigned</span>
 																) : (
-																	reviewers.map((reviewer) => {
-																		const checked = selectionByPaper[paper.id]?.includes(reviewer.id) ?? false
-																		const controlId = `paper-${paper.id}-reviewer-${reviewer.id}`
-																		const statusForReviewer = paper.reviewers.find(
-																			(item) => item.id === reviewer.id
-																		)?.status
-																		return (
-																			<label
-																				key={reviewer.id}
-																				htmlFor={controlId}
-																				className='flex items-center justify-between gap-3 rounded-md border px-3 py-2 text-sm'
+																	<div className='flex flex-wrap gap-1'>
+																		{paper.reviewers.map((r) => (
+																			<span
+																				key={r.id}
+																				className='inline-flex items-center rounded bg-muted px-2 py-0.5 text-xs'
 																			>
-																				<span className='flex items-center gap-3'>
-																					<Checkbox
-																						id={controlId}
-																						checked={checked}
-																						onCheckedChange={() => handleToggleReviewer(paper.id, reviewer.id)}
-																					/>
-																					<span>{reviewer.name}</span>
+																				{r.name}
+																				<span className='ml-1 text-muted-foreground'>
+																					({getReviewerStatusLabel(r.status)})
 																				</span>
-																				{checked && (
-																					<span
-																						className={`rounded-full px-2 py-0.5 text-xs font-medium capitalize ${getReviewerStatusToneClass(
-																							statusForReviewer ?? DEFAULT_REVIEWER_DECISION
-																						)}`}
-																					>
-																						{getReviewerStatusLabel(statusForReviewer ?? DEFAULT_REVIEWER_DECISION)}
-																					</span>
-																				)}
-																			</label>
-																		)
-																	})
+																			</span>
+																		))}
+																	</div>
 																)}
-															</div>
-															<div className='mt-3 flex justify-end gap-2'>
+															</td>
+															<td className='py-3'>
+																<div className='flex items-center gap-2'>
+																	{paper.file?.downloadUrl && (
+																		<Button
+																			variant='ghost'
+																			size='icon'
+																			asChild
+																		>
+																			<a
+																				href={paper.file.downloadUrl}
+																				target='_blank'
+																				rel='noopener noreferrer'
+																			>
+																				<Download className='h-4 w-4' />
+																			</a>
+																		</Button>
+																	)}
+																	<Button
+																		variant='outline'
+																		size='sm'
+																		onClick={() => setAssigningPaper(assigningPaper === paper.id ? null : paper.id)}
+																	>
+																		{assigningPaper === paper.id ? 'Cancel' : 'Assign'}
+																	</Button>
+																</div>
+															</td>
+														</tr>
+													))}
+												</tbody>
+											</table>
+
+											{assigningPaper && conf.papers.find((p) => p.id === assigningPaper) && (
+												<div className='mt-4 rounded-lg border p-4'>
+													<h4 className='mb-3 font-medium'>Assign Reviewers</h4>
+													{reviewers.length === 0 ? (
+														<p className='text-sm text-muted-foreground'>No reviewers available.</p>
+													) : (
+														<div className='space-y-2'>
+															{reviewers.map((r) => (
+																<label
+																	key={r.id}
+																	className='flex items-center gap-2 text-sm'
+																>
+																	<Checkbox
+																		checked={selectedReviewers[assigningPaper]?.includes(r.id) || false}
+																		onCheckedChange={() => toggleReviewer(assigningPaper, r.id)}
+																	/>
+																	{r.name}
+																</label>
+															))}
+															<div className='mt-4 flex gap-2'>
+																<Button
+																	size='sm'
+																	disabled={saving}
+																	onClick={() => {
+																		const paper = conf.papers.find((p) => p.id === assigningPaper)
+																		if (paper) saveAssignments(paper)
+																	}}
+																>
+																	{saving ? 'Saving...' : 'Save'}
+																</Button>
 																<Button
 																	variant='ghost'
 																	size='sm'
-																	onClick={() =>
-																		handleResetSelection(
-																			paper.id,
-																			paper.reviewers.map((item) => item.id)
-																		)
-																	}
-																	disabled={savingPaperId === paper.id}
+																	onClick={() => setAssigningPaper(null)}
 																>
-																	Reset
-																</Button>
-																<Button
-																	size='sm'
-																	onClick={() => handleSaveAssignments(paper)}
-																	disabled={
-																		savingPaperId === paper.id || (selectionByPaper[paper.id]?.length ?? 0) === 0
-																	}
-																>
-																	{savingPaperId === paper.id ? 'Saving...' : 'Save changes'}
+																	Cancel
 																</Button>
 															</div>
 														</div>
 													)}
 												</div>
-											</li>
-										))}
-									</ul>
-								)}
-							</div>
-						</CardContent>
-					</Card>
-				))}
-			</div>
-		)
-	}, [
-		user,
-		isLoading,
-		error,
-		conferences,
-		// deletingId removed
-		handleDeleteConference,
-		expandedPaperId,
-		handleSaveAssignments,
-		handleTogglePaper,
-		handleToggleReviewer,
-		handleResetSelection,
-		savingPaperId,
-		selectionByPaper,
-		reviewers
-	])
-
-	return (
-		<div className='space-y-6'>
-			<header className='space-y-1'>
-				<PageTitle>My Conferences</PageTitle>
-				<PageDescription>Track papers and reviewer assignments across your conferences.</PageDescription>
-			</header>
-			{content}
+											)}
+										</div>
+									)}
+								</CardContent>
+							)}
+						</Card>
+					))}
+				</div>
+			)}
 		</div>
 	)
 }
 
-function formatConferenceDates(startDate: string | null, endDate: string | null) {
-	if (!startDate) {
-		return 'Dates to be announced'
-	}
-
-	const formatter = new Intl.DateTimeFormat('en-US', {
+function formatDate(dateString: string) {
+	return new Date(dateString).toLocaleDateString('en-US', {
 		month: 'short',
 		day: 'numeric',
 		year: 'numeric'
 	})
-
-	const start = formatter.format(new Date(startDate))
-
-	if (!endDate) {
-		return start
-	}
-
-	const end = formatter.format(new Date(endDate))
-	return start === end ? start : `${start} - ${end}`
 }
