@@ -8,9 +8,9 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
+import { z } from 'zod'
 
 import { registerUser } from '@/lib/actions/auth'
-import { signupSchema, type SignupInput } from '@/lib/validation/schemas'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -18,10 +18,28 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
+const signupSchema = z
+	.object({
+		name: z.string().min(1, 'Name is required'),
+		username: z
+			.string()
+			.min(3, 'Username must be at least 3 characters')
+			.regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores'),
+		password: z.string().min(8, 'Password must be at least 8 characters'),
+		confirmPassword: z.string(),
+		role: z.enum(['organizer', 'author', 'reviewer'])
+	})
+	.refine((data) => data.password === data.confirmPassword, {
+		message: 'Passwords do not match',
+		path: ['confirmPassword']
+	})
+
+type SignupInput = z.infer<typeof signupSchema>
+
 export function SignupForm() {
 	const form = useForm<SignupInput>({
 		resolver: zodResolver(signupSchema),
-		defaultValues: { name: '', email: '', password: '', confirmPassword: '', role: 'author' }
+		defaultValues: { name: '', username: '', password: '', confirmPassword: '', role: 'author' }
 	})
 
 	const [isSubmitting, setIsSubmitting] = useState(false)
@@ -30,14 +48,20 @@ export function SignupForm() {
 	async function onSubmit(data: SignupInput) {
 		setIsSubmitting(true)
 		try {
-			const result = await registerUser(data)
+			const result = await registerUser({
+				name: data.name,
+				username: data.username,
+				password: data.password,
+				confirmPassword: data.confirmPassword,
+				role: data.role
+			})
 			if (result.error) {
 				toast.error(result.error)
 				return
 			}
 
 			const signInResult = await signIn('credentials', {
-				email: data.email,
+				username: data.username,
 				password: data.password,
 				redirect: false
 			})
@@ -83,15 +107,14 @@ export function SignupForm() {
 							</div>
 
 							<div className='space-y-2'>
-								<Label htmlFor='email'>Email</Label>
+								<Label htmlFor='username'>Username</Label>
 								<Input
-									id='email'
-									type='email'
-									placeholder='you@example.com'
-									{...form.register('email')}
+									id='username'
+									placeholder='johndoe'
+									{...form.register('username')}
 								/>
-								{form.formState.errors.email && (
-									<p className='text-sm text-destructive'>{form.formState.errors.email.message}</p>
+								{form.formState.errors.username && (
+									<p className='text-sm text-destructive'>{form.formState.errors.username.message}</p>
 								)}
 							</div>
 						</div>

@@ -18,10 +18,10 @@ async function main() {
 
 	// Create Users
 	const organizer = await prisma.user.upsert({
-		where: { email: 'organizer@example.com' },
+		where: { username: 'organizer' },
 		update: {},
 		create: {
-			email: 'organizer@example.com',
+			username: 'organizer',
 			name: 'Alice Organizer',
 			password: hashedPassword,
 			role: 'organizer'
@@ -29,10 +29,10 @@ async function main() {
 	})
 
 	const reviewer1 = await prisma.user.upsert({
-		where: { email: 'reviewer1@example.com' },
+		where: { username: 'reviewer1' },
 		update: {},
 		create: {
-			email: 'reviewer1@example.com',
+			username: 'reviewer1',
 			name: 'Bob Reviewer',
 			password: hashedPassword,
 			role: 'reviewer'
@@ -40,10 +40,10 @@ async function main() {
 	})
 
 	const reviewer2 = await prisma.user.upsert({
-		where: { email: 'reviewer2@example.com' },
+		where: { username: 'reviewer2' },
 		update: {},
 		create: {
-			email: 'reviewer2@example.com',
+			username: 'reviewer2',
 			name: 'Charlie Reviewer',
 			password: hashedPassword,
 			role: 'reviewer'
@@ -51,10 +51,10 @@ async function main() {
 	})
 
 	const author = await prisma.user.upsert({
-		where: { email: 'author@example.com' },
+		where: { username: 'author' },
 		update: {},
 		create: {
-			email: 'author@example.com',
+			username: 'author',
 			name: 'David Author',
 			password: hashedPassword,
 			role: 'author'
@@ -62,7 +62,6 @@ async function main() {
 	})
 
 	console.log(`Created users: ${organizer.name}, ${reviewer1.name}, ${reviewer2.name}, ${author.name}`)
-	console.log('Users created.')
 
 	// Create Conference
 	const conference = await prisma.conference.create({
@@ -85,14 +84,13 @@ async function main() {
 			status: 'submitted',
 			authorId: author.id,
 			conferenceId: conference.id,
-			fileUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf' // Mock PDF URL
+			fileUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf'
 		}
 	})
 
 	console.log(`Paper "${paper.title}" created.`)
 
-	// Assign Reviewer (Create Review)
-	// Check if already exists to avoid unique constraint violation if re-running without clean
+	// Assign Reviewer
 	const existingReview = await prisma.review.findUnique({
 		where: {
 			paperId_reviewerId: {

@@ -1,16 +1,6 @@
 'use client'
 
-import {
-	ClipboardList,
-	FilePlus,
-	FileText,
-	LayoutDashboard,
-	List,
-	LogOut,
-	PlusCircle,
-	User2,
-	Waypoints
-} from 'lucide-react'
+import { ClipboardList, FilePlus, FileText, LayoutDashboard, List, LogOut, PlusCircle, Waypoints } from 'lucide-react'
 import { signOut, useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -44,10 +34,16 @@ const navigation = {
 	reviewer: [{ name: 'Assigned Papers', href: '/dashboard/reviewer-papers', icon: Waypoints }]
 }
 
+function getInitials(name: string | null | undefined): string {
+	if (!name) return '?'
+	return name.trim().charAt(0).toUpperCase()
+}
+
 export function AppSidebar() {
 	const { data: session } = useSession()
 	const pathname = usePathname()
-	const role = session?.user?.role as keyof typeof navigation | undefined
+	const user = session?.user
+	const role = user?.role as keyof typeof navigation | undefined
 
 	const roleLinks = role && navigation[role] ? navigation[role] : []
 
@@ -91,19 +87,19 @@ export function AppSidebar() {
 				</SidebarGroup>
 			</SidebarContent>
 
-			<SidebarFooter className='p-2'>
+			<SidebarFooter className='p-4'>
+				{user && (
+					<div className='mb-3 flex items-center gap-3'>
+						<div className='flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-medium'>
+							{getInitials(user.name)}
+						</div>
+						<div className='flex-1 min-w-0'>
+							<p className='text-sm font-medium truncate'>{user.name || 'User'}</p>
+							<p className='text-xs text-muted-foreground truncate'>@{user.username || 'user'}</p>
+						</div>
+					</div>
+				)}
 				<SidebarMenu>
-					<SidebarMenuItem>
-						<SidebarMenuButton
-							asChild
-							isActive={pathname === '/dashboard/account'}
-						>
-							<Link href='/dashboard/account'>
-								<User2 className='h-4 w-4' />
-								Account
-							</Link>
-						</SidebarMenuButton>
-					</SidebarMenuItem>
 					<SidebarMenuItem>
 						<SidebarMenuButton onClick={() => signOut({ callbackUrl: '/login' })}>
 							<LogOut className='h-4 w-4' />

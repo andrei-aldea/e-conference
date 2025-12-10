@@ -8,6 +8,7 @@ export const authConfig = {
 			if (user) {
 				token.role = user.role as 'organizer' | 'author' | 'reviewer'
 				token.id = user.id
+				token.username = (user as { username?: string }).username || ''
 			}
 			return token
 		},
@@ -15,6 +16,7 @@ export const authConfig = {
 			if (session.user) {
 				session.user.role = token.role as 'organizer' | 'author' | 'reviewer'
 				session.user.id = token.id as string
+				session.user.username = token.username as string
 			}
 			return session
 		}

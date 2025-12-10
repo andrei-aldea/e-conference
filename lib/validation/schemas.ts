@@ -5,13 +5,16 @@ export const strongPasswordSchema = z
 	.min(8, { message: 'Password must be at least 8 characters long' })
 	.regex(/[a-z]/, { message: 'Password must include a lowercase letter' })
 	.regex(/[A-Z]/, { message: 'Password must include an uppercase letter' })
-	.regex(/\d/, { message: 'Password must include a number' })
+	.regex(/\\d/, { message: 'Password must include a number' })
 	.regex(/[^A-Za-z0-9]/, { message: 'Password must include a symbol' })
 
 export const signupSchema = z
 	.object({
 		name: z.string().min(1, { message: 'Full name is required' }),
-		email: z.string().email({ message: 'Please enter a valid email' }),
+		username: z
+			.string()
+			.min(3, { message: 'Username must be at least 3 characters' })
+			.regex(/^[a-zA-Z0-9_]+$/, { message: 'Username can only contain letters, numbers, and underscores' }),
 		role: z.enum(['organizer', 'author', 'reviewer'], { message: 'Please select a role' }),
 		password: strongPasswordSchema,
 		confirmPassword: z.string().min(1, { message: 'Please confirm your password' })
@@ -22,7 +25,7 @@ export const signupSchema = z
 	})
 
 export const loginSchema = z.object({
-	email: z.string().email({ message: 'Please enter a valid email' }),
+	username: z.string().min(1, { message: 'Username is required' }),
 	password: z.string().min(1, { message: 'Password is required' })
 })
 

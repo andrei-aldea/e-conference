@@ -8,17 +8,24 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
+import { z } from 'zod'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { loginSchema, type LoginInput } from '@/lib/validation/schemas'
+
+const loginSchema = z.object({
+	username: z.string().min(1, 'Username is required'),
+	password: z.string().min(1, 'Password is required')
+})
+
+type LoginInput = z.infer<typeof loginSchema>
 
 export function LoginForm() {
 	const form = useForm<LoginInput>({
 		resolver: zodResolver(loginSchema),
-		defaultValues: { email: '', password: '' }
+		defaultValues: { username: '', password: '' }
 	})
 
 	const [isSubmitting, setIsSubmitting] = useState(false)
@@ -28,13 +35,13 @@ export function LoginForm() {
 		setIsSubmitting(true)
 		try {
 			const result = await signIn('credentials', {
-				email: data.email,
+				username: data.username,
 				password: data.password,
 				redirect: false
 			})
 
 			if (result?.error) {
-				toast.error('Invalid email or password')
+				toast.error('Invalid username or password')
 			} else {
 				router.push('/dashboard')
 				router.refresh()
@@ -59,15 +66,15 @@ export function LoginForm() {
 						className='space-y-4'
 					>
 						<div className='space-y-2'>
-							<Label htmlFor='email'>Email</Label>
+							<Label htmlFor='username'>Username</Label>
 							<Input
-								id='email'
-								type='email'
-								placeholder='you@example.com'
-								{...form.register('email')}
+								id='username'
+								type='text'
+								placeholder='johndoe'
+								{...form.register('username')}
 							/>
-							{form.formState.errors.email && (
-								<p className='text-sm text-destructive'>{form.formState.errors.email.message}</p>
+							{form.formState.errors.username && (
+								<p className='text-sm text-destructive'>{form.formState.errors.username.message}</p>
 							)}
 						</div>
 
