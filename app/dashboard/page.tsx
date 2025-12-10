@@ -93,8 +93,8 @@ export default function DashboardPage() {
 				{stats.map((stat) => (
 					<Card key={stat.label}>
 						<CardHeader className='flex flex-row items-center justify-between pb-2'>
-							<CardTitle className='text-sm font-medium text-muted-foreground'>{stat.label}</CardTitle>
-							<stat.icon className='h-4 w-4 text-muted-foreground' />
+							<CardTitle className='text-muted-foreground text-sm font-medium'>{stat.label}</CardTitle>
+							<stat.icon className='text-muted-foreground h-4 w-4' />
 						</CardHeader>
 						<CardContent>
 							<div className='text-2xl font-bold'>{stat.value}</div>
@@ -105,9 +105,9 @@ export default function DashboardPage() {
 
 			{/* All Conferences Section */}
 			<div>
-				<div className='flex items-center justify-between mb-4'>
+				<div className='mb-4 flex items-center justify-between'>
 					<h2 className='text-xl font-semibold'>All Conferences</h2>
-					<span className='text-sm text-muted-foreground'>{conferences.length} conferences</span>
+					<span className='text-muted-foreground text-sm'>{conferences.length} conferences</span>
 				</div>
 
 				{conferencesLoading ? (
@@ -127,7 +127,7 @@ export default function DashboardPage() {
 				) : conferences.length === 0 ? (
 					<Card>
 						<CardContent className='flex flex-col items-center py-12 text-center'>
-							<CalendarX className='h-12 w-12 text-muted-foreground mb-4' />
+							<CalendarX className='text-muted-foreground mb-4 h-12 w-12' />
 							<h3 className='text-lg font-medium'>No conferences yet</h3>
 							<p className='text-muted-foreground mt-2'>There are no conferences available at the moment.</p>
 						</CardContent>
@@ -142,13 +142,13 @@ export default function DashboardPage() {
 								</CardHeader>
 								<CardContent className='space-y-2'>
 									{conf.location && (
-										<div className='flex items-center gap-2 text-sm text-muted-foreground'>
+										<div className='text-muted-foreground flex items-center gap-2 text-sm'>
 											<MapPin className='h-4 w-4' />
 											{conf.location}
 										</div>
 									)}
 									{conf.startDate && (
-										<div className='flex items-center gap-2 text-sm text-muted-foreground'>
+										<div className='text-muted-foreground flex items-center gap-2 text-sm'>
 											<Calendar className='h-4 w-4' />
 											{formatDate(conf.startDate)}
 											{conf.endDate && ` - ${formatDate(conf.endDate)}`}

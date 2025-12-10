@@ -55,7 +55,7 @@ export function LoginForm() {
 
 	return (
 		<Card>
-			<CardHeader className='text-center pb-4'>
+			<CardHeader className='pb-4 text-center'>
 				<CardTitle className='text-2xl font-bold'>Welcome back</CardTitle>
 				<CardDescription className='mt-2'>Sign in to your account</CardDescription>
 			</CardHeader>
@@ -73,7 +73,7 @@ export function LoginForm() {
 							{...form.register('username')}
 						/>
 						{form.formState.errors.username && (
-							<p className='text-sm text-destructive'>{form.formState.errors.username.message}</p>
+							<p className='text-destructive text-sm'>{form.formState.errors.username.message}</p>
 						)}
 					</div>
 
@@ -86,7 +86,7 @@ export function LoginForm() {
 							{...form.register('password')}
 						/>
 						{form.formState.errors.password && (
-							<p className='text-sm text-destructive'>{form.formState.errors.password.message}</p>
+							<p className='text-destructive text-sm'>{form.formState.errors.password.message}</p>
 						)}
 					</div>
 
@@ -100,11 +100,11 @@ export function LoginForm() {
 					</Button>
 				</form>
 
-				<p className='mt-4 text-center text-sm text-muted-foreground'>
+				<p className='text-muted-foreground mt-4 text-center text-sm'>
 					Don&apos;t have an account?{' '}
 					<Link
 						href='/signup'
-						className='font-medium text-primary hover:underline'
+						className='text-primary font-medium hover:underline'
 					>
 						Sign up
 					</Link>

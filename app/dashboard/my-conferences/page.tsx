@@ -97,7 +97,7 @@ export default function MyConferencesPage() {
 					{[1, 2].map((i) => (
 						<Card key={i}>
 							<CardContent className='p-6'>
-								<Skeleton className='h-6 w-48 mb-4' />
+								<Skeleton className='mb-4 h-6 w-48' />
 								<Skeleton className='h-4 w-full' />
 							</CardContent>
 						</Card>

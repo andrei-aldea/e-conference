@@ -25,7 +25,7 @@ const socialLinks = [
 
 export function SiteFooter() {
 	return (
-		<footer className='border-t border-border/50 bg-muted/20'>
+		<footer className='border-border/50 bg-muted/20 border-t'>
 			<div className='mx-auto max-w-7xl px-4 py-12'>
 				<div className='grid gap-8 md:grid-cols-4'>
 					{/* Brand Column */}
@@ -38,12 +38,12 @@ export function SiteFooter() {
 					>
 						<Link
 							href='/'
-							className='inline-flex items-center gap-2 text-foreground'
+							className='text-foreground inline-flex items-center gap-2'
 						>
-							<CalendarCheck className='h-6 w-6 text-primary' />
+							<CalendarCheck className='text-primary h-6 w-6' />
 							<span className='text-lg font-bold'>eConference</span>
 						</Link>
-						<p className='mt-4 max-w-sm text-sm text-muted-foreground'>
+						<p className='text-muted-foreground mt-4 max-w-sm text-sm'>
 							Streamline your academic conferences with role-based dashboards for organizers, authors, and reviewers.
 						</p>
 						<div className='mt-6 flex gap-4'>
@@ -53,7 +53,7 @@ export function SiteFooter() {
 									href={social.href}
 									target='_blank'
 									rel='noopener noreferrer'
-									className='flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground transition-colors hover:bg-primary hover:text-primary-foreground'
+									className='bg-muted text-muted-foreground hover:bg-primary hover:text-primary-foreground flex h-10 w-10 items-center justify-center rounded-full transition-colors'
 									aria-label={social.label}
 								>
 									<social.icon className='h-4 w-4' />
@@ -69,13 +69,13 @@ export function SiteFooter() {
 						viewport={{ once: true }}
 						transition={{ duration: 0.5, delay: 0.1 }}
 					>
-						<h3 className='text-sm font-semibold text-foreground'>Platform</h3>
+						<h3 className='text-foreground text-sm font-semibold'>Platform</h3>
 						<ul className='mt-4 space-y-3'>
 							{footerLinks.platform.map((link) => (
 								<li key={link.href}>
 									<Link
 										href={link.href}
-										className='text-sm text-muted-foreground transition-colors hover:text-foreground'
+										className='text-muted-foreground hover:text-foreground text-sm transition-colors'
 									>
 										{link.label}
 									</Link>
@@ -91,13 +91,13 @@ export function SiteFooter() {
 						viewport={{ once: true }}
 						transition={{ duration: 0.5, delay: 0.2 }}
 					>
-						<h3 className='text-sm font-semibold text-foreground'>Account</h3>
+						<h3 className='text-foreground text-sm font-semibold'>Account</h3>
 						<ul className='mt-4 space-y-3'>
 							{footerLinks.account.map((link) => (
 								<li key={link.href}>
 									<Link
 										href={link.href}
-										className='text-sm text-muted-foreground transition-colors hover:text-foreground'
+										className='text-muted-foreground hover:text-foreground text-sm transition-colors'
 									>
 										{link.label}
 									</Link>
@@ -113,7 +113,7 @@ export function SiteFooter() {
 					whileInView={{ opacity: 1 }}
 					viewport={{ once: true }}
 					transition={{ duration: 0.5, delay: 0.3 }}
-					className='mt-12 flex flex-col items-center justify-between gap-4 border-t border-border/50 pt-8 text-sm text-muted-foreground md:flex-row'
+					className='border-border/50 text-muted-foreground mt-12 flex flex-col items-center justify-between gap-4 border-t pt-8 text-sm md:flex-row'
 				>
 					<p>© {new Date().getFullYear()} eConference. All rights reserved.</p>
 					<p>
@@ -122,7 +122,7 @@ export function SiteFooter() {
 							href='https://aldeaandrei.com'
 							target='_blank'
 							rel='noopener noreferrer'
-							className='font-medium text-foreground underline-offset-4 hover:underline'
+							className='text-foreground font-medium underline-offset-4 hover:underline'
 						>
 							Andrei Aldea
 						</Link>

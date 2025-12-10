@@ -92,12 +92,12 @@ export function ConferenceForm({
 						</FormItem>
 					)}
 				/>
-				<div className='flex flex-col lg:flex-row gap-6'>
+				<div className='flex flex-col gap-6 lg:flex-row'>
 					<FormField
 						control={form.control}
 						name='startDate'
 						render={({ field }) => (
-							<FormItem className='flex flex-col flex-1'>
+							<FormItem className='flex flex-1 flex-col'>
 								<FormLabel>Start Date</FormLabel>
 								<Popover>
 									<PopoverTrigger asChild>
@@ -131,7 +131,7 @@ export function ConferenceForm({
 						control={form.control}
 						name='endDate'
 						render={({ field }) => (
-							<FormItem className='flex flex-col flex-1'>
+							<FormItem className='flex flex-1 flex-col'>
 								<FormLabel>End Date</FormLabel>
 								<Popover>
 									<PopoverTrigger asChild>

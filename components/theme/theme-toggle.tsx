@@ -19,7 +19,7 @@ export function ModeToggle() {
 	const mounted = useMounted()
 
 	if (!mounted) {
-		return <div className='h-8 w-14 rounded-full bg-muted' />
+		return <div className='bg-muted h-8 w-14 rounded-full' />
 	}
 
 	const isDark = theme === 'dark'
@@ -27,15 +27,15 @@ export function ModeToggle() {
 	return (
 		<button
 			onClick={() => setTheme(isDark ? 'light' : 'dark')}
-			className='relative flex h-8 w-14 items-center rounded-full bg-muted p-1 transition-colors hover:bg-muted/80'
+			className='bg-muted hover:bg-muted/80 relative flex h-8 w-14 items-center rounded-full p-1 transition-colors'
 			aria-label={`Switch to ${isDark ? 'light' : 'dark'} mode`}
 		>
 			<motion.div
-				className='absolute flex h-6 w-6 items-center justify-center rounded-full bg-background shadow-sm'
+				className='bg-background absolute flex h-6 w-6 items-center justify-center rounded-full shadow-sm'
 				animate={{ x: isDark ? 24 : 0 }}
 				transition={{ type: 'spring', stiffness: 500, damping: 30 }}
 			>
-				{isDark ? <Moon className='h-3.5 w-3.5 text-primary' /> : <Sun className='h-3.5 w-3.5 text-primary' />}
+				{isDark ? <Moon className='text-primary h-3.5 w-3.5' /> : <Sun className='text-primary h-3.5 w-3.5' />}
 			</motion.div>
 			<span className='sr-only'>Toggle theme</span>
 		</button>

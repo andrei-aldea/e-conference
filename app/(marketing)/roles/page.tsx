@@ -58,13 +58,13 @@ const comparisons = [
 
 export default function RolesPage() {
 	return (
-		<div className='min-h-screen bg-background'>
+		<div className='bg-background min-h-screen'>
 			{/* Hero */}
 			<section className='relative overflow-hidden py-24'>
 				<div className='absolute inset-0 -z-10'>
-					<div className='absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/10' />
+					<div className='from-primary/5 to-secondary/10 absolute inset-0 bg-gradient-to-br via-transparent' />
 					<motion.div
-						className='absolute top-1/4 left-1/3 h-64 w-64 rounded-full bg-primary/10 blur-3xl'
+						className='bg-primary/10 absolute top-1/4 left-1/3 h-64 w-64 rounded-full blur-3xl'
 						animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.5, 0.3] }}
 						transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
 					/>
@@ -77,8 +77,8 @@ export default function RolesPage() {
 						transition={{ duration: 0.5 }}
 						className='mb-6'
 					>
-						<span className='inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-1.5 text-sm font-medium text-muted-foreground'>
-							<Users className='h-4 w-4 text-primary' />
+						<span className='border-border bg-card text-muted-foreground inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-medium'>
+							<Users className='text-primary h-4 w-4' />
 							Three Roles, One Platform
 						</span>
 					</motion.div>
@@ -87,7 +87,7 @@ export default function RolesPage() {
 						initial={{ opacity: 0, y: 20 }}
 						animate={{ opacity: 1, y: 0 }}
 						transition={{ duration: 0.5, delay: 0.1 }}
-						className='text-4xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl'
+						className='text-foreground text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl'
 					>
 						Find your role in the <span className='text-primary'>conference ecosystem</span>
 					</motion.h1>
@@ -96,7 +96,7 @@ export default function RolesPage() {
 						initial={{ opacity: 0, y: 20 }}
 						animate={{ opacity: 1, y: 0 }}
 						transition={{ duration: 0.5, delay: 0.2 }}
-						className='mt-6 text-lg text-muted-foreground'
+						className='text-muted-foreground mt-6 text-lg'
 					>
 						Whether you&apos;re organizing a conference, submitting research, or reviewing submissions, eConference
 						provides the tools you need.
@@ -105,7 +105,7 @@ export default function RolesPage() {
 			</section>
 
 			{/* Role Cards */}
-			<section className='py-16 bg-muted/30'>
+			<section className='bg-muted/30 py-16'>
 				<div className='mx-auto max-w-7xl px-4'>
 					<div className='grid gap-8 md:grid-cols-3'>
 						{roles.map((role, index) => (
@@ -116,18 +116,18 @@ export default function RolesPage() {
 								viewport={{ once: true }}
 								transition={{ duration: 0.5, delay: index * 0.15 }}
 							>
-								<Card className='h-full border-border/50 bg-card/80 backdrop-blur transition-all hover:border-primary/30 hover:shadow-xl'>
+								<Card className='border-border/50 bg-card/80 hover:border-primary/30 h-full backdrop-blur transition-all hover:shadow-xl'>
 									<CardHeader>
 										<motion.div
 											whileHover={{ scale: 1.1, rotate: 5 }}
 											transition={{ type: 'spring', stiffness: 400 }}
-											className='mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10 text-primary'
+											className='bg-primary/10 text-primary mb-4 flex h-14 w-14 items-center justify-center rounded-xl'
 										>
 											<role.icon className='h-7 w-7' />
 										</motion.div>
 										<CardTitle className='text-2xl'>{role.title}</CardTitle>
-										<CardDescription className='text-base font-medium text-primary'>{role.subtitle}</CardDescription>
-										<p className='mt-2 text-muted-foreground'>{role.description}</p>
+										<CardDescription className='text-primary text-base font-medium'>{role.subtitle}</CardDescription>
+										<p className='text-muted-foreground mt-2'>{role.description}</p>
 									</CardHeader>
 									<CardContent>
 										<ul className='space-y-3'>
@@ -140,8 +140,8 @@ export default function RolesPage() {
 													transition={{ delay: 0.3 + i * 0.1 }}
 													className='flex items-start gap-3'
 												>
-													<CheckCircle2 className='mt-0.5 h-5 w-5 shrink-0 text-primary' />
-													<span className='text-sm text-muted-foreground'>{feature}</span>
+													<CheckCircle2 className='text-primary mt-0.5 h-5 w-5 shrink-0' />
+													<span className='text-muted-foreground text-sm'>{feature}</span>
 												</motion.li>
 											))}
 										</ul>
@@ -161,10 +161,10 @@ export default function RolesPage() {
 						whileInView={{ opacity: 1, y: 0 }}
 						viewport={{ once: true }}
 						transition={{ duration: 0.5 }}
-						className='text-center mb-12'
+						className='mb-12 text-center'
 					>
-						<h2 className='text-3xl font-bold tracking-tight text-foreground'>Role Capabilities</h2>
-						<p className='mt-4 text-muted-foreground'>See what each role can do at a glance.</p>
+						<h2 className='text-foreground text-3xl font-bold tracking-tight'>Role Capabilities</h2>
+						<p className='text-muted-foreground mt-4'>See what each role can do at a glance.</p>
 					</motion.div>
 
 					<motion.div
@@ -177,11 +177,11 @@ export default function RolesPage() {
 							<div className='overflow-x-auto'>
 								<table className='w-full'>
 									<thead>
-										<tr className='border-b border-border bg-muted/50'>
-											<th className='px-6 py-4 text-left text-sm font-semibold text-foreground'>Feature</th>
-											<th className='px-6 py-4 text-center text-sm font-semibold text-foreground'>Organizer</th>
-											<th className='px-6 py-4 text-center text-sm font-semibold text-foreground'>Author</th>
-											<th className='px-6 py-4 text-center text-sm font-semibold text-foreground'>Reviewer</th>
+										<tr className='border-border bg-muted/50 border-b'>
+											<th className='text-foreground px-6 py-4 text-left text-sm font-semibold'>Feature</th>
+											<th className='text-foreground px-6 py-4 text-center text-sm font-semibold'>Organizer</th>
+											<th className='text-foreground px-6 py-4 text-center text-sm font-semibold'>Author</th>
+											<th className='text-foreground px-6 py-4 text-center text-sm font-semibold'>Reviewer</th>
 										</tr>
 									</thead>
 									<tbody>
@@ -192,26 +192,26 @@ export default function RolesPage() {
 												whileInView={{ opacity: 1 }}
 												viewport={{ once: true }}
 												transition={{ delay: 0.3 + index * 0.05 }}
-												className='border-b border-border last:border-0'
+												className='border-border border-b last:border-0'
 											>
-												<td className='px-6 py-4 text-sm text-foreground'>{row.feature}</td>
+												<td className='text-foreground px-6 py-4 text-sm'>{row.feature}</td>
 												<td className='px-6 py-4 text-center'>
 													{row.organizer ? (
-														<CheckCircle2 className='inline h-5 w-5 text-primary' />
+														<CheckCircle2 className='text-primary inline h-5 w-5' />
 													) : (
 														<span className='text-muted-foreground'>—</span>
 													)}
 												</td>
 												<td className='px-6 py-4 text-center'>
 													{row.author ? (
-														<CheckCircle2 className='inline h-5 w-5 text-primary' />
+														<CheckCircle2 className='text-primary inline h-5 w-5' />
 													) : (
 														<span className='text-muted-foreground'>—</span>
 													)}
 												</td>
 												<td className='px-6 py-4 text-center'>
 													{row.reviewer ? (
-														<CheckCircle2 className='inline h-5 w-5 text-primary' />
+														<CheckCircle2 className='text-primary inline h-5 w-5' />
 													) : (
 														<span className='text-muted-foreground'>—</span>
 													)}
@@ -227,7 +227,7 @@ export default function RolesPage() {
 			</section>
 
 			{/* CTA */}
-			<section className='py-24 bg-primary/5'>
+			<section className='bg-primary/5 py-24'>
 				<div className='mx-auto max-w-3xl px-4 text-center'>
 					<motion.div
 						initial={{ opacity: 0, scale: 0.95 }}
@@ -235,8 +235,8 @@ export default function RolesPage() {
 						viewport={{ once: true }}
 						transition={{ duration: 0.5 }}
 					>
-						<h2 className='text-3xl font-bold tracking-tight text-foreground sm:text-4xl'>Ready to get started?</h2>
-						<p className='mt-4 text-lg text-muted-foreground'>
+						<h2 className='text-foreground text-3xl font-bold tracking-tight sm:text-4xl'>Ready to get started?</h2>
+						<p className='text-muted-foreground mt-4 text-lg'>
 							Choose your role when you sign up. You can always contact support if your role needs to change.
 						</p>
 						<div className='mt-8 flex flex-col justify-center gap-4 sm:flex-row'>

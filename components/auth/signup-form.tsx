@@ -83,7 +83,7 @@ export function SignupForm() {
 
 	return (
 		<Card>
-			<CardHeader className='text-center pb-4'>
+			<CardHeader className='pb-4 text-center'>
 				<CardTitle className='text-2xl font-bold'>Create an account</CardTitle>
 				<CardDescription className='mt-2'>Enter your details to get started</CardDescription>
 			</CardHeader>
@@ -101,7 +101,7 @@ export function SignupForm() {
 								{...form.register('name')}
 							/>
 							{form.formState.errors.name && (
-								<p className='text-sm text-destructive'>{form.formState.errors.name.message}</p>
+								<p className='text-destructive text-sm'>{form.formState.errors.name.message}</p>
 							)}
 						</div>
 
@@ -113,7 +113,7 @@ export function SignupForm() {
 								{...form.register('username')}
 							/>
 							{form.formState.errors.username && (
-								<p className='text-sm text-destructive'>{form.formState.errors.username.message}</p>
+								<p className='text-destructive text-sm'>{form.formState.errors.username.message}</p>
 							)}
 						</div>
 					</div>
@@ -134,7 +134,7 @@ export function SignupForm() {
 							</SelectContent>
 						</Select>
 						{form.formState.errors.role && (
-							<p className='text-sm text-destructive'>{form.formState.errors.role.message}</p>
+							<p className='text-destructive text-sm'>{form.formState.errors.role.message}</p>
 						)}
 					</div>
 
@@ -148,7 +148,7 @@ export function SignupForm() {
 								{...form.register('password')}
 							/>
 							{form.formState.errors.password && (
-								<p className='text-sm text-destructive'>{form.formState.errors.password.message}</p>
+								<p className='text-destructive text-sm'>{form.formState.errors.password.message}</p>
 							)}
 						</div>
 
@@ -161,7 +161,7 @@ export function SignupForm() {
 								{...form.register('confirmPassword')}
 							/>
 							{form.formState.errors.confirmPassword && (
-								<p className='text-sm text-destructive'>{form.formState.errors.confirmPassword.message}</p>
+								<p className='text-destructive text-sm'>{form.formState.errors.confirmPassword.message}</p>
 							)}
 						</div>
 					</div>
@@ -176,11 +176,11 @@ export function SignupForm() {
 					</Button>
 				</form>
 
-				<p className='mt-4 text-center text-sm text-muted-foreground'>
+				<p className='text-muted-foreground mt-4 text-center text-sm'>
 					Already have an account?{' '}
 					<Link
 						href='/login'
-						className='font-medium text-primary hover:underline'
+						className='text-primary font-medium hover:underline'
 					>
 						Sign in
 					</Link>

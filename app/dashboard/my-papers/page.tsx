@@ -133,7 +133,7 @@ export default function MyPapersPage() {
 	if (!user) {
 		return (
 			<div className='flex flex-col items-center justify-center py-16 text-center'>
-				<FileText className='h-12 w-12 text-muted-foreground mb-4' />
+				<FileText className='text-muted-foreground mb-4 h-12 w-12' />
 				<h2 className='text-xl font-semibold'>Sign in required</h2>
 				<p className='text-muted-foreground mt-2'>You must be logged in to view your papers.</p>
 			</div>
@@ -143,7 +143,7 @@ export default function MyPapersPage() {
 	if (user.role !== 'author') {
 		return (
 			<div className='flex flex-col items-center justify-center py-16 text-center'>
-				<FileText className='h-12 w-12 text-muted-foreground mb-4' />
+				<FileText className='text-muted-foreground mb-4 h-12 w-12' />
 				<h2 className='text-xl font-semibold'>Authors Only</h2>
 				<p className='text-muted-foreground mt-2'>Only authors can view submitted papers.</p>
 			</div>
@@ -192,7 +192,7 @@ export default function MyPapersPage() {
 			) : papers.length === 0 ? (
 				<Card>
 					<CardContent className='flex flex-col items-center py-16 text-center'>
-						<FileText className='h-12 w-12 text-muted-foreground mb-4' />
+						<FileText className='text-muted-foreground mb-4 h-12 w-12' />
 						<h3 className='text-lg font-medium'>No papers yet</h3>
 						<p className='text-muted-foreground mt-2 mb-4'>You haven&apos;t submitted any papers.</p>
 						<Button asChild>
@@ -218,8 +218,8 @@ export default function MyPapersPage() {
 											decision === 'accepted'
 												? 'bg-primary'
 												: decision === 'declined'
-												? 'bg-destructive'
-												: 'bg-muted-foreground'
+													? 'bg-destructive'
+													: 'bg-muted-foreground'
 										}`}
 									/>
 
@@ -246,7 +246,7 @@ export default function MyPapersPage() {
 														variant='outline'
 														onClick={() => startEditingPaper(paper)}
 													>
-														<Pencil className='h-4 w-4 mr-1.5' />
+														<Pencil className='mr-1.5 h-4 w-4' />
 														Edit
 													</Button>
 												</div>
@@ -255,13 +255,13 @@ export default function MyPapersPage() {
 
 										<CardContent className='pt-0 pb-6'>
 											{/* Actions Row */}
-											<div className='flex items-center gap-4 mb-6'>
+											<div className='mb-6 flex items-center gap-4'>
 												{paper.file?.downloadUrl && (
 													<a
 														href={paper.file.downloadUrl}
 														target='_blank'
 														rel='noopener noreferrer'
-														className='inline-flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-sm font-medium hover:bg-muted/80 transition-colors'
+														className='bg-muted hover:bg-muted/80 inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors'
 													>
 														<FileText className='h-4 w-4' />
 														View PDF
@@ -271,15 +271,15 @@ export default function MyPapersPage() {
 											</div>
 
 											{/* Reviewers Section */}
-											<div className='rounded-lg border bg-card'>
-												<div className='flex items-center gap-2 px-4 py-3 border-b bg-muted/30'>
-													<Users className='h-4 w-4 text-muted-foreground' />
+											<div className='bg-card rounded-lg border'>
+												<div className='bg-muted/30 flex items-center gap-2 border-b px-4 py-3'>
+													<Users className='text-muted-foreground h-4 w-4' />
 													<span className='text-sm font-medium'>Assigned Reviewers ({paper.reviewers.length})</span>
 												</div>
 
 												{paper.reviewers.length === 0 ? (
 													<div className='px-4 py-6 text-center'>
-														<p className='text-sm text-muted-foreground'>No reviewers assigned yet.</p>
+														<p className='text-muted-foreground text-sm'>No reviewers assigned yet.</p>
 													</div>
 												) : (
 													<div className='divide-y'>
@@ -288,7 +288,7 @@ export default function MyPapersPage() {
 																key={reviewer.id}
 																className='px-4 py-4'
 															>
-																<div className='flex items-center justify-between mb-2'>
+																<div className='mb-2 flex items-center justify-between'>
 																	<span className='font-medium'>{reviewer.name}</span>
 																	<span
 																		className={`inline-flex items-center rounded-md px-2.5 py-1 text-xs font-semibold ${getReviewerStatusToneClass(
@@ -299,9 +299,9 @@ export default function MyPapersPage() {
 																	</span>
 																</div>
 																{reviewer.feedback ? (
-																	<p className='text-sm text-muted-foreground'>{reviewer.feedback}</p>
+																	<p className='text-muted-foreground text-sm'>{reviewer.feedback}</p>
 																) : (
-																	<p className='text-sm text-muted-foreground italic'>Awaiting feedback...</p>
+																	<p className='text-muted-foreground text-sm italic'>Awaiting feedback...</p>
 																)}
 															</div>
 														))}
@@ -331,7 +331,7 @@ export default function MyPapersPage() {
 					{editState && (
 						<form
 							onSubmit={handleUpdateSubmit}
-							className='flex-1 flex flex-col'
+							className='flex flex-1 flex-col'
 						>
 							<div className='flex-1 space-y-6 px-4 py-6'>
 								<div className='space-y-2'>
@@ -355,10 +355,10 @@ export default function MyPapersPage() {
 											setEditState((s) => (s ? { ...s, file } : s))
 										}}
 									/>
-									{editState.file && <p className='text-xs text-muted-foreground'>Selected: {editState.file.name}</p>}
+									{editState.file && <p className='text-muted-foreground text-xs'>Selected: {editState.file.name}</p>}
 								</div>
 
-								{updateError && <p className='text-sm text-destructive'>{updateError}</p>}
+								{updateError && <p className='text-destructive text-sm'>{updateError}</p>}
 							</div>
 
 							<SheetFooter>

@@ -60,18 +60,18 @@ const stats = [
 
 export default function HomePage() {
 	return (
-		<div className='min-h-screen bg-background'>
+		<div className='bg-background min-h-screen'>
 			{/* Hero Section */}
 			<section className='relative overflow-hidden'>
 				<div className='absolute inset-0 -z-10'>
-					<div className='absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/10' />
+					<div className='from-primary/5 to-secondary/10 absolute inset-0 bg-gradient-to-br via-transparent' />
 					<motion.div
-						className='absolute top-20 left-1/4 h-72 w-72 rounded-full bg-primary/10 blur-3xl'
+						className='bg-primary/10 absolute top-20 left-1/4 h-72 w-72 rounded-full blur-3xl'
 						animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
 						transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
 					/>
 					<motion.div
-						className='absolute bottom-20 right-1/4 h-96 w-96 rounded-full bg-secondary/20 blur-3xl'
+						className='bg-secondary/20 absolute right-1/4 bottom-20 h-96 w-96 rounded-full blur-3xl'
 						animate={{ scale: [1.2, 1, 1.2], opacity: [0.4, 0.6, 0.4] }}
 						transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
 					/>
@@ -85,8 +85,8 @@ export default function HomePage() {
 							transition={{ duration: 0.5 }}
 							className='mb-6'
 						>
-							<span className='inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-1.5 text-sm font-medium text-muted-foreground'>
-								<CalendarCheck className='h-4 w-4 text-primary' />
+							<span className='border-border bg-card text-muted-foreground inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-medium'>
+								<CalendarCheck className='text-primary h-4 w-4' />
 								Academic Conference Platform
 							</span>
 						</motion.div>
@@ -95,7 +95,7 @@ export default function HomePage() {
 							initial={{ opacity: 0, y: 20 }}
 							animate={{ opacity: 1, y: 0 }}
 							transition={{ duration: 0.5, delay: 0.1 }}
-							className='max-w-4xl text-4xl font-bold tracking-tight text-foreground sm:text-6xl lg:text-7xl'
+							className='text-foreground max-w-4xl text-4xl font-bold tracking-tight sm:text-6xl lg:text-7xl'
 						>
 							Manage conferences <span className='text-primary'>effortlessly</span>
 						</motion.h1>
@@ -104,7 +104,7 @@ export default function HomePage() {
 							initial={{ opacity: 0, y: 20 }}
 							animate={{ opacity: 1, y: 0 }}
 							transition={{ duration: 0.5, delay: 0.2 }}
-							className='mt-6 max-w-2xl text-lg text-muted-foreground sm:text-xl'
+							className='text-muted-foreground mt-6 max-w-2xl text-lg sm:text-xl'
 						>
 							eConference brings organizers, authors, and reviewers together in one unified platform. Streamline
 							submissions, reviews, and decisions.
@@ -149,8 +149,8 @@ export default function HomePage() {
 									transition={{ duration: 0.3, delay: 0.5 + index * 0.1 }}
 									className='text-center'
 								>
-									<div className='text-3xl font-bold text-primary sm:text-4xl'>{stat.value}</div>
-									<div className='mt-1 text-sm text-muted-foreground'>{stat.label}</div>
+									<div className='text-primary text-3xl font-bold sm:text-4xl'>{stat.value}</div>
+									<div className='text-muted-foreground mt-1 text-sm'>{stat.label}</div>
 								</motion.div>
 							))}
 						</motion.div>
@@ -159,17 +159,17 @@ export default function HomePage() {
 			</section>
 
 			{/* Features Section */}
-			<section className='py-24 bg-muted/30'>
+			<section className='bg-muted/30 py-24'>
 				<div className='mx-auto max-w-7xl px-4'>
 					<motion.div
 						initial={{ opacity: 0, y: 20 }}
 						whileInView={{ opacity: 1, y: 0 }}
 						viewport={{ once: true }}
 						transition={{ duration: 0.5 }}
-						className='text-center mb-16'
+						className='mb-16 text-center'
 					>
-						<h2 className='text-3xl font-bold tracking-tight text-foreground sm:text-4xl'>Everything you need</h2>
-						<p className='mt-4 text-lg text-muted-foreground max-w-2xl mx-auto'>
+						<h2 className='text-foreground text-3xl font-bold tracking-tight sm:text-4xl'>Everything you need</h2>
+						<p className='text-muted-foreground mx-auto mt-4 max-w-2xl text-lg'>
 							A complete toolkit for managing academic conferences from start to finish.
 						</p>
 					</motion.div>
@@ -183,10 +183,10 @@ export default function HomePage() {
 								viewport={{ once: true }}
 								transition={{ duration: 0.5, delay: index * 0.1 }}
 							>
-								<Card className='h-full border-border/50 bg-card/50 backdrop-blur transition-all hover:border-primary/30 hover:shadow-lg'>
+								<Card className='border-border/50 bg-card/50 hover:border-primary/30 h-full backdrop-blur transition-all hover:shadow-lg'>
 									<CardHeader>
-										<div className='mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10'>
-											<feature.icon className='h-6 w-6 text-primary' />
+										<div className='bg-primary/10 mb-4 flex h-12 w-12 items-center justify-center rounded-lg'>
+											<feature.icon className='text-primary h-6 w-6' />
 										</div>
 										<CardTitle className='text-xl'>{feature.title}</CardTitle>
 										<CardDescription className='text-base'>{feature.description}</CardDescription>
@@ -206,10 +206,10 @@ export default function HomePage() {
 						whileInView={{ opacity: 1, y: 0 }}
 						viewport={{ once: true }}
 						transition={{ duration: 0.5 }}
-						className='text-center mb-16'
+						className='mb-16 text-center'
 					>
-						<h2 className='text-3xl font-bold tracking-tight text-foreground sm:text-4xl'>How it works</h2>
-						<p className='mt-4 text-lg text-muted-foreground max-w-2xl mx-auto'>
+						<h2 className='text-foreground text-3xl font-bold tracking-tight sm:text-4xl'>How it works</h2>
+						<p className='text-muted-foreground mx-auto mt-4 max-w-2xl text-lg'>
 							Get your conference up and running in four simple steps.
 						</p>
 					</motion.div>
@@ -227,15 +227,15 @@ export default function HomePage() {
 								<div className='flex flex-col items-center text-center'>
 									<motion.div
 										whileHover={{ scale: 1.1 }}
-										className='mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-primary text-2xl font-bold text-primary-foreground'
+										className='bg-primary text-primary-foreground mb-6 flex h-16 w-16 items-center justify-center rounded-full text-2xl font-bold'
 									>
 										{step.number}
 									</motion.div>
-									<h3 className='text-xl font-semibold text-foreground'>{step.title}</h3>
-									<p className='mt-2 text-muted-foreground'>{step.description}</p>
+									<h3 className='text-foreground text-xl font-semibold'>{step.title}</h3>
+									<p className='text-muted-foreground mt-2'>{step.description}</p>
 								</div>
 								{index < steps.length - 1 && (
-									<div className='absolute top-8 left-[calc(50%+40px)] hidden h-0.5 w-[calc(100%-80px)] bg-border lg:block' />
+									<div className='bg-border absolute top-8 left-[calc(50%+40px)] hidden h-0.5 w-[calc(100%-80px)] lg:block' />
 								)}
 							</motion.div>
 						))}
@@ -244,7 +244,7 @@ export default function HomePage() {
 			</section>
 
 			{/* CTA Section */}
-			<section className='py-24 bg-primary/5'>
+			<section className='bg-primary/5 py-24'>
 				<div className='mx-auto max-w-7xl px-4'>
 					<motion.div
 						initial={{ opacity: 0, scale: 0.95 }}
@@ -252,10 +252,10 @@ export default function HomePage() {
 						viewport={{ once: true }}
 						transition={{ duration: 0.5 }}
 					>
-						<Card className='border-0 bg-card shadow-xl'>
+						<Card className='bg-card border-0 shadow-xl'>
 							<CardContent className='flex flex-col items-center py-16 text-center'>
-								<h2 className='text-3xl font-bold tracking-tight text-foreground sm:text-4xl'>Ready to get started?</h2>
-								<p className='mt-4 max-w-xl text-lg text-muted-foreground'>
+								<h2 className='text-foreground text-3xl font-bold tracking-tight sm:text-4xl'>Ready to get started?</h2>
+								<p className='text-muted-foreground mt-4 max-w-xl text-lg'>
 									Join eConference today and experience a better way to manage academic conferences.
 								</p>
 								<div className='mt-8 flex flex-col gap-4 sm:flex-row'>
@@ -283,14 +283,14 @@ export default function HomePage() {
 			</section>
 
 			{/* Footer */}
-			<footer className='border-t border-border py-12'>
+			<footer className='border-border border-t py-12'>
 				<div className='mx-auto max-w-7xl px-4'>
 					<div className='flex flex-col items-center justify-between gap-4 sm:flex-row'>
 						<div className='flex items-center gap-2'>
-							<CalendarCheck className='h-6 w-6 text-primary' />
+							<CalendarCheck className='text-primary h-6 w-6' />
 							<span className='text-lg font-semibold'>eConference</span>
 						</div>
-						<p className='text-sm text-muted-foreground'>
+						<p className='text-muted-foreground text-sm'>
 							© {new Date().getFullYear()} eConference. Academic conference management.
 						</p>
 					</div>

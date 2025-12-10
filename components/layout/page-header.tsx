@@ -24,7 +24,7 @@ export function PageTitle({ className, ...props }: React.HTMLAttributes<HTMLHead
 export function PageDescription({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) {
 	return (
 		<p
-			className={cn('mt-1 text-muted-foreground', className)}
+			className={cn('text-muted-foreground mt-1', className)}
 			{...props}
 		/>
 	)

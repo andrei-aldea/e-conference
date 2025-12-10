@@ -118,14 +118,14 @@ export function ConferenceCard({ conference, reviewers, onUpdate, onDelete }: Co
 		<Card className='overflow-hidden'>
 			<div className='flex items-stretch'>
 				{/* Status Indicator Bar */}
-				<div className='w-1.5 bg-primary' />
+				<div className='bg-primary w-1.5' />
 
 				<div className='flex-1'>
 					<CardHeader className='pb-4'>
 						<div className='flex items-start justify-between gap-4'>
 							<div className='space-y-2'>
 								<CardTitle className='text-xl'>{conference.name}</CardTitle>
-								<div className='flex items-center gap-2 text-sm text-muted-foreground'>
+								<div className='text-muted-foreground flex items-center gap-2 text-sm'>
 									{conference.location && (
 										<span className='flex items-center gap-1'>
 											<MapPin className='h-3 w-3' />
@@ -135,7 +135,7 @@ export function ConferenceCard({ conference, reviewers, onUpdate, onDelete }: Co
 								</div>
 							</div>
 							<div className='flex items-center gap-3'>
-								<span className='inline-flex items-center rounded-md px-3 py-1.5 text-sm font-semibold bg-primary/10 text-primary'>
+								<span className='bg-primary/10 text-primary inline-flex items-center rounded-md px-3 py-1.5 text-sm font-semibold'>
 									{conference.papers.length} Papers
 								</span>
 
@@ -153,7 +153,7 @@ export function ConferenceCard({ conference, reviewers, onUpdate, onDelete }: Co
 												Assign
 											</Button>
 										</DialogTrigger>
-										<DialogContent className='max-w-4xl max-h-[80vh] overflow-y-auto'>
+										<DialogContent className='max-h-[80vh] max-w-4xl overflow-y-auto'>
 											<DialogHeader>
 												<DialogTitle>Manage Assignments</DialogTitle>
 												<DialogDescription>Assign reviewers to papers for {conference.name}</DialogDescription>
@@ -228,9 +228,9 @@ export function ConferenceCard({ conference, reviewers, onUpdate, onDelete }: Co
 
 					<CardContent className='pt-0 pb-6'>
 						{/* Actions Row */}
-						<div className='flex items-center gap-4 mb-6'>
+						<div className='mb-6 flex items-center gap-4'>
 							{conference.startDate && (
-								<div className='inline-flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-sm font-medium'>
+								<div className='bg-muted inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium'>
 									<Calendar className='h-4 w-4' />
 									{new Date(conference.startDate).toLocaleDateString()}
 									{conference.endDate && ` - ${new Date(conference.endDate).toLocaleDateString()}`}
@@ -239,12 +239,12 @@ export function ConferenceCard({ conference, reviewers, onUpdate, onDelete }: Co
 						</div>
 
 						{/* Description Section */}
-						<div className='rounded-lg border bg-card'>
-							<div className='flex items-center gap-2 px-4 py-3 border-b bg-muted/30'>
+						<div className='bg-card rounded-lg border'>
+							<div className='bg-muted/30 flex items-center gap-2 border-b px-4 py-3'>
 								<span className='text-sm font-medium'>Description</span>
 							</div>
 							<div className='px-4 py-4'>
-								<p className='text-sm text-muted-foreground'>{conference.description || 'No description provided.'}</p>
+								<p className='text-muted-foreground text-sm'>{conference.description || 'No description provided.'}</p>
 							</div>
 						</div>
 					</CardContent>
@@ -318,7 +318,7 @@ function AssignmentsTable({
 	}
 
 	if (papers.length === 0) {
-		return <p className='text-sm text-muted-foreground'>No papers submitted yet.</p>
+		return <p className='text-muted-foreground text-sm'>No papers submitted yet.</p>
 	}
 
 	return (
@@ -340,7 +340,7 @@ function AssignmentsTable({
 							>
 								<td className='py-3 pr-4'>
 									<div className='font-medium'>{paper.title}</div>
-									<div className='text-xs text-muted-foreground'>
+									<div className='text-muted-foreground text-xs'>
 										{paper.createdAt ? new Date(paper.createdAt).toLocaleDateString() : '-'}
 									</div>
 								</td>
@@ -352,10 +352,10 @@ function AssignmentsTable({
 											{paper.reviewers.map((r) => (
 												<span
 													key={r.id}
-													className='inline-flex items-center rounded bg-muted px-2 py-0.5 text-xs'
+													className='bg-muted inline-flex items-center rounded px-2 py-0.5 text-xs'
 												>
 													{r.name}
-													<span className='ml-1 text-muted-foreground'>({getReviewerStatusLabel(r.status)})</span>
+													<span className='text-muted-foreground ml-1'>({getReviewerStatusLabel(r.status)})</span>
 												</span>
 											))}
 										</div>
@@ -394,17 +394,17 @@ function AssignmentsTable({
 			</div>
 
 			{assigningPaper && (
-				<div className='rounded-lg border p-4 bg-muted/50'>
+				<div className='bg-muted/50 rounded-lg border p-4'>
 					<h4 className='mb-3 font-medium'>Assign Reviewers for selected paper</h4>
 					{reviewers.length === 0 ? (
-						<p className='text-sm text-muted-foreground'>No reviewers available.</p>
+						<p className='text-muted-foreground text-sm'>No reviewers available.</p>
 					) : (
 						<div className='space-y-2'>
 							<div className='grid grid-cols-2 gap-2'>
 								{reviewers.map((r) => (
 									<label
 										key={r.id}
-										className='flex items-center gap-2 text-sm cursor-pointer'
+										className='flex cursor-pointer items-center gap-2 text-sm'
 									>
 										<Checkbox
 											checked={selectedReviewers.includes(r.id)}

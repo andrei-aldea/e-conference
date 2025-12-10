@@ -77,13 +77,13 @@ export default function ContactPage() {
 	}
 
 	return (
-		<div className='min-h-screen bg-background'>
+		<div className='bg-background min-h-screen'>
 			{/* Hero */}
 			<section className='relative overflow-hidden py-24'>
 				<div className='absolute inset-0 -z-10'>
-					<div className='absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/10' />
+					<div className='from-primary/5 to-secondary/10 absolute inset-0 bg-gradient-to-br via-transparent' />
 					<motion.div
-						className='absolute top-1/4 right-1/4 h-64 w-64 rounded-full bg-primary/10 blur-3xl'
+						className='bg-primary/10 absolute top-1/4 right-1/4 h-64 w-64 rounded-full blur-3xl'
 						animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
 						transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
 					/>
@@ -94,7 +94,7 @@ export default function ContactPage() {
 						initial={{ opacity: 0, y: 20 }}
 						animate={{ opacity: 1, y: 0 }}
 						transition={{ duration: 0.5 }}
-						className='text-4xl font-bold tracking-tight text-foreground sm:text-5xl'
+						className='text-foreground text-4xl font-bold tracking-tight sm:text-5xl'
 					>
 						Get in <span className='text-primary'>touch</span>
 					</motion.h1>
@@ -102,7 +102,7 @@ export default function ContactPage() {
 						initial={{ opacity: 0, y: 20 }}
 						animate={{ opacity: 1, y: 0 }}
 						transition={{ duration: 0.5, delay: 0.1 }}
-						className='mt-4 text-lg text-muted-foreground'
+						className='text-muted-foreground mt-4 text-lg'
 					>
 						Have questions about eConference? We&apos;re here to help.
 					</motion.p>
@@ -139,7 +139,7 @@ export default function ContactPage() {
 													name='name'
 													placeholder='Your full name'
 												/>
-												{errors.name && <p className='text-sm text-destructive'>{errors.name}</p>}
+												{errors.name && <p className='text-destructive text-sm'>{errors.name}</p>}
 											</div>
 											<div className='space-y-2'>
 												<Label htmlFor='email'>Email</Label>
@@ -149,7 +149,7 @@ export default function ContactPage() {
 													type='email'
 													placeholder='you@company.com'
 												/>
-												{errors.email && <p className='text-sm text-destructive'>{errors.email}</p>}
+												{errors.email && <p className='text-destructive text-sm'>{errors.email}</p>}
 											</div>
 										</div>
 
@@ -161,7 +161,7 @@ export default function ContactPage() {
 												placeholder='How can we help you?'
 												rows={5}
 											/>
-											{errors.message && <p className='text-sm text-destructive'>{errors.message}</p>}
+											{errors.message && <p className='text-destructive text-sm'>{errors.message}</p>}
 										</div>
 
 										<Button
@@ -200,20 +200,20 @@ export default function ContactPage() {
 											transition={{ delay: 0.3 + index * 0.1 }}
 											className='flex items-start gap-4'
 										>
-											<div className='flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10'>
-												<info.icon className='h-5 w-5 text-primary' />
+											<div className='bg-primary/10 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg'>
+												<info.icon className='text-primary h-5 w-5' />
 											</div>
 											<div>
-												<p className='font-medium text-foreground'>{info.title}</p>
+												<p className='text-foreground font-medium'>{info.title}</p>
 												{info.href ? (
 													<Link
 														href={info.href}
-														className='text-sm text-muted-foreground hover:text-primary transition-colors'
+														className='text-muted-foreground hover:text-primary text-sm transition-colors'
 													>
 														{info.value}
 													</Link>
 												) : (
-													<p className='text-sm text-muted-foreground'>{info.value}</p>
+													<p className='text-muted-foreground text-sm'>{info.value}</p>
 												)}
 											</div>
 										</motion.div>

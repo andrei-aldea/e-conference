@@ -53,14 +53,14 @@ export function AppSidebar() {
 	const roleLinks = role && navigation[role] ? navigation[role] : []
 
 	return (
-		<Sidebar className='border-r border-border'>
+		<Sidebar className='border-border border-r'>
 			{/* Header with Logo */}
-			<SidebarHeader className='px-3 py-4 border-b border-border'>
+			<SidebarHeader className='border-border border-b px-3 py-4'>
 				<Link
 					href='/dashboard'
 					className='flex items-center gap-2 px-3'
 				>
-					<CalendarCheck className='h-6 w-6 text-primary' />
+					<CalendarCheck className='text-primary h-6 w-6' />
 					<span className='text-lg font-bold tracking-tight'>eConference</span>
 				</Link>
 			</SidebarHeader>
@@ -68,7 +68,7 @@ export function AppSidebar() {
 			{/* Main Navigation */}
 			<SidebarContent className='px-3 py-4'>
 				<SidebarGroup>
-					<SidebarGroupLabel className='text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2'>
+					<SidebarGroupLabel className='text-muted-foreground mb-2 text-xs font-semibold tracking-wider uppercase'>
 						Navigation
 					</SidebarGroupLabel>
 					<SidebarMenu className='space-y-1'>
@@ -80,7 +80,7 @@ export function AppSidebar() {
 									className='h-10 px-3 text-[15px] font-medium'
 								>
 									<Link href={item.href}>
-										<item.icon className='h-5 w-5 text-primary' />
+										<item.icon className='text-primary h-5 w-5' />
 										<span>{item.name}</span>
 									</Link>
 								</SidebarMenuButton>
@@ -91,7 +91,7 @@ export function AppSidebar() {
 
 				{roleLinks.length > 0 && (
 					<SidebarGroup className='mt-6'>
-						<SidebarGroupLabel className='text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2'>
+						<SidebarGroupLabel className='text-muted-foreground mb-2 text-xs font-semibold tracking-wider uppercase'>
 							{role === 'author' ? 'Author Tools' : role === 'organizer' ? 'Organizer Tools' : 'Reviewer Tools'}
 						</SidebarGroupLabel>
 						<SidebarMenu className='space-y-1'>
@@ -103,7 +103,7 @@ export function AppSidebar() {
 										className='h-10 px-3 text-[15px] font-medium'
 									>
 										<Link href={item.href}>
-											<item.icon className='h-5 w-5 text-primary' />
+											<item.icon className='text-primary h-5 w-5' />
 											<span>{item.name}</span>
 										</Link>
 									</SidebarMenuButton>
@@ -115,15 +115,15 @@ export function AppSidebar() {
 			</SidebarContent>
 
 			{/* Footer with User Info */}
-			<SidebarFooter className='p-4 border-t border-border'>
+			<SidebarFooter className='border-border border-t p-4'>
 				{user && (
-					<div className='mb-4 flex items-center gap-3 rounded-lg bg-muted p-3'>
-						<div className='flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-bold'>
+					<div className='bg-muted mb-4 flex items-center gap-3 rounded-lg p-3'>
+						<div className='bg-primary text-primary-foreground flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold'>
 							{getInitials(user.name)}
 						</div>
-						<div className='flex-1 min-w-0'>
-							<p className='text-sm font-semibold truncate'>{user.name || 'User'}</p>
-							<p className='text-xs text-muted-foreground truncate'>@{user.username || 'user'}</p>
+						<div className='min-w-0 flex-1'>
+							<p className='truncate text-sm font-semibold'>{user.name || 'User'}</p>
+							<p className='text-muted-foreground truncate text-xs'>@{user.username || 'user'}</p>
 						</div>
 					</div>
 				)}
@@ -131,7 +131,7 @@ export function AppSidebar() {
 					<SidebarMenuItem>
 						<SidebarMenuButton
 							onClick={() => signOut({ callbackUrl: '/login' })}
-							className='h-10 px-3 text-[15px] font-medium text-destructive hover:bg-destructive/10 hover:text-destructive'
+							className='text-destructive hover:bg-destructive/10 hover:text-destructive h-10 px-3 text-[15px] font-medium'
 						>
 							<LogOut className='h-5 w-5' />
 							<span>Log out</span>

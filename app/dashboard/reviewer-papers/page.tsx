@@ -145,7 +145,7 @@ export default function ReviewerPapersPage() {
 	if (!user) {
 		return (
 			<div className='flex flex-col items-center justify-center py-16 text-center'>
-				<Waypoints className='h-12 w-12 text-muted-foreground mb-4' />
+				<Waypoints className='text-muted-foreground mb-4 h-12 w-12' />
 				<h2 className='text-xl font-semibold'>Sign in required</h2>
 				<p className='text-muted-foreground mt-2'>You must be logged in to view assigned papers.</p>
 			</div>
@@ -155,7 +155,7 @@ export default function ReviewerPapersPage() {
 	if (user.role !== 'reviewer') {
 		return (
 			<div className='flex flex-col items-center justify-center py-16 text-center'>
-				<Waypoints className='h-12 w-12 text-muted-foreground mb-4' />
+				<Waypoints className='text-muted-foreground mb-4 h-12 w-12' />
 				<h2 className='text-xl font-semibold'>Reviewers Only</h2>
 				<p className='text-muted-foreground mt-2'>Only reviewers can view assigned papers.</p>
 			</div>
@@ -194,7 +194,7 @@ export default function ReviewerPapersPage() {
 			) : assignments.length === 0 ? (
 				<Card>
 					<CardContent className='flex flex-col items-center py-16 text-center'>
-						<Waypoints className='h-12 w-12 text-muted-foreground mb-4' />
+						<Waypoints className='text-muted-foreground mb-4 h-12 w-12' />
 						<h3 className='text-lg font-medium'>No papers assigned</h3>
 						<p className='text-muted-foreground mt-2'>You haven&apos;t been assigned any papers to review yet.</p>
 					</CardContent>
@@ -213,8 +213,8 @@ export default function ReviewerPapersPage() {
 										assignment.status === 'accepted'
 											? 'bg-primary'
 											: assignment.status === 'declined'
-											? 'bg-destructive'
-											: 'bg-muted-foreground'
+												? 'bg-destructive'
+												: 'bg-muted-foreground'
 									}`}
 								/>
 
@@ -238,7 +238,7 @@ export default function ReviewerPapersPage() {
 													variant='outline'
 													onClick={() => startEditing(assignment)}
 												>
-													<Pencil className='h-4 w-4 mr-1.5' />
+													<Pencil className='mr-1.5 h-4 w-4' />
 													Review
 												</Button>
 											</div>
@@ -247,8 +247,8 @@ export default function ReviewerPapersPage() {
 
 									<CardContent className='pt-0 pb-6'>
 										{/* Actions Row */}
-										<div className='flex items-center gap-4 mb-6'>
-											<div className='inline-flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-sm font-medium'>
+										<div className='mb-6 flex items-center gap-4'>
+											<div className='bg-muted inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium'>
 												<User className='h-4 w-4' />
 												{assignment.author.name}
 											</div>
@@ -257,7 +257,7 @@ export default function ReviewerPapersPage() {
 													href={assignment.file.downloadUrl}
 													target='_blank'
 													rel='noopener noreferrer'
-													className='inline-flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-sm font-medium hover:bg-muted/80 transition-colors'
+													className='bg-muted hover:bg-muted/80 inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors'
 												>
 													<FileText className='h-4 w-4' />
 													View PDF
@@ -267,15 +267,15 @@ export default function ReviewerPapersPage() {
 										</div>
 
 										{/* Feedback Section */}
-										<div className='rounded-lg border bg-card'>
-											<div className='flex items-center gap-2 px-4 py-3 border-b bg-muted/30'>
+										<div className='bg-card rounded-lg border'>
+											<div className='bg-muted/30 flex items-center gap-2 border-b px-4 py-3'>
 												<span className='text-sm font-medium'>Your Feedback</span>
 											</div>
 											<div className='px-4 py-4'>
 												{assignment.feedback ? (
-													<p className='text-sm text-muted-foreground'>{assignment.feedback}</p>
+													<p className='text-muted-foreground text-sm'>{assignment.feedback}</p>
 												) : (
-													<p className='text-sm text-muted-foreground italic'>No feedback submitted yet.</p>
+													<p className='text-muted-foreground text-sm italic'>No feedback submitted yet.</p>
 												)}
 											</div>
 										</div>
@@ -299,7 +299,7 @@ export default function ReviewerPapersPage() {
 					</SheetHeader>
 
 					{editState && (
-						<div className='flex-1 flex flex-col'>
+						<div className='flex flex-1 flex-col'>
 							<div className='flex-1 space-y-6 px-4 py-6'>
 								<div className='space-y-2'>
 									<Label htmlFor='review-status'>Decision</Label>
@@ -335,12 +335,12 @@ export default function ReviewerPapersPage() {
 										rows={6}
 										placeholder='Share constructive feedback for the author'
 									/>
-									<p className='text-xs text-muted-foreground'>
+									<p className='text-muted-foreground text-xs'>
 										{editState.feedback.length}/{REVIEWER_FEEDBACK_MAX_LENGTH} characters
 									</p>
 								</div>
 
-								{saveError && <p className='text-sm text-destructive'>{saveError}</p>}
+								{saveError && <p className='text-destructive text-sm'>{saveError}</p>}
 							</div>
 
 							<SheetFooter>

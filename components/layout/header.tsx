@@ -20,14 +20,14 @@ export function SiteHeader() {
 	const pathname = usePathname()
 
 	return (
-		<header className='sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-lg'>
+		<header className='border-border/50 bg-background/80 sticky top-0 z-50 border-b backdrop-blur-lg'>
 			<div className='mx-auto flex max-w-7xl items-center justify-between px-4 py-4'>
 				{/* Logo */}
 				<Link
 					href='/'
-					className='flex items-center gap-2 text-foreground transition hover:opacity-80'
+					className='text-foreground flex items-center gap-2 transition hover:opacity-80'
 				>
-					<CalendarCheck className='h-7 w-7 text-primary' />
+					<CalendarCheck className='text-primary h-7 w-7' />
 					<span className='text-xl font-bold'>eConference</span>
 				</Link>
 
@@ -37,7 +37,7 @@ export function SiteHeader() {
 						<Link
 							key={item.href}
 							href={item.href}
-							className={`text-sm font-medium transition-colors hover:text-primary ${
+							className={`hover:text-primary text-sm font-medium transition-colors ${
 								pathname === item.href ? 'text-foreground' : 'text-muted-foreground'
 							}`}
 						>
@@ -86,7 +86,7 @@ export function SiteHeader() {
 						animate={{ opacity: 1, height: 'auto' }}
 						exit={{ opacity: 0, height: 0 }}
 						transition={{ duration: 0.2 }}
-						className='border-t border-border/50 bg-background md:hidden'
+						className='border-border/50 bg-background border-t md:hidden'
 					>
 						<div className='mx-auto max-w-7xl px-4 py-4'>
 							<nav className='flex flex-col gap-4'>
@@ -100,7 +100,7 @@ export function SiteHeader() {
 										<Link
 											href={item.href}
 											onClick={() => setMobileMenuOpen(false)}
-											className={`block py-2 text-lg font-medium transition-colors hover:text-primary ${
+											className={`hover:text-primary block py-2 text-lg font-medium transition-colors ${
 												pathname === item.href ? 'text-foreground' : 'text-muted-foreground'
 											}`}
 										>

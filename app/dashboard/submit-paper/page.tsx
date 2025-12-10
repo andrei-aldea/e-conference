@@ -123,7 +123,7 @@ export default function SubmitPaperPage() {
 	if (!user || user.role !== 'author') {
 		return (
 			<div className='flex flex-col items-center justify-center py-16 text-center'>
-				<FileUp className='h-12 w-12 text-muted-foreground mb-4' />
+				<FileUp className='text-muted-foreground mb-4 h-12 w-12' />
 				<h2 className='text-xl font-semibold'>Authors Only</h2>
 				<p className='text-muted-foreground mt-2'>Only authors can submit papers.</p>
 			</div>
@@ -174,7 +174,7 @@ export default function SubmitPaperPage() {
 											</SelectContent>
 										</Select>
 										{!isLoadingConferences && conferences.length === 0 && (
-											<p className='text-sm text-muted-foreground'>No conferences available.</p>
+											<p className='text-muted-foreground text-sm'>No conferences available.</p>
 										)}
 										<FormMessage />
 									</FormItem>
@@ -200,8 +200,8 @@ export default function SubmitPaperPage() {
 
 							<div className='space-y-2'>
 								<FormLabel>Manuscript (PDF)</FormLabel>
-								<div className='rounded-lg border-2 border-dashed border-border p-6 text-center transition-colors hover:border-primary/50'>
-									<FileUp className='mx-auto h-8 w-8 text-muted-foreground mb-2' />
+								<div className='border-border hover:border-primary/50 rounded-lg border-2 border-dashed p-6 text-center transition-colors'>
+									<FileUp className='text-muted-foreground mx-auto mb-2 h-8 w-8' />
 									<Input
 										type='file'
 										accept='.pdf,application/pdf'
@@ -216,13 +216,13 @@ export default function SubmitPaperPage() {
 									/>
 									<label
 										htmlFor='manuscript-upload'
-										className='cursor-pointer text-sm text-primary hover:underline'
+										className='text-primary cursor-pointer text-sm hover:underline'
 									>
 										{selectedFile ? selectedFile.name : 'Click to upload PDF'}
 									</label>
-									<p className='text-xs text-muted-foreground mt-1'>Maximum size: {MANUSCRIPT_MAX_SIZE_LABEL}</p>
+									<p className='text-muted-foreground mt-1 text-xs'>Maximum size: {MANUSCRIPT_MAX_SIZE_LABEL}</p>
 								</div>
-								{fileError && <p className='text-sm text-destructive'>{fileError}</p>}
+								{fileError && <p className='text-destructive text-sm'>{fileError}</p>}
 							</div>
 
 							<Button

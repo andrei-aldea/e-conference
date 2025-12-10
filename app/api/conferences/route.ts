@@ -55,10 +55,13 @@ export async function GET(request: NextRequest) {
 
 			const reviewers = await getCachedReviewers()
 
-			const reviewerLookup = reviewers.reduce((acc: Record<string, string>, r: { id: string; name: string | null }) => {
-				acc[r.id] = r.name ?? 'Reviewer'
-				return acc
-			}, {} as Record<string, string>)
+			const reviewerLookup = reviewers.reduce(
+				(acc: Record<string, string>, r: { id: string; name: string | null }) => {
+					acc[r.id] = r.name ?? 'Reviewer'
+					return acc
+				},
+				{} as Record<string, string>
+			)
 
 			const conferences = await getCachedOrganizerConferences(uid)
 
