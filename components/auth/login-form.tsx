@@ -43,6 +43,7 @@ export function LoginForm() {
 			if (result?.error) {
 				toast.error('Invalid username or password')
 			} else {
+				toast.success('Welcome back!')
 				router.push('/dashboard')
 				router.refresh()
 			}
